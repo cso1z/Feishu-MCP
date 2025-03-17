@@ -1,0 +1,37 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - feishuAppId
+      - feishuAppSecret
+    properties:
+      feishuAppId:
+        type: string
+        description: Your Feishu App ID
+      feishuAppSecret:
+        type: string
+        description: Your Feishu App Secret
+      port:
+        type: number
+        default: 3333
+        description: Port to run the server on
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js', '--stdio'],
+      env: {
+        FEISHU_APP_ID: config.feishuAppId,
+        FEISHU_APP_SECRET: config.feishuAppSecret,
+        PORT: config.port ? config.port.toString() : '3333'
+      }
+    })
+  exampleConfig:
+    feishuAppId: dummy-app-id
+    feishuAppSecret: dummy-app-secret
+    port: 3333
