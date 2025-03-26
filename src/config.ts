@@ -34,17 +34,14 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
       port: {
         type: "number",
         description: "Port to run the server on",
-        default: 3335,
       },
       "feishu-app-id": {
         type: "string",
         description: "Feishu App ID",
-        default:  "cli_a75a8ca0ac79100c",
       },
       "feishu-app-secret": {
         type: "string",
         description: "Feishu App Secret",
-        default: "4spDkm3qA8lplSLWGL6NAbNMmuFj6JWa",
       },
     })
     .help()
