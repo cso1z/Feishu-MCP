@@ -772,10 +772,10 @@ export class FeishuMcpServer {
     Logger.log = console.log;
     Logger.error = console.error;
 
-    app.listen(port);
-    Logger.log(`HTTP server listening on port ${port}`);
-    Logger.log(`SSE endpoint available at http://localhost:${port}/sse`);
-    Logger.log(`Message endpoint available at http://localhost:${port}/messages`);
-    Logger.log(`监听完成`);
+    app.listen(port, () => {
+      Logger.log(`HTTP server listening on port ${port}`);
+      Logger.log(`SSE endpoint available at http://localhost:${port}/sse`);
+      Logger.log(`Message endpoint available at http://localhost:${port}/messages`);
+    });
   }
 }
