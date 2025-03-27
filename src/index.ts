@@ -30,11 +30,14 @@ export async function startServer(): Promise<void> {
   } else {
     console.log(`Initializing Feishu MCP Server in HTTP mode on port ${config.port}...`);
     await server.startHttpServer(config.port);
+    console.log(`Finished Initializing Feishu MCP Server `);
   }
 }
 
 // 跨平台兼容的方式检查是否直接运行
+console.log(`Check url to path`);
 const currentFilePath = fileURLToPath(import.meta.url);
+console.log(`Check process argv`);
 const executedFilePath = resolve(process.argv[1]);
 
 console.log(`meta.url:${currentFilePath}  argv:${executedFilePath}` );
