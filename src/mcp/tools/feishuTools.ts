@@ -1,12 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { formatErrorMessage } from '../utils/error.js';
-import { FeishuApiService } from '../services/feishuApiService.js';
-import { Logger } from '../utils/logger.js';
+import { formatErrorMessage } from '../../utils/error.js';
+import { FeishuApiService } from '../../services/feishuApiService.js';
+import { Logger } from '../../utils/logger.js';
 import {
   DocumentIdSchema,
   BlockIdSchema,
-} from '../types/feishuSchema.js';
+} from '../../types/feishuSchema.js';
 
 /**
  * 注册飞书相关的MCP工具

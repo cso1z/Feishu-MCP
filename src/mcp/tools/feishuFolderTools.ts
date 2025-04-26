@@ -1,13 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { formatErrorMessage } from '../utils/error.js';
-import { FeishuApiService } from '../services/feishuApiService.js';
-import { Logger } from '../utils/logger.js';
+import { formatErrorMessage } from '../../utils/error.js';
+import { FeishuApiService } from '../../services/feishuApiService.js';
+import { Logger } from '../../utils/logger.js';
 import {
   FolderTokenSchema,
   FolderNameSchema,
   OrderBySchema,
   DirectionSchema
-} from '../types/feishuSchema.js';
+} from '../../types/feishuSchema.js';
 
 /**
  * 注册飞书文件夹相关的MCP工具
