@@ -18,6 +18,7 @@ import * as path from 'path';
  * 日志管理器配置接口
  */
 export interface LoggerConfig {
+  enabled: boolean;     // 日志总开关
   minLevel: LogLevel;
   showTimestamp: boolean;
   showLevel: boolean;
@@ -34,6 +35,7 @@ export interface LoggerConfig {
  */
 export class Logger {
   private static config: LoggerConfig = {
+    enabled: true,        // 默认开启日志
     minLevel: LogLevel.DEBUG,  // 修改为DEBUG级别，确保捕获所有日志
     showTimestamp: true,
     showLevel: true,
@@ -52,12 +54,29 @@ export class Logger {
     this.config = { ...this.config, ...config };
     
     // 确保日志目录存在
-    if (this.config.logToFile) {
+    if (this.config.logToFile && this.config.enabled) {
       const logDir = path.dirname(this.config.logFilePath);
       if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir, { recursive: true });
       }
     }
+  }
+
+  /**
+   * 设置日志开关
+   * @param enabled 是否启用日志
+   */
+  public static setEnabled(enabled: boolean): void {
+    this.config.enabled = enabled;
+  }
+
+  /**
+   * 检查日志是否可输出
+   * @param level 日志级别
+   * @returns 是否可输出
+   */
+  private static canLog(level: LogLevel): boolean {
+    return this.config.enabled && level >= this.config.minLevel;
   }
 
   /**
@@ -91,7 +110,7 @@ export class Logger {
    * @param logParts 日志内容部分
    */
   private static writeToFile(logParts: any[]): void {
-    if (!this.config.logToFile) return;
+    if (!this.config.enabled || !this.config.logToFile) return;
     
     try {
       // 将日志内容转换为字符串
@@ -183,7 +202,7 @@ export class Logger {
    * @param args 日志参数
    */
   public static debug(...args: any[]): void {
-    if (this.config.minLevel <= LogLevel.DEBUG) {
+    if (this.canLog(LogLevel.DEBUG)) {
       const formattedMessage = this.formatLogMessage(LogLevel.DEBUG, args);
       console.debug(...formattedMessage);
       this.writeToFile(formattedMessage);
@@ -195,7 +214,7 @@ export class Logger {
    * @param args 日志参数
    */
   public static info(...args: any[]): void {
-    if (this.config.minLevel <= LogLevel.INFO) {
+    if (this.canLog(LogLevel.INFO)) {
       const formattedMessage = this.formatLogMessage(LogLevel.INFO, args);
       console.info(...formattedMessage);
       this.writeToFile(formattedMessage);
@@ -207,7 +226,7 @@ export class Logger {
    * @param args 日志参数
    */
   public static log(...args: any[]): void {
-    if (this.config.minLevel <= LogLevel.LOG) {
+    if (this.canLog(LogLevel.LOG)) {
       const formattedMessage = this.formatLogMessage(LogLevel.LOG, args);
       console.log(...formattedMessage);
       this.writeToFile(formattedMessage);
@@ -219,7 +238,7 @@ export class Logger {
    * @param args 日志参数
    */
   public static warn(...args: any[]): void {
-    if (this.config.minLevel <= LogLevel.WARN) {
+    if (this.canLog(LogLevel.WARN)) {
       const formattedMessage = this.formatLogMessage(LogLevel.WARN, args);
       console.warn(...formattedMessage);
       this.writeToFile(formattedMessage);
@@ -231,7 +250,7 @@ export class Logger {
    * @param args 日志参数
    */
   public static error(...args: any[]): void {
-    if (this.config.minLevel <= LogLevel.ERROR) {
+    if (this.canLog(LogLevel.ERROR)) {
       const formattedMessage = this.formatLogMessage(LogLevel.ERROR, args);
       console.error(...formattedMessage);
       this.writeToFile(formattedMessage);
@@ -247,7 +266,7 @@ export class Logger {
    * @param statusCode 响应状态码
    */
   public static logApiCall(method: string, url: string, data: any, response: any, statusCode: number): void {
-    if (this.config.minLevel <= LogLevel.DEBUG) {
+    if (this.canLog(LogLevel.DEBUG)) {
       this.debug('API调用详情:');
       this.debug(`请求: ${method} ${url}`);
       
@@ -278,7 +297,7 @@ export class Logger {
       } else {
         this.debug('响应数据: None');
       }
-    } else {
+    } else if (this.canLog(LogLevel.INFO)) {
       this.info(`API调用: ${method} ${url} - 状态码: ${statusCode}`);
     }
   }
