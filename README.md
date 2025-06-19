@@ -1,4 +1,5 @@
 # 飞书 MCP 服务器
+[![smithery badge](https://smithery.ai/badge/@cso1z/feishu-mcp)](https://smithery.ai/server/@cso1z/feishu-mcp)
 
 
 [![npm version](https://img.shields.io/npm/v/feishu-mcp?color=blue&label=npm)](https://www.npmjs.com/package/feishu-mcp)
