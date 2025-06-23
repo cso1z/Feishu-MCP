@@ -143,11 +143,43 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 ### 环境变量配置
 
-| 变量名 | 必需 | 描述 | 默认值 |
-|--------|------|------|-------|
-| `FEISHU_APP_ID` | ✅ | 飞书应用 ID | - |
-| `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥 | - |
-| `PORT` | ❌ | 服务器端口 | `3333` |
+| 适用场景 | 变量名 | 必需 | 描述 | 默认值 |
+|--------|--------|------|------|-------|
+| 单用户 | `FEISHU_APP_ID` | 二选一 | 飞书应用 ID | - |
+|  | `FEISHU_APP_SECRET` |  | 飞书应用密钥 | - |
+| 多用户 | `FEISHU_TOKEN_SERVICE_URL` | 二选一 | 自定义token服务地址，支持userKey换token | - |
+| - | `PORT` | ❌ | 服务器端口 | `3333` |
+
+
+本项目支持单一机器人、企业多账号、SaaS多租户等多种飞书接入场景，用户可根据实际需求灵活选择配置方式。
+
+> **注意：** 上表中 `FEISHU_APP_ID`+`FEISHU_APP_SECRET` 与 `FEISHU_TOKEN_SERVICE_URL` 只需配置任意一组即可，二者都配置时优先使用 `FEISHU_TOKEN_SERVICE_URL`。
+
+> "单用户"指所有请求共用同一身份（适合个人/团队机器人）；"多用户"指支持多账号/多租户token分发（适合SaaS、企业多账号等）。
+
+> **配置使用场景说明：**
+>
+> - **仅配置 `FEISHU_APP_ID` 和 `FEISHU_APP_SECRET`**：适用于单一应用/机器人场景，所有请求共用同一飞书身份。
+> - **仅配置 `FEISHU_TOKEN_SERVICE_URL`**：适用于多用户、多身份、需自定义token分发的场景（如SaaS、企业多账号、按用户授权等）。服务端需实现token分发接口。
+> - **两者都配置时**：优先使用 `FEISHU_TOKEN_SERVICE_URL`，仅当该服务未配置或userKey为空时才回退到应用ID/密钥。
+>
+> **推荐：**
+> - 普通个人/团队机器人建议直接用 `FEISHU_APP_ID` + `FEISHU_APP_SECRET`。
+> - 需要支持多用户隔离、按用户授权的高级场景建议实现并配置 `FEISHU_TOKEN_SERVICE_URL`。
+
+### 自定义 Token 服务接口(FEISHU_TOKEN_SERVICE_URL)说明
+
+- **请求类型**: `POST`
+- **请求参数格式**:
+  ```json
+  { "userKey": "string" }
+  ```
+- **返回数据格式**:
+  ```json
+  { "token": "string", "expire": 3600 }
+  ```
+  - `token`：飞书访问令牌（必填）
+  - `expire`：令牌有效期（可选，单位：秒，默认3600）
 
 ### 命令行参数
 

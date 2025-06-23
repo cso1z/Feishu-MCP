@@ -40,7 +40,7 @@ export class Logger {
     showTimestamp: true,
     showLevel: true,
     timestampFormat: 'yyyy-MM-dd HH:mm:ss.SSS',
-    logToFile: false,
+    logToFile: true,
     logFilePath: 'log/log.txt',
     maxObjectDepth: 2,         // 限制对象序列化深度
     maxObjectStringLength: 5000000 // 限制序列化后字符串长度
@@ -111,8 +111,12 @@ export class Logger {
    */
   private static writeToFile(logParts: any[]): void {
     if (!this.config.enabled || !this.config.logToFile) return;
-    
     try {
+      // 自动创建日志目录
+      const logDir = path.dirname(this.config.logFilePath);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
       // 将日志内容转换为字符串
       let logString = '';
       for (const part of logParts) {
@@ -127,10 +131,8 @@ export class Logger {
           logString += part + ' ';
         }
       }
-      
       // 添加换行符
       logString += '\n';
-      
       // 以追加模式写入文件
       fs.appendFileSync(this.config.logFilePath, logString);
     } catch (error) {

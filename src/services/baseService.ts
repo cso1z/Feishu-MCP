@@ -54,9 +54,10 @@ export abstract class BaseApiService {
   
   /**
    * 获取访问令牌
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 访问令牌
    */
-  protected abstract getAccessToken(): Promise<string>;
+  protected abstract getAccessToken(userKey?: string): Promise<string>;
   
   /**
    * 处理API错误
@@ -107,6 +108,7 @@ export abstract class BaseApiService {
    * @param data 请求数据
    * @param needsAuth 是否需要认证
    * @param additionalHeaders 附加请求头
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
   protected async request<T = any>(
@@ -114,7 +116,8 @@ export abstract class BaseApiService {
     method: string = 'GET', 
     data?: any, 
     needsAuth: boolean = true,
-    additionalHeaders?: Record<string, string>
+    additionalHeaders?: Record<string, string>,
+    userKey?: string
   ): Promise<T> {
     try {
       // 构建请求URL
@@ -128,7 +131,7 @@ export abstract class BaseApiService {
       
       // 添加认证令牌
       if (needsAuth) {
-        const accessToken = await this.getAccessToken();
+        const accessToken = await this.getAccessToken(userKey);
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
       
@@ -187,7 +190,7 @@ export abstract class BaseApiService {
         // 重试请求
         Logger.info('重试请求...');
         try {
-          return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders);
+          return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, userKey);
         } catch (retryError) {
           // 标记为重试请求
           (retryError as any).isRetry = true;
@@ -205,10 +208,11 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param params 请求参数
    * @param needsAuth 是否需要认证
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
-  protected async get<T = any>(endpoint: string, params?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'GET', params, needsAuth);
+  protected async get<T = any>(endpoint: string, params?: any, needsAuth: boolean = true, userKey?: string): Promise<T> {
+    return this.request<T>(endpoint, 'GET', params, needsAuth, undefined, userKey);
   }
   
   /**
@@ -216,10 +220,11 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param data 请求数据
    * @param needsAuth 是否需要认证
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
-  protected async post<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'POST', data, needsAuth);
+  protected async post<T = any>(endpoint: string, data?: any, needsAuth: boolean = true, userKey?: string): Promise<T> {
+    return this.request<T>(endpoint, 'POST', data, needsAuth, undefined, userKey);
   }
   
   /**
@@ -227,10 +232,11 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param data 请求数据
    * @param needsAuth 是否需要认证
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
-  protected async put<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'PUT', data, needsAuth);
+  protected async put<T = any>(endpoint: string, data?: any, needsAuth: boolean = true, userKey?: string): Promise<T> {
+    return this.request<T>(endpoint, 'PUT', data, needsAuth, undefined, userKey);
   }
   
   /**
@@ -238,10 +244,11 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param data 请求数据
    * @param needsAuth 是否需要认证
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
-  protected async patch<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'PATCH', data, needsAuth);
+  protected async patch<T = any>(endpoint: string, data?: any, needsAuth: boolean = true, userKey?: string): Promise<T> {
+    return this.request<T>(endpoint, 'PATCH', data, needsAuth, undefined, userKey);
   }
   
   /**
@@ -249,9 +256,10 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param data 请求数据
    * @param needsAuth 是否需要认证
+   * @param userKey 用户标识（可选），用于多用户token场景
    * @returns 响应数据
    */
-  protected async delete<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'DELETE', data, needsAuth);
+  protected async delete<T = any>(endpoint: string, data?: any, needsAuth: boolean = true, userKey?: string): Promise<T> {
+    return this.request<T>(endpoint, 'DELETE', data, needsAuth, undefined, userKey);
   }
 } 

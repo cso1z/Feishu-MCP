@@ -6,7 +6,8 @@ import {
   FolderTokenSchema,
   FolderNameSchema,
   OrderBySchema,
-  DirectionSchema
+  DirectionSchema,
+  UserKeySchema
 } from '../../types/feishuSchema.js';
 
 /**
@@ -19,8 +20,10 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
   server.tool(
     'get_feishu_root_folder_info',
     'Retrieves basic information about the root folder in Feishu Drive. Returns the token, ID and user ID of the root folder, which can be used for subsequent folder operations.',
-    {},
-    async () => {
+    {
+      userKey:UserKeySchema,
+    },
+    async ({userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -29,7 +32,7 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
         }
 
         Logger.info(`开始获取飞书根文件夹信息`);
-        const folderInfo = await feishuService.getRootFolderInfo();
+        const folderInfo = await feishuService.getRootFolderInfo(userKey);
         Logger.info(`飞书根文件夹信息获取成功，token: ${folderInfo.token}`);
 
         return {
@@ -52,9 +55,10 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
     {
       folderToken: FolderTokenSchema,
       orderBy: OrderBySchema,
-      direction: DirectionSchema
+      direction: DirectionSchema,
+      userKey: UserKeySchema,
     },
-    async ({ folderToken, orderBy = 'EditedTime', direction = 'DESC' }) => {
+    async ({ folderToken, orderBy = 'EditedTime', direction = 'DESC', userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -63,7 +67,7 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
         }
 
         Logger.info(`开始获取飞书文件夹中的文件清单，文件夹Token: ${folderToken}，排序方式: ${orderBy}，排序方向: ${direction}`);
-        const fileList = await feishuService.getFolderFileList(folderToken, orderBy, direction);
+        const fileList = await feishuService.getFolderFileList(folderToken, orderBy, direction, userKey);
         Logger.info(`飞书文件夹中的文件清单获取成功，共 ${fileList.files?.length || 0} 个文件`);
 
         return {
@@ -86,8 +90,9 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
     {
       folderToken: FolderTokenSchema,
       folderName: FolderNameSchema,
+      userKey: UserKeySchema,
     },
-    async ({ folderToken, folderName }) => {
+    async ({ folderToken, folderName, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -96,7 +101,7 @@ export function registerFeishuFolderTools(server: McpServer, feishuService: Feis
         }
 
         Logger.info(`开始创建飞书文件夹，父文件夹Token: ${folderToken}，文件夹名称: ${folderName}`);
-        const result = await feishuService.createFolder(folderToken, folderName);
+        const result = await feishuService.createFolder(folderToken, folderName,userKey);
         Logger.info(`飞书文件夹创建成功，token: ${result.token}，URL: ${result.url}`);
 
         return {

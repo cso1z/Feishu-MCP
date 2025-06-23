@@ -24,7 +24,6 @@ export class SSEConnectionManager {
     }
 
     this.keepAliveIntervalId = setInterval(() => {
-      Logger.info(`[KeepAlive] Sending keepalive to ${this.connections.size} connections`,);
       for (const [sessionId, connection] of this.connections.entries()) {
         if (!connection.res.writableEnded) {
           connection.res.write(': keepalive\n\n');

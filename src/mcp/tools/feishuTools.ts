@@ -7,6 +7,7 @@ import {
   DocumentIdSchema,
   BlockIdSchema,
   SearchKeySchema,
+  UserKeySchema,
 } from '../../types/feishuSchema.js';
 
 /**
@@ -22,11 +23,12 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     {
       title: z.string().describe('Document title (required). This will be displayed in the Feishu document list and document header.'),
       folderToken: z.string().describe('Folder token (required). Specifies where to create the document. Format is an alphanumeric string like "doxcnOu1ZKYH4RtX1Y5XwL5WGRh".'),
+      userKey: UserKeySchema,
     },
-    async ({ title, folderToken }) => {
+    async ({ title, folderToken, userKey }) => {
       try {
         Logger.info(`开始创建飞书文档，标题: ${title}${folderToken ? `，文件夹Token: ${folderToken}` : '，使用默认文件夹'}`);
-        const newDoc = await feishuService?.createDocument(title, folderToken);
+        const newDoc = await feishuService?.createDocument(title, folderToken, userKey);
         if (!newDoc) {
           throw new Error('创建文档失败，未返回文档信息');
         }
@@ -50,8 +52,9 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     'Retrieves basic information about a Feishu document. Use this to verify a document exists, check access permissions, or get metadata like title, type, and creation information.',
     {
       documentId: DocumentIdSchema,
+      userKey: UserKeySchema,
     },
-    async ({ documentId }) => {
+    async ({ documentId, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -60,7 +63,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         }
 
         Logger.info(`开始获取飞书文档信息，文档ID: ${documentId}`);
-        const docInfo = await feishuService.getDocumentInfo(documentId);
+        const docInfo = await feishuService.getDocumentInfo(documentId, userKey);
         Logger.info(`飞书文档信息获取成功，标题: ${docInfo.title}`);
 
         return {
@@ -83,8 +86,9 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     {
       documentId: DocumentIdSchema,
       lang: z.number().optional().default(0).describe('Language code (optional). Default is 0 (Chinese). Use 1 for English if available.'),
+      userKey: UserKeySchema,
     },
-    async ({ documentId, lang }) => {
+    async ({ documentId, lang, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -93,7 +97,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         }
 
         Logger.info(`开始获取飞书文档内容，文档ID: ${documentId}，语言: ${lang}`);
-        const content = await feishuService.getDocumentContent(documentId, lang);
+        const content = await feishuService.getDocumentContent(documentId, lang, userKey);
         Logger.info(`飞书文档内容获取成功，内容长度: ${content.length}字符`);
 
         return {
@@ -115,8 +119,9 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
     {
       documentId: DocumentIdSchema,
+      userKey: UserKeySchema,
     },
-    async ({ documentId }) => {
+    async ({ documentId, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -125,7 +130,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         }
 
         Logger.info(`开始获取飞书文档块，文档ID: ${documentId}`);
-        const blocks = await feishuService.getDocumentBlocks(documentId);
+        const blocks = await feishuService.getDocumentBlocks(documentId, undefined, userKey);
         Logger.info(`飞书文档块获取成功，共 ${blocks.length} 个块`);
 
         return {
@@ -148,8 +153,9 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     {
       documentId: DocumentIdSchema,
       blockId: BlockIdSchema,
+      userKey: UserKeySchema,
     },
-    async ({ documentId, blockId }) => {
+    async ({ documentId, blockId, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -158,7 +164,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         }
 
         Logger.info(`开始获取飞书块内容，文档ID: ${documentId}，块ID: ${blockId}`);
-        const blockContent = await feishuService.getBlockContent(documentId, blockId);
+        const blockContent = await feishuService.getBlockContent(documentId, blockId, userKey);
         Logger.info(`飞书块内容获取成功，块类型: ${blockContent.block_type}`);
 
         return {
@@ -180,8 +186,9 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     'Searches for documents in Feishu. Supports keyword-based search and returns document information including title, type, and owner. Use this tool to find specific content or related documents in your document library.',
     {
       searchKey: SearchKeySchema,
+      userKey: UserKeySchema,
     },
-    async ({ searchKey }) => {
+    async ({ searchKey, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -190,7 +197,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         }
 
         Logger.info(`开始搜索飞书文档，关键字: ${searchKey},`);
-        const searchResult = await feishuService.searchDocuments(searchKey);
+        const searchResult = await feishuService.searchDocuments(searchKey, undefined, userKey);
         Logger.info(`文档搜索完成，找到 ${searchResult.size} 个结果`);
         return {
           content: [

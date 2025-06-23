@@ -28,6 +28,7 @@ export interface FeishuConfig {
   appSecret: string;
   baseUrl: string;
   tokenLifetime: number;
+  tokenServiceUrl?: string;
 }
 
 /**
@@ -136,6 +137,10 @@ export class Config {
         'cache-ttl': {
           type: 'number',
           description: '缓存生存时间（秒）'
+        },
+        'feishu-token-service-url': {
+          type: 'string',
+          description: '飞书自定义token服务地址'
         }
       })
       .help()
@@ -176,6 +181,7 @@ export class Config {
       appSecret: '',
       baseUrl: 'https://open.feishu.cn/open-apis',
       tokenLifetime: 7200000 // 2小时，单位：毫秒
+      ,tokenServiceUrl: ''
     };
     
     // 处理App ID
@@ -213,6 +219,15 @@ export class Config {
       this.configSources['feishu.tokenLifetime'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.tokenLifetime'] = ConfigSource.DEFAULT;
+    }
+    
+    // 处理自定义token服务地址
+    if (argv['feishu-token-service-url']) {
+      feishuConfig.tokenServiceUrl = argv['feishu-token-service-url'];
+      this.configSources['feishu.tokenServiceUrl'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_TOKEN_SERVICE_URL) {
+      feishuConfig.tokenServiceUrl = process.env.FEISHU_TOKEN_SERVICE_URL;
+      this.configSources['feishu.tokenServiceUrl'] = ConfigSource.ENV;
     }
     
     return feishuConfig;
@@ -352,6 +367,10 @@ export class Config {
     }
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
     Logger.info(`- Token生命周期: ${this.feishu.tokenLifetime / 1000}秒 (来源: ${this.configSources['feishu.tokenLifetime']})`);
+
+    Logger.info('飞书token配置:');
+    Logger.info(`- 获取飞书Token url: ${this.feishu.tokenServiceUrl} (来源: ${this.configSources['feishu.tokenServiceUrl']})`);
+
     
     Logger.info('日志配置:');
     Logger.info(`- 日志级别: ${LogLevel[this.log.level]} (来源: ${this.configSources['log.level']})`);
@@ -384,18 +403,14 @@ export class Config {
       Logger.error('无效的服务器端口配置');
       return false;
     }
-    
-    // 验证飞书配置
-    if (!this.feishu.appId) {
-      Logger.error('缺少飞书应用ID，请通过环境变量FEISHU_APP_ID或命令行参数--feishu-app-id提供');
+
+    // 校验 (appId+appSecret) 或 tokenServiceUrl 至少有一组
+    const hasApp = !!(this.feishu.appId && this.feishu.appSecret);
+    const hasTokenService = !!this.feishu.tokenServiceUrl;
+    if (!hasApp && !hasTokenService) {
+      Logger.error('缺少飞书配置：请至少配置 FEISHU_APP_ID + FEISHU_APP_SECRET，或 FEISHU_TOKEN_SERVICE_URL');
       return false;
     }
-    
-    if (!this.feishu.appSecret) {
-      Logger.error('缺少飞书应用Secret，请通过环境变量FEISHU_APP_SECRET或命令行参数--feishu-app-secret提供');
-      return false;
-    }
-    
     return true;
   }
 } 

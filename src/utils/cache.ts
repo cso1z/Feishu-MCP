@@ -216,21 +216,23 @@ export class CacheManager {
   }
 
   /**
-   * 缓存访问令牌
+   * 缓存userKey访问令牌
    * @param token 访问令牌
    * @param expiresInSeconds 过期时间（秒）
+   * @param userKey 用户标识
    * @returns 是否成功设置缓存
    */
-  public cacheToken(token: string, expiresInSeconds: number): boolean {
-    return this.set('access_token', token, expiresInSeconds);
+  public cacheToken(token: string, expiresInSeconds: number, userKey?: string): boolean {
+    return this.set(`userToken:${userKey}`, token, expiresInSeconds);
   }
 
   /**
    * 获取缓存的访问令牌
+   * @param userKey 缓存键（可选），默认'access_token'，可用于多用户token缓存
    * @returns 访问令牌，如果未找到或已过期则返回null
    */
-  public getToken(): string | null {
-    return this.get<string>('access_token');
+  public getToken(userKey?: string): string | null {
+    return this.get<string>(`userToken:${userKey}`);
   }
 
   /**

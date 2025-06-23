@@ -18,7 +18,8 @@ import {
   CodeWrapSchema,
   BlockConfigSchema,
   MediaIdSchema,
-  MediaExtraSchema
+  MediaExtraSchema,
+  UserKeySchema
 } from '../../types/feishuSchema.js';
 
 /**
@@ -35,8 +36,9 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       documentId: DocumentIdSchema,
       blockId: BlockIdSchema,
       textElements: TextElementsArraySchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, blockId, textElements }) => {
+    async ({ documentId, blockId, textElements, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -45,7 +47,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始更新飞书块文本内容，文档ID: ${documentId}，块ID: ${blockId}`);
-        const result = await feishuService.updateBlockTextContent(documentId, blockId, textElements);
+        const result = await feishuService.updateBlockTextContent(documentId, blockId, textElements, userKey);
         Logger.info(`飞书块文本内容更新成功`);
 
         return {
@@ -70,8 +72,9 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       parentBlockId: ParentBlockIdSchema,
       index: IndexSchema,
       blocks: z.array(BlockConfigSchema).describe('Array of block configurations. CRITICAL: Must be a JSON array object, NOT a string. CORRECT: blocks:[{...}] - WITHOUT quotes around array. INCORRECT: blocks:"[{...}]". Example: [{blockType:"text",options:{text:{textStyles:[{text:"Hello",style:{bold:true}}]}}},{blockType:"heading1",options:{heading:{content:"My Title"}}}]. Auto-batches requests when exceeding 50 blocks.'),
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, index = 0, blocks }) => {
+    async ({ documentId, parentBlockId, index = 0, blocks, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -130,7 +133,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
           }
 
           // 批量创建所有块
-          const result = await feishuService.createDocumentBlocks(documentId, parentBlockId, blockContents, index);
+          const result = await feishuService.createDocumentBlocks(documentId, parentBlockId, blockContents, index, userKey);
           Logger.info(`飞书块批量创建成功，共创建 ${blockContents.length} 个块`);
 
           return {
@@ -189,7 +192,8 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
                 documentId, 
                 parentBlockId, 
                 batchBlockContents, 
-                currentStartIndex
+                currentStartIndex,
+                userKey
               );
 
               results.push(batchResult);
@@ -265,9 +269,10 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       parentBlockId: ParentBlockIdSchema,
       textContents: TextElementsArraySchema,
       align: AlignSchema,
-      index: IndexSchema
+      index: IndexSchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, textContents, align = 1, index }) => {
+    async ({ documentId, parentBlockId, textContents, align = 1, index, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -276,7 +281,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始创建飞书文本块，文档ID: ${documentId}，父块ID: ${parentBlockId}，对齐方式: ${align}，插入位置: ${index}`);
-        const result = await feishuService.createTextBlock(documentId, parentBlockId, textContents, align, index);
+        const result = await feishuService.createTextBlock(documentId, parentBlockId, textContents, align, index, userKey);
         Logger.info(`飞书文本块创建成功`);
 
         return {
@@ -302,9 +307,10 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       code: z.string().describe("Code content (required). The complete code text to display."),
       language: CodeLanguageSchema,
       wrap: CodeWrapSchema,
-      index: IndexSchema
+      index: IndexSchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, code, language = 1, wrap = false, index = 0 }) => {
+    async ({ documentId, parentBlockId, code, language = 1, wrap = false, index = 0, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -313,7 +319,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始创建飞书代码块，文档ID: ${documentId}，父块ID: ${parentBlockId}，语言: ${language}，自动换行: ${wrap}，插入位置: ${index}`);
-        const result = await feishuService.createCodeBlock(documentId, parentBlockId, code, language, wrap, index);
+        const result = await feishuService.createCodeBlock(documentId, parentBlockId, code, language, wrap, index, userKey);
         Logger.info(`飞书代码块创建成功`);
 
         return {
@@ -339,9 +345,10 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       level: z.number().min(1).max(9).describe("Heading level (required). Integer between 1 and 9, where 1 is the largest heading (h1) and 9 is the smallest (h9)."),
       content: z.string().describe("Heading text content (required). The actual text of the heading."),
       align: AlignSchemaWithValidation,
-      index: IndexSchema
+      index: IndexSchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, level, content, align = 1, index = 0 }) => {
+    async ({ documentId, parentBlockId, level, content, align = 1, index = 0, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -357,7 +364,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始创建飞书标题块，文档ID: ${documentId}，父块ID: ${parentBlockId}，标题级别: ${level}，对齐方式: ${align}，插入位置: ${index}`);
-        const result = await feishuService.createHeadingBlock(documentId, parentBlockId, content, level, index, align);
+        const result = await feishuService.createHeadingBlock(documentId, parentBlockId, content, level, index, align, userKey);
         Logger.info(`飞书标题块创建成功`);
 
         return {
@@ -383,9 +390,10 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       content: z.string().describe("List item content (required). The actual text of the list item."),
       isOrdered: z.boolean().optional().default(false).describe("Whether this is an ordered (numbered) list item. Default is false (bullet point/unordered)."),
       align: AlignSchemaWithValidation,
-      index: IndexSchema
+      index: IndexSchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, content, isOrdered = false, align = 1, index = 0 }) => {
+    async ({ documentId, parentBlockId, content, isOrdered = false, align = 1, index = 0, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -402,7 +410,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
 
         const listType = isOrdered ? "有序" : "无序";
         Logger.info(`开始创建飞书${listType}列表块，文档ID: ${documentId}，父块ID: ${parentBlockId}，对齐方式: ${align}，插入位置: ${index}`);
-        const result = await feishuService.createListBlock(documentId, parentBlockId, content, isOrdered, index, align);
+        const result = await feishuService.createListBlock(documentId, parentBlockId, content, isOrdered, index, align, userKey);
         Logger.info(`飞书${listType}列表块创建成功`);
 
         return {
@@ -424,8 +432,9 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
     'Converts a Feishu Wiki document link to a compatible document ID. This conversion is required before using wiki links with any other Feishu document tools.',
     {
       wikiUrl: z.string().describe('Wiki URL or Token (required). Supports complete URL formats like https://xxx.feishu.cn/wiki/xxxxx or direct use of the Token portion'),
+      userKey:UserKeySchema,
     },
-    async ({ wikiUrl }) => {
+    async ({ wikiUrl, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -434,7 +443,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始转换Wiki文档链接，输入: ${wikiUrl}`);
-        const documentId = await feishuService.convertWikiToDocumentId(wikiUrl);
+        const documentId = await feishuService.convertWikiToDocumentId(wikiUrl, userKey);
         
         Logger.info(`Wiki文档转换成功，可用的文档ID为: ${documentId}`);
 
@@ -462,8 +471,9 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
       parentBlockId: ParentBlockIdSchema,
       startIndex: StartIndexSchema,
       endIndex: EndIndexSchema,
+      userKey:UserKeySchema,
     },
-    async ({ documentId, parentBlockId, startIndex, endIndex }) => {
+    async ({ documentId, parentBlockId, startIndex, endIndex, userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -472,7 +482,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始删除飞书文档块，文档ID: ${documentId}，父块ID: ${parentBlockId}，索引范围: ${startIndex}-${endIndex}`);
-        const result = await feishuService.deleteDocumentBlocks(documentId, parentBlockId, startIndex, endIndex);
+        const result = await feishuService.deleteDocumentBlocks(documentId, parentBlockId, startIndex, endIndex, userKey);
         Logger.info(`飞书文档块删除成功，文档修订ID: ${result.document_revision_id}`);
 
         return {
@@ -495,8 +505,9 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
     {
       mediaId: MediaIdSchema,
       extra: MediaExtraSchema,
+      userKey:UserKeySchema,
     },
-    async ({ mediaId, extra = '' }) => {
+    async ({ mediaId, extra = '', userKey }) => {
       try {
         if (!feishuService) {
           return {
@@ -505,7 +516,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         }
 
         Logger.info(`开始获取飞书图片资源，媒体ID: ${mediaId}`);
-        const imageBuffer = await feishuService.getImageResource(mediaId, extra);
+        const imageBuffer = await feishuService.getImageResource(mediaId, extra, userKey);
         Logger.info(`飞书图片资源获取成功，大小: ${imageBuffer.length} 字节`);
 
         // 将图片数据转为Base64编码，以便在MCP协议中传输

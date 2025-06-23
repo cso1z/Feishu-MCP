@@ -192,3 +192,6 @@ export const DirectionSchema = z.string().optional().default('DESC').describe(
 export const SearchKeySchema = z.string().describe(
   'Search keyword (required). The keyword to search for in documents.'
 );
+
+// 用户Key参数定义
+export const UserKeySchema = z.string().optional().describe('User key (optional). The key of the user invoking this tool.');
