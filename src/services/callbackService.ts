@@ -69,7 +69,7 @@ export async function callback(req: Request, res: Response) {
       console.log('[callback] feishu userInfo:', userInfo);
     }
     // 存储 access_token
-    const refreshTtl = tokenResp.refresh_expires_in || 3600 * 24 * 365; // 默认1年
+    const refreshTtl = tokenResp.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
     CacheManager.getInstance().cacheUserToken(userInfo.data.open_id, tokenResp, refreshTtl);
     return sendSuccess(res, { ...data, userInfo });
   } catch (e) {
