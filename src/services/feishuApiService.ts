@@ -204,45 +204,48 @@ export class FeishuApiService extends BaseApiService {
                 const response = await this.get(endpoint, params);
                 const blocks = response.items || [];
 
-                // 精简块数据，只删除确定无用的字段
+                // 精简块数据，删除所有样式字段
                 const simplifiedBlocks = blocks.map((block: any) => {
                     const simplified = { ...block };
 
-                    // 删除确定无用的样式字段
-                    if (simplified.page?.elements) {
-                        simplified.page.elements = simplified.page.elements.map((element: any) => {
-                            if (element.text_run) {
-                                // 只删除样式信息，保留内容
-                                const { text_element_style, ...rest } = element.text_run;
-                                return { text_run: rest };
+                    // 递归删除所有样式字段的函数
+                    const removeStyleFields = (obj: any): any => {
+                        if (obj && typeof obj === 'object') {
+                            const result: any = {};
+                            for (const [key, value] of Object.entries(obj)) {
+                                // 跳过所有样式相关字段
+                                if (key === 'text_element_style' || 
+                                    key === 'style' || 
+                                    key === 'align' || 
+                                    key === 'folded' ||
+                                    key === 'bold' ||
+                                    key === 'italic' ||
+                                    key === 'strikethrough' ||
+                                    key === 'underline' ||
+                                    key === 'inline_code' ||
+                                    key === 'text_color' ||
+                                    key === 'background_color' ||
+                                    key === 'font_size' ||
+                                    key === 'font_weight' ||
+                                    key === 'horizontal_align' ||
+                                    key === 'vertical_align') {
+                                    continue;
+                                }
+                                
+                                // 递归处理嵌套对象
+                                if (value && typeof value === 'object') {
+                                    result[key] = removeStyleFields(value);
+                                } else {
+                                    result[key] = value;
+                                }
                             }
-                            return element;
-                        });
-                    }
+                            return result;
+                        }
+                        return obj;
+                    };
 
-                    if (simplified.text?.elements) {
-                        simplified.text.elements = simplified.text.elements.map((element: any) => {
-                            if (element.text_run) {
-                                // 只删除样式信息，保留内容
-                                const { text_element_style, ...rest } = element.text_run;
-                                return { text_run: rest };
-                            }
-                            return element;
-                        });
-                    }
-
-                    // 删除确定无用的格式字段
-                    if (simplified.text?.style) {
-                        const { align, folded, ...rest } = simplified.text.style;
-                        simplified.text.style = rest;
-                    }
-
-                    if (simplified.page?.style) {
-                        const { align, ...rest } = simplified.page.style;
-                        simplified.page.style = rest;
-                    }
-
-                    return simplified;
+                    // 应用样式字段删除
+                    return removeStyleFields(simplified);
                 });
 
                 allBlocks = [...allBlocks, ...simplifiedBlocks];
