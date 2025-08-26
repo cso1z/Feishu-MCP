@@ -89,6 +89,7 @@ export class FeishuApiService extends BaseApiService {
                     // const state = clientKey;
                     // const url = `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&state=${state}`;
                     // return { needAuth: true, url };
+                    throw new Error('token已过期，需要重新授权。请用浏览器打开 https://aicodermate-mcp-feishu-auth.transsion-os.com/getToken 授权后使用');
                 }
                 Logger.debug('[AuthService] User token found in cache', tokenObj);
                 // access_token已过期，但是refresh_token未过期，自动刷新token
