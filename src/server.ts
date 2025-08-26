@@ -324,9 +324,7 @@ export class FeishuMcpServer {
         response_type = 'code',
         client_id, 
         redirect_uri, 
-        scope = 'docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly' +
-            ' drive:drive drive:file:upload wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly ' +
-        'offline_access drive:drive drive:drive.metadata:readonly drive:drive drive:drive:readonly space:document:retrieve board:whiteboard:node:read',
+        scope = 'base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access drive:drive.metadata:readonly',
         state 
       } = req.query;
       

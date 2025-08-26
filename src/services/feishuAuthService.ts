@@ -24,7 +24,7 @@ export class AuthService {
         Logger.warn('[AuthService] No user token in cache, need user auth', clientKey);
         // 返回授权链接
         const redirect_uri = encodeURIComponent(`${baseUrl}/callback`);
-        const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access drive:drive drive:drive.metadata:readonly');
+        const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access drive:drive.metadata:readonly');
         const state = clientKey;
         const url = `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&state=${state}`;
         return { needAuth: true, url };
