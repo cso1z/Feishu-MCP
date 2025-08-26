@@ -6,6 +6,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 interface UserContext {
   accessToken?: string;
   userInfo?: any;
+  openId?: string; // 添加 open_id 支持
 }
 
 /**
@@ -56,6 +57,15 @@ export class UserContextManager {
   public getUserInfo(): any | undefined {
     const context = this.asyncLocalStorage.getStore();
     return context?.userInfo;
+  }
+
+  /**
+   * 获取当前上下文中的 open_id
+   * @returns open_id，如果不存在则返回 undefined
+   */
+  public getOpenId(): string | undefined {
+    const context = this.asyncLocalStorage.getStore();
+    return context?.openId;
   }
 
   /**

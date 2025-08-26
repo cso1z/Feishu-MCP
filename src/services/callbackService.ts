@@ -38,10 +38,10 @@ export async function callback(req: Request, res: Response) {
   const client_id = config.feishu.appId;
   const client_secret = config.feishu.appSecret;
   const expectedClientKey = await CacheManager.getClientKey(client_id, client_secret);
-  if (state !== expectedClientKey) {
-    console.log('[callback] state(clientKey)不匹配');
-    return sendFail(res, 'state(clientKey)不匹配', CODE.PARAM_ERROR);
-  }
+  // if (state !== expectedClientKey) {
+  //   console.log('[callback] state(clientKey)不匹配');
+  //   return sendFail(res, 'state(clientKey)不匹配', CODE.PARAM_ERROR);
+  // }
 
   const redirect_uri = `http://localhost:${config.server.port}/callback`;
   const session = (req as any).session;

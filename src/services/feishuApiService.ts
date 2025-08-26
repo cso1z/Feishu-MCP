@@ -67,12 +67,13 @@ export class FeishuApiService extends BaseApiService {
     const { appId, appSecret, authType, tokenEndpoint } = this.config.feishu;
 
     if (authType === 'user') {
-      // 从 AsyncLocalStorage 中读取用户访问令牌
+      // 从 AsyncLocalStorage 中读取用户访问令牌和 open_id
       const userContextManager = UserContextManager.getInstance();
       const userAccessToken = userContextManager.getUserAccessToken();
+      const openId = userContextManager.getOpenId();
       
       if (userAccessToken) {
-        Logger.debug(`使用用户访问令牌: ${userAccessToken.substring(0, 20)}...`);
+        Logger.debug(`使用用户访问令牌: ${userAccessToken.substring(0, 20)}...${openId ? `，open_id: ${openId}` : ''}`);
         return userAccessToken;
       }
       

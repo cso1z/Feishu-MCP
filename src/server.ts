@@ -4,7 +4,7 @@ import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
-import { callback } from './services/callbackService.js';
+import { callback,getTokenByParams } from './services/callbackService.js';
 import { Config } from './utils/config.js';
 import { verifyUserToken, AuthenticatedRequest } from './middleware/authMiddleware.js';
 import { UserContextManager } from './utils/userContext.js';
@@ -152,6 +152,130 @@ export class FeishuMcpServer {
           return;
         }
         
+        // 处理其他错误
+        if (!res.writableEnded) {
+          res.status(500).json({
+            error: 'server_error',
+            error_description: 'Internal server error while processing message.',
+            details: error.message || 'Unknown error'
+          });
+        }
+      }
+    });
+
+
+    app.get('/sse-trae', verifyUserToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      let sseTransport: SSEServerTransport | null = null;
+      try {
+        // 提取 open_id 参数
+        const openId = req.query.open_id as string;
+        Logger.info(`[SSE Connection] Received /sse-trae request with open_id: ${openId}`);
+
+        sseTransport = new SSEServerTransport('/messages-trae', res);
+        const sessionId = sseTransport.sessionId;
+        Logger.log(`[SSE Connection] New SSE connection established for sessionId ${sessionId} by user ${req.userInfo?.name}`, req.userInfo);
+
+        // 添加错误监听器
+        res.on('error', (error: any) => {
+          Logger.error(`[SSE Connection] Response stream error for ${sessionId}:`, error);
+          this.connectionManager.removeConnection(sessionId);
+        });
+
+        res.on('close', () => {
+          Logger.info(`[SSE Connection] Response stream closed for ${sessionId}`);
+          this.connectionManager.removeConnection(sessionId);
+        });
+
+        // 传递 open_id 参数给连接管理器
+        this.connectionManager.addConnection(sessionId, sseTransport, req, res, openId);
+
+        const tempServer = new FeishuMcp();
+        // 直接连接MCP服务器到SSE传输层，不使用包装的connect方法
+        await tempServer.connect(sseTransport);
+
+        Logger.info(`[SSE Connection] Successfully connected transport for: ${sessionId} with open_id: ${openId}`);
+      } catch (error: any) {
+        Logger.error(`[SSE Connection] Error in SSE endpoint:`, error);
+        if (sseTransport) {
+          this.connectionManager.removeConnection(sseTransport.sessionId);
+        }
+        if (!res.writableEnded) {
+          res.status(500).json({ error: 'Failed to establish SSE connection', details: error?.message || 'Unknown error' });
+        }
+        return;
+      }
+    });
+
+    app.post('/messages-trae', async (req: Request, res: Response) => {
+      const sessionId = req.query.sessionId as string;
+      Logger.info(`[SSE messages] Received message with sessionId: ${sessionId}, params: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}`,);
+
+      if (!sessionId) {
+        res.status(400).send('Missing sessionId query parameter');
+        return;
+      }
+
+      const transport = this.connectionManager.getTransport(sessionId);
+      Logger.log(`[SSE messages] Retrieved transport for sessionId ${sessionId}: ${transport ? transport.sessionId : 'Transport not found'}`,);
+
+      if (!transport) {
+        res
+            .status(404)
+            .send(`No active connection found for sessionId: ${sessionId}`);
+        return;
+      }
+
+      // 获取存储的 open_id 参数
+      const openId = this.connectionManager.getOpenId(sessionId);
+      if (openId) {
+        Logger.info(`[SSE messages] Retrieved open_id ${openId} for sessionId ${sessionId}`);
+        // 将 open_id 添加到请求对象中，以便后续处理使用
+        (req as any).openId = openId;
+      } else {
+        Logger.debug(`[SSE messages] No open_id found for sessionId ${sessionId}`);
+      }
+
+      // 从请求头中提取用户访问令牌
+      const authorization = req.headers.authorization;
+      let userAccessToken: string | undefined;
+
+      if (authorization && authorization.startsWith('Bearer ')) {
+        userAccessToken = authorization.substring(7); // 移除 "Bearer " 前缀
+        Logger.debug(`[SSE messages] 提取到用户访问令牌: ${userAccessToken.substring(0, 20)}...`);
+      } else {
+        Logger.debug('[SSE messages] 未找到用户访问令牌');
+      }
+
+      // 使用 UserContextManager 在异步上下文中传递用户令牌和 open_id
+      const userContextManager = UserContextManager.getInstance();
+
+      try {
+        await userContextManager.run(
+            {
+              accessToken: userAccessToken,
+              userInfo: null, // 可以在需要时扩展用户信息
+              openId: openId // 传递 open_id 参数
+            },
+            async () => {
+              await transport.handlePostMessage(req, res);
+            }
+        );
+      } catch (error: any) {
+        Logger.error(`[SSE messages] Error handling message for sessionId ${sessionId}:`, error);
+
+        // 检查是否是401错误（用户令牌过期）
+        if (error && error.status === 401) {
+          Logger.warn(`[SSE messages] User access token expired for sessionId ${sessionId}`);
+          if (!res.writableEnded) {
+            res.status(401).json({
+              error: 'invalid_token',
+              error_description: 'User access token is invalid or expired. Please refresh your token.',
+              details: error.err || 'Token validation failed'
+            });
+          }
+          return;
+        }
+
         // 处理其他错误
         if (!res.writableEnded) {
           res.status(500).json({
@@ -461,23 +585,26 @@ export class FeishuMcpServer {
       }
     }
 
-    // app.get('/getToken', async (req: Request, res: Response) => {
-    //   const { client_id, client_secret, token_type } = req.query;
-    //   if (!client_id || !client_secret) {
-    //     res.status(400).json({ code: 400, msg: '缺少 client_id 或 client_secret' });
-    //     return;
-    //   }
-    //   try {
-    //     const tokenResult = await getTokenByParams({
-    //       client_id: client_id as string,
-    //       client_secret: client_secret as string,
-    //       token_type: token_type as string
-    //     });
-    //     res.json({ code: 0, msg: 'success', data: tokenResult });
-    //   } catch (e: any) {
-    //     res.status(500).json({ code: 500, msg: e.message || '获取token失败' });
-    //   }
-    // });
+    app.get('/getToken', async (_req: Request, res: Response) => {
+      // const { client_id, client_secret, token_type } = req.query;
+      // if (!client_id) {
+      //   res.status(400).json({ code: 400, msg: '缺少 client_id 或 client_secret' });
+      //   return;
+      // }
+      let client_id = "";
+      let client_secret = "";
+      let token_type = "";
+      try {
+        const tokenResult = await getTokenByParams({
+          client_id: client_id as string,
+          client_secret: client_secret as string,
+          token_type: token_type as string
+        });
+        res.json({ code: 0, msg: 'success', data: tokenResult });
+      } catch (e: any) {
+        res.status(500).json({ code: 500, msg: e.message || '获取token失败' });
+      }
+    });
 
          // OAuth 2.0 Authorization Server Metadata - RFC 8414
      app.get('/.well-known/oauth-authorization-server', (req: Request, res: Response) => {
