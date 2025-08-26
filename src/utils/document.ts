@@ -121,18 +121,18 @@ export function detectMimeType(buffer: Buffer): string {
   }
 } 
 
-function formatExpire(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return '';
-  if (seconds < 0) return `<span style='color:#e53935'>已过期</span> (${seconds}s)`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  let str = '';
-  if (h) str += h + '小时';
-  if (m) str += m + '分';
-  if (s || (!h && !m)) str += s + '秒';
-  return `${str} (${seconds}s)`;
-}
+// function formatExpire(seconds: number): string {
+//   if (!seconds || isNaN(seconds)) return '';
+//   if (seconds < 0) return `<span style='color:#e53935'>已过期</span> (${seconds}s)`;
+//   const h = Math.floor(seconds / 3600);
+//   const m = Math.floor((seconds % 3600) / 60);
+//   const s = seconds % 60;
+//   let str = '';
+//   if (h) str += h + '小时';
+//   if (m) str += m + '分';
+//   if (s || (!h && !m)) str += s + '秒';
+//   return `${str} (${seconds}s)`;
+// }
 
 export function renderFeishuAuthResultHtml(data: any): string {
   const isError = data && data.error;
