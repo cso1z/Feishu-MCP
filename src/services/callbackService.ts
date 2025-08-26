@@ -23,12 +23,25 @@ function sendFail(res: Response, msg: string, code: number = CODE.CUSTOM) {
   res.status(200).send(html);
 }
 
+function getProtocol(req: Request): string {
+  const config = Config.getInstance();
+
+  // 如果是生产环境，强制使用HTTPS
+  if (config.server.env === 'prod') {
+    return 'https';
+  }
+
+  // 否则检查X-Forwarded-Proto头，如果没有则使用req.protocol
+  return req.get('X-Forwarded-Proto') || req.protocol;
+}
+
 const authService = new AuthService();
 const config = Config.getInstance();
 
+
 export async function callback(req: Request, res: Response) {
   const code = req.query.code as string;
-  const state = req.query.state as string;
+  // const state = req.query.state as string;
   console.log(`[callback] query:`, req.query);
   if (!code) {
     console.log('[callback] 缺少code参数');
@@ -37,13 +50,16 @@ export async function callback(req: Request, res: Response) {
   // 校验state（clientKey）
   const client_id = config.feishu.appId;
   const client_secret = config.feishu.appSecret;
-  const expectedClientKey = await CacheManager.getClientKey(client_id, client_secret);
+  // const expectedClientKey = await CacheManager.getClientKey(client_id, client_secret);
   // if (state !== expectedClientKey) {
   //   console.log('[callback] state(clientKey)不匹配');
   //   return sendFail(res, 'state(clientKey)不匹配', CODE.PARAM_ERROR);
   // }
 
-  const redirect_uri = `http://localhost:${config.server.port}/callback`;
+  const protocol = getProtocol(req);
+  const host = req.get('X-Forwarded-Host') || req.get('host');
+  const baseUrl = `${protocol}://${host}`;
+  const redirect_uri = `${baseUrl}/callback`;
   const session = (req as any).session;
   const code_verifier = session?.code_verifier || undefined;
 
@@ -78,10 +94,10 @@ export async function callback(req: Request, res: Response) {
   }
 }
 
-export async function getTokenByParams({ client_id, client_secret, token_type }: { client_id: string, client_secret: string, token_type?: string }) {
+export async function getTokenByParams({ client_id, client_secret, token_type }: { client_id: string, client_secret: string, token_type?: string }, baseUrl: string) {
   const authService = new AuthService();
   if (client_id) authService.config.feishu.appId = client_id;
   if (client_secret) authService.config.feishu.appSecret = client_secret;
   if (token_type) authService.config.feishu.authType = token_type === 'user' ? 'user' : 'tenant';
-  return await authService.getToken();
+  return await authService.getToken(baseUrl);
 } 

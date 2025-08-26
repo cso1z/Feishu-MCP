@@ -585,7 +585,7 @@ export class FeishuMcpServer {
       }
     }
 
-    app.get('/getToken', async (_req: Request, res: Response) => {
+    app.get('/getToken', async (req: Request, res: Response) => {
       // const { client_id, client_secret, token_type } = req.query;
       // if (!client_id) {
       //   res.status(400).json({ code: 400, msg: '缺少 client_id 或 client_secret' });
@@ -594,12 +594,17 @@ export class FeishuMcpServer {
       let client_id = "";
       let client_secret = "";
       let token_type = "";
+
+      const protocol = this.getProtocol(req);
+      const host = req.get('X-Forwarded-Host') || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
       try {
         const tokenResult = await getTokenByParams({
           client_id: client_id as string,
           client_secret: client_secret as string,
-          token_type: token_type as string
-        });
+          token_type: token_type as string,
+        }, baseUrl);
         if (tokenResult.needAuth === true) {
           // 跳转到授权页面
           res.redirect(tokenResult.url);

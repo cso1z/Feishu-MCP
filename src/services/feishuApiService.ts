@@ -70,6 +70,7 @@ export class FeishuApiService extends BaseApiService {
         // 通过HTTP请求调用配置的tokenEndpoint接口
         const {appId, appSecret, authType, tokenEndpoint} = this.config.feishu;
 
+        let cacheManager = CacheManager.getInstance();
         if (authType === 'user') {
             // 从 AsyncLocalStorage 中读取用户访问令牌和 open_id
             const userContextManager = UserContextManager.getInstance();
@@ -77,8 +78,9 @@ export class FeishuApiService extends BaseApiService {
             const openId = userContextManager.getOpenId();
 
             if (openId) {
-                let tokenObj = CacheManager.getInstance().getUserToken(openId);
+                let tokenObj = cacheManager.getUserToken(openId);
                 const now = Date.now() / 1000;
+                // token不存在（包括cache中自动过期）或者refresh_token过期，这时候必须重新进行授权
                 if (!tokenObj || tokenObj.refresh_token_expires_at < now) {
                     // Logger.warn('[AuthService] No user token in cache, need user auth', clientKey);
                     // // 返回授权链接
@@ -89,16 +91,16 @@ export class FeishuApiService extends BaseApiService {
                     // return { needAuth: true, url };
                 }
                 Logger.debug('[AuthService] User token found in cache', tokenObj);
+                // access_token已过期，但是refresh_token未过期，自动刷新token
                 if (tokenObj.expires_at && tokenObj.expires_at < now) {
-                    // Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
-                    // if (tokenObj.refresh_token) {
-                    //   tokenObj = await authService.refreshUserToken(tokenObj.refresh_token, clientKey, client_id, client_secret);
-                    // } else {
-                    //   Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', clientKey);
-                    //   this.cache.cacheUserToken(clientKey, null, 0);
-                    //   return { needAuth: true, url: '请重新授权' };
-                    // }
-                    // TODO: refresh token
+                    Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
+                    if (tokenObj.refresh_token) {
+                        tokenObj = await authService.refreshUserToken(tokenObj.refresh_token, openId, "", "");
+                    } else {
+                        Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', openId);
+                        cacheManager.cacheUserToken(openId, null, 0);
+                        throw new Error('refresh_token 不存在，需要重新授权');
+                    }
                 }
                 return tokenObj.access_token;
             } else if (userAccessToken) {
@@ -125,7 +127,7 @@ export class FeishuApiService extends BaseApiService {
         const tokenResult = response.data?.data;
         if (tokenResult && tokenResult.access_token) {
             Logger.debug('使用Http的访问令牌');
-            CacheManager.getInstance().cacheToken(tokenResult.access_token, tokenResult.expires_in)
+            cacheManager.cacheToken(tokenResult.access_token, tokenResult.expires_in)
             return tokenResult.access_token;
         }
         if (tokenResult && tokenResult.needAuth && tokenResult.url) {

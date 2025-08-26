@@ -8,16 +8,11 @@ export class AuthService {
   private cache = CacheManager.getInstance();
 
   // 获取token主入口
-  public async getToken(options?: {
-    client_id?: string;
-    client_secret?: string;
-    authType?: 'tenant' | 'user';
-  }): Promise<any> {
-    Logger.warn('[AuthService] getToken called', options);
+  public async getToken(baseUrl: string): Promise<any> {
     const config = this.config.feishu;
-    const client_id = options?.client_id || config.appId;
-    const client_secret = options?.client_secret || config.appSecret;
-    const authType = options?.authType || config.authType;
+    const client_id =  config.appId;
+    const client_secret =  config.appSecret;
+    const authType =  config.authType;
     const clientKey = await CacheManager.getClientKey(client_id, client_secret);
     Logger.warn('[AuthService] getToken resolved clientKey', clientKey, 'authType', authType);
     if (authType === 'tenant') {
@@ -28,7 +23,7 @@ export class AuthService {
       if (!tokenObj) {
         Logger.warn('[AuthService] No user token in cache, need user auth', clientKey);
         // 返回授权链接
-        const redirect_uri = encodeURIComponent(`http://localhost:${this.config.server.port}/callback`);
+        const redirect_uri = encodeURIComponent(`${baseUrl}/callback`);
         const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access drive:drive drive:drive.metadata:readonly');
         const state = clientKey;
         const url = `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&state=${state}`;
@@ -106,6 +101,9 @@ export class AuthService {
 
   // 刷新user_access_token
   async refreshUserToken(refresh_token: string, clientKey: string, client_id: string, client_secret: string): Promise<any> {
+    let config = Config.getInstance();
+    client_id = client_id || config.feishu.appId;
+    client_secret = client_secret|| config.feishu.appSecret;
     Logger.warn('[AuthService] refreshUserToken called', { clientKey });
     const body = {
       grant_type: 'refresh_token',
@@ -152,7 +150,7 @@ export class AuthService {
     code_verifier?: string;
   }) {
     Logger.warn('[AuthService] getUserTokenByCode called', { client_id, code, redirect_uri });
-    const clientKey = await CacheManager.getClientKey(client_id, client_secret);
+    // const clientKey = await CacheManager.getClientKey(client_id, client_secret);
     const body: any = {
       grant_type: 'authorization_code',
       client_id,

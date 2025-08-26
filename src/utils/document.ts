@@ -141,13 +141,11 @@ export function renderFeishuAuthResultHtml(data: any): string {
   let refreshExpiresIn = data && (data.refresh_token_expires_in || data.refresh_expires_in);
   if (expiresIn && expiresIn > 1000000000) expiresIn = expiresIn - now;
   if (refreshExpiresIn && refreshExpiresIn > 1000000000) refreshExpiresIn = refreshExpiresIn - now;
-     const tokenBlock = data && !isError ? `
-     <div class="card">
-       <div style="text-align: center; padding: 40px 20px;">
-         <div style="font-size: 3em; font-weight: bold; color: #388e3c; margin-bottom: 16px;">授权成功</div>
-       </div>
-     </div>
-   ` : '';
+           const tokenBlock = data && !isError ? `
+      <div class="card success-card">
+        <div class="success-text">授权成功</div>
+      </div>
+    ` : '';
   let userBlock = '';
   const userInfo = data && data.userInfo && data.userInfo.data;
   if (userInfo) {
@@ -176,41 +174,258 @@ export function renderFeishuAuthResultHtml(data: any): string {
         <title>飞书授权结果</title>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
-        <style>
-          body { background: #f7f8fa; font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:0; }
-                     .container { max-width: 1200px; margin: 40px auto; padding: 16px; }
-          .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; margin-bottom: 24px; padding: 24px 20px; }
-          .user-card { display: flex; align-items: center; gap: 24px; }
-          .avatar-wrap { flex-shrink: 0; }
-          .avatar { width: 96px; height: 96px; border-radius: 50%; box-shadow: 0 2px 8px #0002; display: block; margin: 0 auto; }
-          .user-info { flex: 1; }
-          .user-name { font-size: 1.5em; font-weight: bold; margin-bottom: 4px; }
-          .user-en { color: #888; margin-bottom: 10px; }
-          .kv-list { list-style: none; padding: 0; margin: 0; }
-          .kv-list li { margin-bottom: 6px; word-break: break-all; }
-          .kv-list b { color: #1976d2; }
-          .scope { background: #f0f4f8; border-radius: 4px; padding: 6px; font-size: 0.95em; white-space: pre-line; }
-          .foldable { color: #1976d2; cursor: pointer; text-decoration: underline; margin-left: 8px; }
-          .fold { display: none; background: #f6f6f6; border-radius: 4px; padding: 6px; margin: 4px 0; font-size: 0.92em; max-width: 100%; overflow-x: auto; word-break: break-all; }
-          .scrollable { max-width: 100%; overflow-x: auto; font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; font-size: 0.93em; }
-          .success-action { margin-top: 18px; display: flex; align-items: center; gap: 16px; }
-          .success-msg { color: #388e3c; font-weight: bold; }
-          .copy-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; font-size: 1em; cursor: pointer; transition: background 0.2s; }
-          .copy-btn:hover { background: #125ea2; }
-          .error-card { border-left: 6px solid #e53935; background: #fff0f0; color: #b71c1c; }
-          .error-msg { font-size: 1.1em; margin-bottom: 8px; }
-          .error-code { color: #b71c1c; font-size: 0.95em; }
-          .raw-block { margin-top: 24px; }
-          .raw-toggle { color: #1976d2; cursor: pointer; text-decoration: underline; margin-bottom: 8px; display: inline-block; }
-          .raw-pre { display: none; background: #23272e; color: #fff; border-radius: 6px; padding: 12px; font-size: 0.95em; overflow-x: auto; max-width: 100%; }
-          .mcp-config { margin-top: 16px; }
-          .config-code { background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 12px; font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; font-size: 0.9em; overflow-x: auto; margin-bottom: 12px; }
-          @media (max-width: 700px) {
-            .container { max-width: 98vw; padding: 4vw; }
-            .card { padding: 4vw 3vw; }
-            .avatar { width: 64px; height: 64px; }
-          }
-        </style>
+                 <style>
+           body { 
+             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; 
+             margin: 0; 
+             padding: 0; 
+             min-height: 100vh;
+           }
+           .container { 
+             max-width: 800px; 
+             margin: 60px auto; 
+             padding: 20px; 
+           }
+           .card { 
+             background: rgba(255, 255, 255, 0.95); 
+             backdrop-filter: blur(10px);
+             border-radius: 20px; 
+             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); 
+             margin-bottom: 32px; 
+             padding: 32px; 
+             border: 1px solid rgba(255, 255, 255, 0.2);
+             transition: transform 0.3s ease, box-shadow 0.3s ease;
+           }
+           .card:hover {
+             transform: translateY(-2px);
+             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+           }
+           .user-card { 
+             display: flex; 
+             align-items: center; 
+             gap: 32px; 
+             padding: 24px 0;
+           }
+           .avatar-wrap { 
+             flex-shrink: 0; 
+           }
+           .avatar { 
+             width: 120px; 
+             height: 120px; 
+             border-radius: 50%; 
+             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); 
+             display: block; 
+             margin: 0 auto; 
+             border: 4px solid rgba(255, 255, 255, 0.8);
+           }
+           .user-info { 
+             flex: 1; 
+           }
+           .user-name { 
+             font-size: 2.2em; 
+             font-weight: 700; 
+             margin-bottom: 8px; 
+             color: #2c3e50;
+             letter-spacing: -0.5px;
+           }
+           .user-en { 
+             color: #7f8c8d; 
+             margin-bottom: 0; 
+             font-size: 1.1em;
+             font-weight: 500;
+           }
+           .success-card {
+             text-align: center;
+             padding: 60px 40px;
+             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+             color: white;
+             border: none;
+           }
+           .success-card:hover {
+             transform: none;
+             box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+           }
+           .success-text {
+             font-size: 3.5em;
+             font-weight: 800;
+             margin: 0;
+             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+             letter-spacing: -1px;
+           }
+           .mcp-title {
+             font-size: 1.8em;
+             font-weight: 700;
+             color: #2c3e50;
+             margin-bottom: 16px;
+             letter-spacing: -0.5px;
+           }
+           .mcp-description {
+             font-size: 1.1em;
+             color: #5a6c7d;
+             margin-bottom: 24px;
+             line-height: 1.6;
+           }
+           .mcp-config { 
+             margin-top: 24px; 
+           }
+           .config-code { 
+             background: #f8f9fa; 
+             border: 2px solid #e9ecef; 
+             border-radius: 12px; 
+             padding: 20px; 
+             font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace; 
+             font-size: 0.95em; 
+             overflow-x: auto; 
+             margin-bottom: 20px; 
+             line-height: 1.5;
+             color: #495057;
+           }
+           .copy-btn { 
+             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+             color: #fff; 
+             border: none; 
+             border-radius: 12px; 
+             padding: 12px 24px; 
+             font-size: 1em; 
+             font-weight: 600;
+             cursor: pointer; 
+             transition: all 0.3s ease; 
+             box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+           }
+           .copy-btn:hover { 
+             transform: translateY(-2px);
+             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+           }
+           .copy-btn:active {
+             transform: translateY(0);
+           }
+           .security-warning {
+             margin-top: 24px; 
+             padding: 20px; 
+             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); 
+             border: 2px solid #fdcb6e; 
+             border-radius: 16px; 
+             color: #856404;
+             position: relative;
+             overflow: hidden;
+           }
+           .security-warning::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             right: 0;
+             height: 4px;
+             background: linear-gradient(90deg, #fdcb6e, #e17055);
+           }
+           .security-header {
+             display: flex; 
+             align-items: center; 
+             margin-bottom: 16px;
+             font-size: 1.1em;
+           }
+           .security-icon {
+             font-size: 20px; 
+             margin-right: 12px;
+           }
+           .security-title {
+             font-weight: 700;
+             color: #856404;
+           }
+           .security-text {
+             margin: 0; 
+             font-size: 0.95em; 
+             line-height: 1.6;
+             margin-bottom: 12px;
+           }
+           .security-text:last-child {
+             margin-bottom: 0;
+           }
+           .security-important {
+             color: #d63031;
+             font-weight: 600;
+           }
+           .error-card { 
+             border-left: 6px solid #e53935; 
+             background: linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%); 
+             color: #b71c1c; 
+           }
+           .error-msg { 
+             font-size: 1.1em; 
+             margin-bottom: 8px; 
+           }
+           .error-code { 
+             color: #b71c1c; 
+             font-size: 0.95em; 
+           }
+           .raw-block { 
+             margin-top: 32px; 
+           }
+           .raw-toggle { 
+             color: #667eea; 
+             cursor: pointer; 
+             text-decoration: none;
+             margin-bottom: 12px; 
+             display: inline-block; 
+             font-weight: 600;
+             padding: 8px 16px;
+             border-radius: 8px;
+             transition: background 0.3s ease;
+           }
+           .raw-toggle:hover {
+             background: rgba(102, 126, 234, 0.1);
+           }
+           .raw-pre { 
+             display: none; 
+             background: #2c3e50; 
+             color: #ecf0f1; 
+             border-radius: 12px; 
+             padding: 20px; 
+             font-size: 0.9em; 
+             overflow-x: auto; 
+             max-width: 100%; 
+             font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+             line-height: 1.5;
+           }
+           .page-title {
+             font-size: 2.8em;
+             font-weight: 800;
+             color: white;
+             text-align: center;
+             margin-bottom: 40px;
+             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+             letter-spacing: -1px;
+           }
+           @media (max-width: 768px) {
+             .container { 
+               max-width: 95vw; 
+               margin: 30px auto;
+               padding: 16px; 
+             }
+             .card { 
+               padding: 24px 20px; 
+               margin-bottom: 24px;
+             }
+             .avatar { 
+               width: 80px; 
+               height: 80px; 
+             }
+             .user-name {
+               font-size: 1.8em;
+             }
+             .success-text {
+               font-size: 2.5em;
+             }
+             .page-title {
+               font-size: 2.2em;
+               margin-bottom: 30px;
+             }
+             .user-card {
+               gap: 20px;
+             }
+           }
+         </style>
         <script>
           function toggleFold(el) {
             var pre = el.nextElementSibling;
@@ -256,30 +471,32 @@ export function renderFeishuAuthResultHtml(data: any): string {
       </head>
       <body>
                  <div class="container">
-           <h2 style="margin-bottom:24px;">飞书授权结果</h2>
+           <h1 class="page-title">飞书授权结果</h1>
            ${errorBlock}
            ${userBlock}
            ${tokenBlock}
-          ${userInfo ? `
-          <div class="card">
-            <h3>MCP配置</h3>
-            <p>首次授权完成后，请将以下配置复制到您的AI IDE中，即可开始使用：</p>
+                     ${userInfo ? `
+           <div class="card">
+             <h3 class="mcp-title">MCP配置</h3>
+             <p class="mcp-description">首次授权完成后，请将以下配置复制到您的AI IDE中，即可开始使用：</p>
             <div class="mcp-config">
               <pre class="config-code">"feishu-mcp": {
   "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=${userInfo.open_id || ''}"
 }</pre>
               <button class="copy-btn" onclick="copyMCPConfig(this)">复制MCP配置</button>
             </div>
-                         <div style="margin-top: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404;">
-               <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                 <span style="font-size: 16px; margin-right: 8px;">⚠️</span>
-                 <strong style="color: #856404;">安全提示</strong>
+                         <div class="security-warning">
+               <div class="security-header">
+                 <span class="security-icon">⚠️</span>
+                 <strong class="security-title">安全提示</strong>
                </div>
-                               <p style="margin: 0; font-size: 0.9em; line-height: 1.4;">
-                  <strong>说明：</strong>此配置中的 open_id 参数已自动从您的用户信息中读取，无需手动修改。
-                </p>
-
-               <p style="margin: 8px 0 0 0; font-size: 0.9em; line-height: 1.4; color: #d63031;">
+               <p class="security-text">
+                 <strong>说明：</strong>此配置中的 open_id 参数已自动从您的用户信息中读取，无需手动修改。
+               </p>
+               <p class="security-text">
+                 <strong>注意：</strong>只有首次授权完成后，需要把该配置同步更新到IDE中。后续再次授权配置不会变化。
+               </p>
+               <p class="security-text security-important">
                  <strong>⚠️ 重要：</strong>open_id是你的飞书用户ID，用于标识你的身份，请妥善保管，不要泄露给其他人。
                </p>
              </div>
