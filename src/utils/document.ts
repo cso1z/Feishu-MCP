@@ -457,7 +457,7 @@ export function renderFeishuAuthResultHtml(data: any): string {
           
           function copyMCPConfig(btn) {
             var openId = '${userInfo ? userInfo.open_id || '' : ''}';
-            var config = '"feishu-mcp": {\\n  "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=' + openId + '"\\n}';
+            var config = '{\\n  "mcpServers": {\\n    "feishu-mcp": {\\n      "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=' + openId + '"\\n    }\\n  }\\n}';
             navigator.clipboard.writeText(config).then(function() {
               btn.innerText = '已复制';
               btn.disabled = true;
@@ -480,8 +480,12 @@ export function renderFeishuAuthResultHtml(data: any): string {
              <h3 class="mcp-title">MCP配置</h3>
              <p class="mcp-description">首次授权完成后，请将以下配置复制到您的AI IDE中，即可开始使用：</p>
             <div class="mcp-config">
-              <pre class="config-code">"feishu-mcp": {
-  "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=${userInfo.open_id || ''}"
+              <pre class="config-code">{
+  "mcpServers": {
+    "feishu-mcp": {
+      "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=${userInfo.open_id || ''}"
+    }
+  }
 }</pre>
               <button class="copy-btn" onclick="copyMCPConfig(this)">复制MCP配置</button>
             </div>
