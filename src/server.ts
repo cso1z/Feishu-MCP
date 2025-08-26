@@ -600,7 +600,12 @@ export class FeishuMcpServer {
           client_secret: client_secret as string,
           token_type: token_type as string
         });
-        res.json({ code: 0, msg: 'success', data: tokenResult });
+        if (tokenResult.needAuth === true) {
+          // 跳转到授权页面
+          res.redirect(tokenResult.url);
+          return;
+        }
+        // res.json({ code: 0, msg: 'success', data: tokenResult });
       } catch (e: any) {
         res.status(500).json({ code: 500, msg: e.message || '获取token失败' });
       }

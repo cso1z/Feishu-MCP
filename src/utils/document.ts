@@ -141,23 +141,13 @@ export function renderFeishuAuthResultHtml(data: any): string {
   let refreshExpiresIn = data && (data.refresh_token_expires_in || data.refresh_expires_in);
   if (expiresIn && expiresIn > 1000000000) expiresIn = expiresIn - now;
   if (refreshExpiresIn && refreshExpiresIn > 1000000000) refreshExpiresIn = refreshExpiresIn - now;
-  const tokenBlock = data && !isError ? `
-    <div class="card">
-      <h3>Token 信息</h3>
-      <ul class="kv-list">
-        <li><b>token_type:</b> <span>${data.token_type || ''}</span></li>
-        <li><b>access_token:</b> <span class="foldable" onclick="toggleFold(this)">点击展开/收起</span><pre class="fold scrollable">${data.access_token || ''}</pre></li>
-        <li><b>expires_in:</b> <span>${formatExpire(expiresIn)}</span></li>
-        <li><b>refresh_token:</b> <span class="foldable" onclick="toggleFold(this)">点击展开/收起</span><pre class="fold scrollable">${data.refresh_token || ''}</pre></li>
-        <li><b>refresh_token_expires_in:</b> <span>${formatExpire(refreshExpiresIn)}</span></li>
-        <li><b>scope:</b> <pre class="scope">${(data.scope || '').replace(/ /g, '\n')}</pre></li>
-      </ul>
-      <div class="success-action">
-        <span class="success-msg">授权成功，继续完成任务</span>
-        <button class="copy-btn" onclick="copySuccessMsg(this)">点击复制到粘贴板</button>
-      </div>
-    </div>
-  ` : '';
+     const tokenBlock = data && !isError ? `
+     <div class="card">
+       <div style="text-align: center; padding: 40px 20px;">
+         <div style="font-size: 3em; font-weight: bold; color: #388e3c; margin-bottom: 16px;">授权成功</div>
+       </div>
+     </div>
+   ` : '';
   let userBlock = '';
   const userInfo = data && data.userInfo && data.userInfo.data;
   if (userInfo) {
@@ -188,7 +178,7 @@ export function renderFeishuAuthResultHtml(data: any): string {
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
         <style>
           body { background: #f7f8fa; font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:0; }
-          .container { max-width: 600px; margin: 40px auto; padding: 16px; }
+                     .container { max-width: 1200px; margin: 40px auto; padding: 16px; }
           .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; margin-bottom: 24px; padding: 24px 20px; }
           .user-card { display: flex; align-items: center; gap: 24px; }
           .avatar-wrap { flex-shrink: 0; }
@@ -213,6 +203,8 @@ export function renderFeishuAuthResultHtml(data: any): string {
           .raw-block { margin-top: 24px; }
           .raw-toggle { color: #1976d2; cursor: pointer; text-decoration: underline; margin-bottom: 8px; display: inline-block; }
           .raw-pre { display: none; background: #23272e; color: #fff; border-radius: 6px; padding: 12px; font-size: 0.95em; overflow-x: auto; max-width: 100%; }
+          .mcp-config { margin-top: 16px; }
+          .config-code { background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 12px; font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; font-size: 0.9em; overflow-x: auto; margin-bottom: 12px; }
           @media (max-width: 700px) {
             .container { max-width: 98vw; padding: 4vw; }
             .card { padding: 4vw 3vw; }
@@ -247,14 +239,52 @@ export function renderFeishuAuthResultHtml(data: any): string {
               }, 2000);
             });
           }
+          
+          function copyMCPConfig(btn) {
+            var openId = '${userInfo ? userInfo.open_id || '' : ''}';
+            var config = '"feishu-mcp": {\\n  "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=' + openId + '"\\n}';
+            navigator.clipboard.writeText(config).then(function() {
+              btn.innerText = '已复制';
+              btn.disabled = true;
+              setTimeout(function() {
+                btn.innerText = '复制MCP配置';
+                btn.disabled = false;
+              }, 2000);
+            });
+          }
         </script>
       </head>
       <body>
-        <div class="container">
-          <h2 style="margin-bottom:24px;">飞书授权结果</h2>
-          ${errorBlock}
-          ${tokenBlock}
-          ${userBlock}
+                 <div class="container">
+           <h2 style="margin-bottom:24px;">飞书授权结果</h2>
+           ${errorBlock}
+           ${userBlock}
+           ${tokenBlock}
+          ${userInfo ? `
+          <div class="card">
+            <h3>MCP配置</h3>
+            <p>首次授权完成后，请将以下配置复制到您的AI IDE中，即可开始使用：</p>
+            <div class="mcp-config">
+              <pre class="config-code">"feishu-mcp": {
+  "url": "https://aicodermate-mcp-feishu-auth.transsion-os.com/sse-trae?open_id=${userInfo.open_id || ''}"
+}</pre>
+              <button class="copy-btn" onclick="copyMCPConfig(this)">复制MCP配置</button>
+            </div>
+                         <div style="margin-top: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404;">
+               <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                 <span style="font-size: 16px; margin-right: 8px;">⚠️</span>
+                 <strong style="color: #856404;">安全提示</strong>
+               </div>
+                               <p style="margin: 0; font-size: 0.9em; line-height: 1.4;">
+                  <strong>说明：</strong>此配置中的 open_id 参数已自动从您的用户信息中读取，无需手动修改。
+                </p>
+
+               <p style="margin: 8px 0 0 0; font-size: 0.9em; line-height: 1.4; color: #d63031;">
+                 <strong>⚠️ 重要：</strong>open_id是你的飞书用户ID，用于标识你的身份，请妥善保管，不要泄露给其他人。
+               </p>
+             </div>
+          </div>
+          ` : ''}
           <div class="card raw-block">
             <span class="raw-toggle" onclick="toggleRaw()">点击展开/收起原始数据</span>
             <pre id="raw-pre" class="raw-pre">${escapeHtml(JSON.stringify(data, null, 2))}</pre>

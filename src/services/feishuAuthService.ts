@@ -23,9 +23,9 @@ export class AuthService {
     if (authType === 'tenant') {
       return this.getTenantToken(client_id, client_secret, clientKey);
     } else {
-      let tokenObj = this.cache.getUserToken(clientKey);
-      const now = Date.now() / 1000;
-      if (!tokenObj || tokenObj.refresh_token_expires_at < now) {
+      let tokenObj = "";
+      // const now = Date.now() / 1000;
+      if (!tokenObj) {
         Logger.warn('[AuthService] No user token in cache, need user auth', clientKey);
         // 返回授权链接
         const redirect_uri = encodeURIComponent(`http://localhost:${this.config.server.port}/callback`);
@@ -34,21 +34,21 @@ export class AuthService {
         const url = `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&state=${state}`;
         return { needAuth: true, url };
       }
-      Logger.debug('[AuthService] User token found in cache', tokenObj);
-      if (tokenObj.expires_at && tokenObj.expires_at < now) {
-        Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
-        if (tokenObj.refresh_token) {
-          tokenObj = await this.refreshUserToken(tokenObj.refresh_token, clientKey, client_id, client_secret);
-        } else {
-          Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', clientKey);
-          this.cache.cacheUserToken(clientKey, null, 0);
-          return { needAuth: true, url: '请重新授权' };
-        }
-      }
-      Logger.warn('[AuthService] Return user access_token', tokenObj.access_token);
-      // 计算剩余有效期（秒）
-      const expires_in = tokenObj.expires_at ? Math.max(tokenObj.expires_at - now, 0) : undefined;
-      return { access_token: tokenObj.access_token, expires_in, ...tokenObj };
+      // Logger.debug('[AuthService] User token found in cache', tokenObj);
+      // if (tokenObj.expires_at && tokenObj.expires_at < now) {
+      //   Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
+      //   if (tokenObj.refresh_token) {
+      //     tokenObj = await this.refreshUserToken(tokenObj.refresh_token, clientKey, client_id, client_secret);
+      //   } else {
+      //     Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', clientKey);
+      //     this.cache.cacheUserToken(clientKey, null, 0);
+      //     return { needAuth: true, url: '请重新授权' };
+      //   }
+      // }
+      // Logger.warn('[AuthService] Return user access_token', tokenObj.access_token);
+      // // 计算剩余有效期（秒）
+      // const expires_in = tokenObj.expires_at ? Math.max(tokenObj.expires_at - now, 0) : undefined;
+      // return { access_token: tokenObj.access_token, expires_in, ...tokenObj };
     }
   }
 
