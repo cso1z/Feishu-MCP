@@ -164,7 +164,7 @@ export class FeishuMcpServer {
     });
 
 
-    app.get('/sse-trae', verifyUserToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    app.get('/sse-trae', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       let sseTransport: SSEServerTransport | null = null;
       try {
         // 提取 open_id 参数

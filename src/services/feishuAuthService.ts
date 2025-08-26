@@ -105,7 +105,7 @@ export class AuthService {
   }
 
   // 刷新user_access_token
-  private async refreshUserToken(refresh_token: string, clientKey: string, client_id: string, client_secret: string): Promise<any> {
+  async refreshUserToken(refresh_token: string, clientKey: string, client_id: string, client_secret: string): Promise<any> {
     Logger.warn('[AuthService] refreshUserToken called', { clientKey });
     const body = {
       grant_type: 'refresh_token',
@@ -174,9 +174,9 @@ export class AuthService {
       data.expires_at = Math.floor(Date.now() / 1000) + data.expires_in;
       data.refresh_token_expires_at = Math.floor(Date.now() / 1000) + data.refresh_token_expires_in;
       // 缓存时间应为 refresh_token 的有效期，防止缓存被提前清理
-      const refreshTtl = data.refresh_expires_in || 3600 * 24 * 365; // 默认1年
-      this.cache.cacheUserToken(clientKey, data, refreshTtl);
-      Logger.warn('[AuthService] user_access_token cached', clientKey, 'refreshTtl', refreshTtl);
+      // const refreshTtl = data.refresh_expires_in || 3600 * 24 * 365; // 默认1年
+      // this.cache.cacheUserToken(clientKey, data, refreshTtl);
+      // Logger.warn('[AuthService] user_access_token cached', clientKey, 'refreshTtl', refreshTtl);
     } else {
       Logger.warn('[AuthService] getUserTokenByCode failed', data);
     }
