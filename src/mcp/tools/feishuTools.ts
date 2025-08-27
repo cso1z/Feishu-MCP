@@ -284,4 +284,44 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
       }
     },
   );
+
+  // 添加获取飞书文档纯文本内容工具
+  server.tool(
+    'get_feishu_document_raw_content',
+    'Retrieves the plain text content of a Feishu document. Ideal for content analysis, processing, or when you need to extract text without formatting. The content maintains the document structure but without styling. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.' +
+      '获取飞书文档的纯文本内容。此工具适用于文档内容很大的文件，当 get_feishu_document_blocks 返回的token数量会超出上下文长度限制时，可以使用此工具来获取文档的纯文本内容。\n' +
+      '\n' +
+      '  **使用场景**：\n' +
+      '  - 针对文档内容很大的文件\n' +
+      '  - 当 get_feishu_document_blocks 返回的token数量会超出上下文长度限制时\n' +
+      '  - 需要获取文档的纯文本内容进行分析或处理\n' +
+      '\n' +
+      '  返回文档的纯文本内容，保持文档结构但不包含样式信息。',
+    {
+      documentId: DocumentIdSchema,
+    },
+    async ({ documentId }) => {
+      try {
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
+          };
+        }
+
+        Logger.info(`开始获取飞书文档纯文本内容，文档ID: ${documentId}`);
+        const content = await feishuService.getDocumentRawContent(documentId);
+        Logger.info(`飞书文档纯文本内容获取成功，内容长度: ${content.length}字符`);
+
+        return {
+          content: [{ type: 'text', text: content }],
+        };
+      } catch (error) {
+        Logger.error(`获取飞书文档纯文本内容失败:`, error);
+        const errorMessage = formatErrorMessage(error);
+        return {
+          content: [{ type: 'text', text: `获取飞书文档纯文本内容失败: ${errorMessage}` }],
+        };
+      }
+    },
+  );
 }

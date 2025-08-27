@@ -259,6 +259,24 @@ export class FeishuApiService extends BaseApiService {
     }
 
     /**
+     * 获取文档纯文本内容
+     * @param documentId 文档ID或URL
+     * @returns 文档纯文本内容
+     */
+    public async getDocumentRawContent(documentId: string): Promise<string> {
+        try {
+            const normalizedDocId = ParamUtils.processDocumentId(documentId);
+            const endpoint = `/docx/v1/documents/${normalizedDocId}/raw_content`;
+            
+            const response = await this.get(endpoint);
+            return response.content || '';
+        } catch (error) {
+            this.handleApiError(error, '获取文档纯文本内容失败');
+            return ''; // 永远不会执行到这里
+        }
+    }
+
+    /**
      * 更新块文本内容
      * @param documentId 文档ID或URL
      * @param blockId 块ID
