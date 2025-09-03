@@ -6,7 +6,7 @@ import {
   FolderTokenSchema,
   FolderNameSchema,
 } from '../../types/feishuSchema.js';
-import { Config } from '../../utils/config';
+import { Config } from '../../utils/config.js';
 
 /**
  * 注册飞书文件夹相关的MCP工具
