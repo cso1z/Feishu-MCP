@@ -8,47 +8,42 @@ export class AuthService {
   private cache = CacheManager.getInstance();
 
   // 获取token主入口
-  public async getToken(options?: {
-    client_id?: string;
-    client_secret?: string;
-    authType?: 'tenant' | 'user';
-  }): Promise<any> {
-    Logger.warn('[AuthService] getToken called', options);
+  public async getToken(baseUrl: string): Promise<any> {
     const config = this.config.feishu;
-    const client_id = options?.client_id || config.appId;
-    const client_secret = options?.client_secret || config.appSecret;
-    const authType = options?.authType || config.authType;
+    const client_id =  config.appId;
+    const client_secret =  config.appSecret;
+    const authType =  config.authType;
     const clientKey = await CacheManager.getClientKey(client_id, client_secret);
     Logger.warn('[AuthService] getToken resolved clientKey', clientKey, 'authType', authType);
     if (authType === 'tenant') {
       return this.getTenantToken(client_id, client_secret, clientKey);
     } else {
-      let tokenObj = this.cache.getUserToken(clientKey);
-      const now = Date.now() / 1000;
-      if (!tokenObj || tokenObj.refresh_token_expires_at < now) {
+      let tokenObj = "";
+      // const now = Date.now() / 1000;
+      if (!tokenObj) {
         Logger.warn('[AuthService] No user token in cache, need user auth', clientKey);
         // 返回授权链接
-        const redirect_uri = encodeURIComponent(`http://localhost:${this.config.server.port}/callback`);
-        const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
+        const redirect_uri = encodeURIComponent(`${baseUrl}/callback`);
+        const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access drive:drive.metadata:readonly');
         const state = clientKey;
         const url = `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}&state=${state}`;
         return { needAuth: true, url };
       }
-      Logger.debug('[AuthService] User token found in cache', tokenObj);
-      if (tokenObj.expires_at && tokenObj.expires_at < now) {
-        Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
-        if (tokenObj.refresh_token) {
-          tokenObj = await this.refreshUserToken(tokenObj.refresh_token, clientKey, client_id, client_secret);
-        } else {
-          Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', clientKey);
-          this.cache.cacheUserToken(clientKey, null, 0);
-          return { needAuth: true, url: '请重新授权' };
-        }
-      }
-      Logger.warn('[AuthService] Return user access_token', tokenObj.access_token);
-      // 计算剩余有效期（秒）
-      const expires_in = tokenObj.expires_at ? Math.max(tokenObj.expires_at - now, 0) : undefined;
-      return { access_token: tokenObj.access_token, expires_in, ...tokenObj };
+      // Logger.debug('[AuthService] User token found in cache', tokenObj);
+      // if (tokenObj.expires_at && tokenObj.expires_at < now) {
+      //   Logger.warn('[AuthService] User token expired, try refresh', tokenObj);
+      //   if (tokenObj.refresh_token) {
+      //     tokenObj = await this.refreshUserToken(tokenObj.refresh_token, clientKey, client_id, client_secret);
+      //   } else {
+      //     Logger.warn('[AuthService] No refresh_token, clear cache and require re-auth', clientKey);
+      //     this.cache.cacheUserToken(clientKey, null, 0);
+      //     return { needAuth: true, url: '请重新授权' };
+      //   }
+      // }
+      // Logger.warn('[AuthService] Return user access_token', tokenObj.access_token);
+      // // 计算剩余有效期（秒）
+      // const expires_in = tokenObj.expires_at ? Math.max(tokenObj.expires_at - now, 0) : undefined;
+      // return { access_token: tokenObj.access_token, expires_in, ...tokenObj };
     }
   }
 
@@ -105,7 +100,10 @@ export class AuthService {
   }
 
   // 刷新user_access_token
-  private async refreshUserToken(refresh_token: string, clientKey: string, client_id: string, client_secret: string): Promise<any> {
+  async refreshUserToken(refresh_token: string, clientKey: string, client_id: string, client_secret: string): Promise<any> {
+    let config = Config.getInstance();
+    client_id = client_id || config.feishu.appId;
+    client_secret = client_secret|| config.feishu.appSecret;
     Logger.warn('[AuthService] refreshUserToken called', { clientKey });
     const body = {
       grant_type: 'refresh_token',
@@ -152,7 +150,7 @@ export class AuthService {
     code_verifier?: string;
   }) {
     Logger.warn('[AuthService] getUserTokenByCode called', { client_id, code, redirect_uri });
-    const clientKey = await CacheManager.getClientKey(client_id, client_secret);
+    // const clientKey = await CacheManager.getClientKey(client_id, client_secret);
     const body: any = {
       grant_type: 'authorization_code',
       client_id,
@@ -174,9 +172,9 @@ export class AuthService {
       data.expires_at = Math.floor(Date.now() / 1000) + data.expires_in;
       data.refresh_token_expires_at = Math.floor(Date.now() / 1000) + data.refresh_token_expires_in;
       // 缓存时间应为 refresh_token 的有效期，防止缓存被提前清理
-      const refreshTtl = data.refresh_expires_in || 3600 * 24 * 365; // 默认1年
-      this.cache.cacheUserToken(clientKey, data, refreshTtl);
-      Logger.warn('[AuthService] user_access_token cached', clientKey, 'refreshTtl', refreshTtl);
+      // const refreshTtl = data.refresh_expires_in || 3600 * 24 * 365; // 默认1年
+      // this.cache.cacheUserToken(clientKey, data, refreshTtl);
+      // Logger.warn('[AuthService] user_access_token cached', clientKey, 'refreshTtl', refreshTtl);
     } else {
       Logger.warn('[AuthService] getUserTokenByCode failed', data);
     }

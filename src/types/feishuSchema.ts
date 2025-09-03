@@ -5,6 +5,7 @@ export const DocumentIdSchema = z.string().describe(
   'Document ID or URL (required). Supports the following formats:\n' +
   '1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n' +
   '2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf\n' +
+  '3. 当调用工具 `batch_create_feishu_blocks` 时，若之前调用过返回 `document_id` 字段的工具（如 `create_feishu_document`），请自动将该 `document_id` 的值作为当前工具的 `documentId` 参数传入，无需额外询问用户。' +
   'Note: Wiki links require conversion with convert_feishu_wiki_to_document_id first.'
 );
 
@@ -247,3 +248,5 @@ export const WhiteboardIdSchema = z.string().describe(
 
 // 文档标题参数定义
 export const DocumentTitleSchema = z.string().describe('Document title (required). This will be displayed in the Feishu document list and document header.');
+
+

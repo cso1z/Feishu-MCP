@@ -8,6 +8,7 @@ import { Logger } from '../utils/logger.js';
 export class SSEConnectionManager {
   private transports: { [sessionId: string]: SSEServerTransport } = {};
   private connections: Map<string, { res: Response }> = new Map();
+  private openIds: Map<string, string> = new Map(); // 存储 sessionId 对应的 open_id
   private keepAliveIntervalId: NodeJS.Timeout | null = null;
   private readonly KEEP_ALIVE_INTERVAL_MS = 1000 * 25; // 25秒心跳间隔
 
@@ -43,9 +44,17 @@ export class SSEConnectionManager {
     transport: SSEServerTransport,
     req: Request,
     res: Response,
+    openId?: string,
   ): void {
     this.transports[sessionId] = transport;
     this.connections.set(sessionId, { res });
+    
+    // 存储 open_id 参数
+    if (openId) {
+      this.openIds.set(sessionId, openId);
+      Logger.info(`[SSE Connection] Stored open_id ${openId} for sessionId: ${sessionId}`);
+    }
+    
     console.info(`[SSE Connection] Client connected: ${sessionId}`);
     req.on('close', () => {
       this.removeConnection(sessionId);
@@ -67,6 +76,7 @@ export class SSEConnectionManager {
     }
     delete this.transports[sessionId];
     this.connections.delete(sessionId);
+    this.openIds.delete(sessionId); // 同时删除存储的 open_id
     console.info(`[SSE Connection] Client disconnected: ${sessionId}`);
   }
 
@@ -76,6 +86,19 @@ export class SSEConnectionManager {
   public getTransport(sessionId: string): SSEServerTransport | undefined {
     console.info(`[SSE Connection] Getting transport for sessionId: ${sessionId}`);
     return this.transports[sessionId];
+  }
+
+  /**
+   * 获取指定sessionId的open_id
+   */
+  public getOpenId(sessionId: string): string | undefined {
+    const openId = this.openIds.get(sessionId);
+    if (openId) {
+      Logger.debug(`[SSE Connection] Retrieved open_id ${openId} for sessionId: ${sessionId}`);
+    } else {
+      Logger.debug(`[SSE Connection] No open_id found for sessionId: ${sessionId}`);
+    }
+    return openId;
   }
 
   /**

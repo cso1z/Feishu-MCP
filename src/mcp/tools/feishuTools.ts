@@ -115,7 +115,17 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
   // 添加获取飞书文档块工具
   server.tool(
     'get_feishu_document_blocks',
-    'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.' +
+      '获取飞书文档的块结构信息。这是访问文档内容的第一步，用于了解文档结构并获取各种块的ID。\n' +
+      '\n' +
+      '  **重要**：当文档包含画板时，此工具会返回画板块（block_type: 43），但只提供画板ID，不包含画板的具体内容。要获取画板的实际内容（如流程图、状态机等），必须使用返回的画板ID调用 get_feishu_whiteboard_content 工具。\n' +
+      '\n' +
+      '  **使用流程**：\n' +
+      '  1. 首先调用此工具获取文档结构\n' +
+      '  2. 识别画板块（block_type: 43）并获取画板ID（board.token字段）\n' +
+      '  3. 使用画板ID调用 get_feishu_whiteboard_content 获取画板具体内容\n' +
+      '\n' +
+      '  返回详细的块层次结构，包括块ID、类型和内容。',
     {
       documentId: DocumentIdSchema,
     },
@@ -236,7 +246,17 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
   // 添加获取画板内容工具
   server.tool(
     'get_feishu_whiteboard_content',
-    'Retrieves the content and structure of a Feishu whiteboard. This tool fetches all nodes (elements) from a whiteboard, including shapes, text, mind maps, and other graphical elements. Use this to analyze whiteboard content, extract information, or understand the structure of collaborative diagrams. The whiteboard ID can be obtained from the board.token field when getting document blocks with block_type: 43.',
+    'Retrieves the content and structure of a Feishu whiteboard. This tool fetches all nodes (elements) from a whiteboard, including shapes, text, mind maps, and other graphical elements. Use this to analyze whiteboard content, extract information, or understand the structure of collaborative diagrams. The whiteboard ID can be obtained from the board.token field when getting document blocks with block_type: 43.' +
+      '获取飞书画板的具体内容和结构。此工具用于获取画板中的所有图形元素，如流程图、状态机、形状、文本等。\n' +
+      '\n' +
+      '  **前置条件**：必须先使用 get_feishu_document_blocks 工具获取文档结构，从中找到画板块（block_type: 43）并提取画板ID（board.token字段）。\n' +
+      '\n' +
+      '  **使用场景**：\n' +
+      '  - 分析流程图和状态机设计\n' +
+      '  - 提取画板中的业务逻辑\n' +
+      '  - 理解复杂的图形化需求说明\n' +
+      '\n' +
+      '  返回画板中所有节点的详细信息，包括形状、连接线、文本内容等。',
     {
       whiteboardId: WhiteboardIdSchema,
     },
@@ -260,6 +280,46 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         const errorMessage = formatErrorMessage(error);
         return {
           content: [{ type: 'text', text: `获取飞书画板内容失败: ${errorMessage}` }],
+        };
+      }
+    },
+  );
+
+  // 添加获取飞书文档纯文本内容工具
+  server.tool(
+    'get_feishu_document_raw_content',
+    'Retrieves the plain text content of a Feishu document. Ideal for content analysis, processing, or when you need to extract text without formatting. The content maintains the document structure but without styling. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.' +
+      '获取飞书文档的纯文本内容。此工具适用于文档内容很大的文件，当 get_feishu_document_blocks 返回的token数量会超出上下文长度限制时，可以使用此工具来获取文档的纯文本内容。\n' +
+      '\n' +
+      '  **使用场景**：\n' +
+      '  - 针对文档内容很大的文件\n' +
+      '  - 当 get_feishu_document_blocks 返回的token数量会超出上下文长度限制时\n' +
+      '  - 需要获取文档的纯文本内容进行分析或处理\n' +
+      '\n' +
+      '  返回文档的纯文本内容，保持文档结构但不包含样式信息。',
+    {
+      documentId: DocumentIdSchema,
+    },
+    async ({ documentId }) => {
+      try {
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
+          };
+        }
+
+        Logger.info(`开始获取飞书文档纯文本内容，文档ID: ${documentId}`);
+        const content = await feishuService.getDocumentRawContent(documentId);
+        Logger.info(`飞书文档纯文本内容获取成功，内容长度: ${content.length}字符`);
+
+        return {
+          content: [{ type: 'text', text: content }],
+        };
+      } catch (error) {
+        Logger.error(`获取飞书文档纯文本内容失败:`, error);
+        const errorMessage = formatErrorMessage(error);
+        return {
+          content: [{ type: 'text', text: `获取飞书文档纯文本内容失败: ${errorMessage}` }],
         };
       }
     },

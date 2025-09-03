@@ -18,6 +18,7 @@ export enum ConfigSource {
  */
 export interface ServerConfig {
   port: number;
+  env: string;
 }
 
 /**
@@ -159,6 +160,7 @@ export class Config {
   private initServerConfig(argv: any): ServerConfig {
     const serverConfig: ServerConfig = {
       port: 3333,
+      env: 'dev',
     };
     
     // 处理PORT
@@ -171,6 +173,15 @@ export class Config {
     } else {
       this.configSources['server.port'] = ConfigSource.DEFAULT;
     }
+
+    // 处理环境配置
+    if (process.env.ENV) {
+      serverConfig.env = process.env.ENV;
+      this.configSources['server.env'] = ConfigSource.ENV;
+    } else {
+      this.configSources['server.env'] = ConfigSource.DEFAULT;
+    }
+    
     return serverConfig;
   }
   
@@ -368,6 +379,7 @@ export class Config {
     
     Logger.info('服务器配置:');
     Logger.info(`- 端口: ${this.server.port} (来源: ${this.configSources['server.port']})`);
+    Logger.info(`- 环境: ${this.server.env} (来源: ${this.configSources['server.env']})`);
 
     Logger.info('飞书配置:');
     if (this.feishu.appId) {

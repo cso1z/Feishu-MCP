@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
 import { formatErrorMessage } from '../utils/error.js';
+import { Config } from '../utils/config.js';
 
 /**
  * API请求错误接口
@@ -101,11 +102,15 @@ export abstract class BaseApiService {
     data?: any, 
     needsAuth: boolean = true,
     additionalHeaders?: Record<string, string>,
-    responseType?: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream'
+    responseType?: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream',
   ): Promise<T> {
+    const startTime = Date.now();
+    let requestUrl = '';
+    let requestConfig: AxiosRequestConfig | undefined;
+    let requestHeadersForLog: Record<string, any> | undefined;
     try {
       // 构建请求URL
-      const url = `${this.getBaseUrl()}${endpoint}`;
+      requestUrl = `${this.getBaseUrl()}${endpoint}`;
       
       // 准备请求头
       const headers: Record<string, string> = {
@@ -128,8 +133,20 @@ export abstract class BaseApiService {
       
       // 记录请求信息
       Logger.debug('准备发送请求:');
-      Logger.debug(`请求URL: ${url}`);
+      Logger.debug(`请求URL: ${requestUrl}`);
       Logger.debug(`请求方法: ${method}`);
+      // 记录请求头（脱敏）
+      try {
+        const headersForLog: Record<string, any> = { ...headers };
+        if (typeof headersForLog['Authorization'] === 'string') {
+          headersForLog['Authorization'] = 'Bearer ***';
+        }
+        if (typeof headersForLog['authorization'] === 'string') {
+          headersForLog['authorization'] = 'Bearer ***';
+        }
+        requestHeadersForLog = headersForLog;
+        Logger.debug('请求头:', headersForLog);
+      } catch {}
       if (data) {
         Logger.debug(`请求数据:`, data);
       }
@@ -137,12 +154,13 @@ export abstract class BaseApiService {
       // 构建请求配置
       const config: AxiosRequestConfig = {
         method,
-        url,
+        url: requestUrl,
         headers,
         data: method !== 'GET' ? data : undefined,
         params: method === 'GET' ? data : undefined,
         responseType: responseType || 'json'
       };
+      requestConfig = config;
       
       // 发送请求
       const response = await axios<ApiResponse<T>>(config);
@@ -152,6 +170,12 @@ export abstract class BaseApiService {
       Logger.debug(`响应状态码: ${response.status}`);
       Logger.debug(`响应头:`, response.headers);
       Logger.debug(`响应数据:`, response.data);
+      Logger.logApiCall(method, requestUrl, method === 'GET' ? config.params : config.data, response, response.status);
+      // 附加记录请求头（脱敏后）
+      if (requestHeadersForLog) {
+        Logger.debug('请求头(确认):', requestHeadersForLog);
+      }
+      Logger.debug(`请求耗时: ${Date.now() - startTime}ms`);
       
       // 对于非JSON响应，直接返回数据
       if (responseType && responseType !== 'json') {
@@ -173,11 +197,46 @@ export abstract class BaseApiService {
       return response.data.data;
     } catch (error) {
       // 处理401错误，可能是令牌过期
+      try {
+        const axiosError = error as AxiosError;
+        const statusCode = axiosError?.response?.status ?? -1;
+        Logger.logApiCall(
+          method,
+          requestUrl || `${this.getBaseUrl()}${endpoint}`,
+          method === 'GET' ? requestConfig?.params : requestConfig?.data,
+          axiosError?.response,
+          statusCode
+        );
+        if (requestHeadersForLog) {
+          Logger.debug('请求头(失败):', requestHeadersForLog);
+        }
+        Logger.debug(`请求失败耗时: ${Date.now() - startTime}ms`);
+      } catch {}
       if (error instanceof AxiosError && error.response?.status === 401) {
-        // 清除当前令牌，下次请求会重新获取
+        // 检查是否是用户令牌认证模式
+        const config = Config.getInstance();
+        const isUserAuth = config.feishu.authType === 'user';
+        
+        if (isUserAuth) {
+          // 用户令牌过期，不进行重试，直接抛出401错误
+          Logger.warn('用户访问令牌无效或已过期');
+          const apiError: ApiError = {
+            status: 401,
+            err: '用户访问令牌无效或已过期，请重新获取令牌',
+            apiError: {
+              code: 99991663,
+              msg: 'token invalid',
+              error: 'user_token_expired'
+            },
+            logId: error.response?.data?.log_id
+          };
+          throw apiError;
+        }
+        
+        // 租户令牌过期处理 - 清除缓存并重试
         this.accessToken = '';
         this.tokenExpireTime = null;
-        Logger.warn('访问令牌可能已过期，已清除缓存的令牌');
+        Logger.warn('租户访问令牌可能已过期，已清除缓存的令牌');
         
         // 如果这是重试请求，避免无限循环
         if ((error as any).isRetry) {
@@ -208,7 +267,7 @@ export abstract class BaseApiService {
    * @returns 响应数据
    */
   protected async get<T = any>(endpoint: string, params?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'GET', params, needsAuth);
+    return this.request<T>(endpoint, 'GET', params, needsAuth, undefined, 'json');
   }
   
   /**
@@ -219,7 +278,7 @@ export abstract class BaseApiService {
    * @returns 响应数据
    */
   protected async post<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'POST', data, needsAuth);
+    return this.request<T>(endpoint, 'POST', data, needsAuth, undefined, 'json');
   }
   
   /**
@@ -230,7 +289,7 @@ export abstract class BaseApiService {
    * @returns 响应数据
    */
   protected async put<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'PUT', data, needsAuth);
+    return this.request<T>(endpoint, 'PUT', data, needsAuth, undefined, 'json');
   }
   
   /**
@@ -238,10 +297,11 @@ export abstract class BaseApiService {
    * @param endpoint 请求端点
    * @param data 请求数据
    * @param needsAuth 是否需要认证
+   * @param userAccessToken 用户访问令牌
    * @returns 响应数据
    */
   protected async patch<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
-    return this.request<T>(endpoint, 'PATCH', data, needsAuth);
+    return this.request<T>(endpoint, 'PATCH', data, needsAuth, undefined, 'json');
   }
   
   /**

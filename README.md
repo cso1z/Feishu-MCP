@@ -255,3 +255,12 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=cso1z/feishu-mcp&type=Timeline)](https://www.star-history.com/#cso1z/feishu-mcp&Timeline)
+
+
+## 生成环境部署
+```
+pm2 start /usr/bin/bash --name feishu-mcp-auth -- -c "pnpm run dev"
+```
+
+生产环境日志文件：/root/.pm2/logs
+
