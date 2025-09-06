@@ -1,6 +1,6 @@
 {
   "name": "feishu-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server for Feishu integration",
   "type": "module",
   "main": "dist/index.js",
@@ -41,7 +41,7 @@
   "author": "cso1z",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.1",
+    "@modelcontextprotocol/sdk": "^1.17.5",
     "@types/yargs": "^17.0.33",
     "axios": "^1.7.9",
     "cross-env": "^7.0.3",
