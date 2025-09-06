@@ -149,6 +149,21 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    pnpm run dev
    ```
 
+### 方式四：Smithery CLI 推荐开发方式
+
+Smithery CLI 支持本地开发与自动部署，推荐如下：
+
+```bash
+# 本地开发（热重载，推荐）
+npx @smithery/cli dev
+
+# 构建产物（用于部署）
+npx @smithery/cli build
+```
+
+- 配置项、端口等可通过 smithery.yaml 管理。
+- 推荐用 Smithery 平台自动部署，无需手动维护 Dockerfile。
+
 ## ⚙️ 项目配置
 
 ### 环境变量配置
