@@ -212,7 +212,7 @@ export class FeishuMcpServer {
       }
     });
 
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       Logger.info(`HTTP server listening on port ${port}`);
       Logger.info(`SSE endpoint available at http://localhost:${port}/sse`);
       Logger.info(`Message endpoint available at http://localhost:${port}/messages`);
