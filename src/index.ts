@@ -1,6 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { FeishuMcpServer } from "./server.js";
-import { getServerConfig } from "./config.js";
+import { Config } from "./utils/config.js";
 import { fileURLToPath } from 'url';
 import { resolve } from 'path';
 
@@ -8,19 +8,20 @@ export async function startServer(): Promise<void> {
   // Check if we're running in stdio mode (e.g., via CLI)
   const isStdioMode = process.env.NODE_ENV === "cli" || process.argv.includes("--stdio");
 
-  const config = getServerConfig(isStdioMode);
+  // 获取配置实例
+  const config = Config.getInstance();
+  
+  // 打印配置信息
+  config.printConfig(isStdioMode);
+  
+  // 验证配置
+  if (!config.validate()) {
+    console.error("配置验证失败，无法启动服务器");
+    process.exit(1);
+  }
 
-  // 创建飞书配置对象
-  const feishuConfig = {
-    appId: config.feishuAppId!,
-    appSecret: config.feishuAppSecret!
-  };
-
-  console.log("Feishu configuration status: Available");
-  console.log(`Feishu App ID: ${feishuConfig.appId.substring(0, 4)}...${feishuConfig.appId.substring(feishuConfig.appId.length - 4)}`);
-  console.log(`Feishu App Secret: ${feishuConfig.appSecret.substring(0, 4)}...${feishuConfig.appSecret.substring(feishuConfig.appSecret.length - 4)}`);
-
-  const server = new FeishuMcpServer(feishuConfig);
+  // 创建MCP服务器
+  const server = new FeishuMcpServer();
 
   console.log(`isStdioMode:${isStdioMode}`)
 
@@ -28,8 +29,8 @@ export async function startServer(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
   } else {
-    console.log(`Initializing Feishu MCP Server in HTTP mode on port ${config.port}...`);
-    await server.startHttpServer(config.port);
+    console.log(`Initializing Feishu MCP Server in HTTP mode on port ${config.server.port}...`);
+    await server.startHttpServer(config.server.port);
   }
 }
 
