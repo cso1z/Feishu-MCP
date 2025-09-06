@@ -1,6 +1,9 @@
 import express, { Request, Response } from 'express';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
+import { randomUUID } from 'node:crypto'
 import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
@@ -29,6 +32,125 @@ export class FeishuMcpServer {
 
   async startHttpServer(port: number): Promise<void> {
     const app = express();
+
+    const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {}
+
+    // Parse JSON requests for the Streamable HTTP endpoint only, will break SSE endpoint
+    app.use("/mcp", express.json());
+
+    app.post('/mcp', async (req, res) => {
+      try {
+        Logger.log("Received StreamableHTTP request", {
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+          body: req.body,
+          query: req.query,
+          params: req.params
+        });
+        // Check for existing session ID
+        const sessionId = req.headers['mcp-session-id'] as string | undefined
+        let transport: StreamableHTTPServerTransport
+
+        if (sessionId && transports[sessionId]) {
+          // Reuse existing transport
+          Logger.log("Reusing existing StreamableHTTP transport for sessionId", sessionId);
+          transport = transports[sessionId]
+        } else if (!sessionId && isInitializeRequest(req.body)) {
+          // New initialization request
+          transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => randomUUID(),
+            onsessioninitialized: (sessionId) => {
+              // Store the transport by session ID
+              Logger.log(`[StreamableHTTP connection] ${sessionId}`);
+              transports[sessionId] = transport
+            }
+          })
+
+          // Clean up transport and server when closed
+          transport.onclose = () => {
+            if (transport.sessionId) {
+              Logger.log(`[StreamableHTTP delete] ${transports[transport.sessionId]}`);
+              delete transports[transport.sessionId]
+            }
+          }
+
+          // Create and connect server instance
+          const server = new FeishuMcp();
+          await server.connect(transport);
+        } else {
+          // Invalid request
+          res.status(400).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32000,
+              message: 'Bad Request: No valid session ID provided',
+            },
+            id: null,
+          })
+          return
+        }
+
+        // Handle the request
+        await transport.handleRequest(req, res, req.body)
+      } catch (error) {
+        console.error('Error handling MCP request:', error)
+        if (!res.headersSent) {
+          res.status(500).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32603,
+              message: 'Internal server error',
+            },
+            id: null,
+          })
+        }
+      }
+    })
+
+    // Handle GET requests for server-to-client notifications via Streamable HTTP
+    app.get('/mcp', async (req, res) => {
+      try {
+        Logger.log("Received StreamableHTTP request get" )
+        const sessionId = req.headers['mcp-session-id'] as string | undefined
+        if (!sessionId || !transports[sessionId]) {
+          res.status(400).send('Invalid or missing session ID')
+          return
+        }
+
+        const transport = transports[sessionId]
+        await transport.handleRequest(req, res)
+      } catch (error) {
+        console.error('Error handling GET request:', error)
+        if (!res.headersSent) {
+          res.status(500).send('Internal server error')
+        }
+      }
+    })
+
+    // Handle DELETE requests for session termination
+    app.delete('/mcp', async (req, res) => {
+      try {
+        const sessionId = req.headers['mcp-session-id'] as string | undefined
+        if (!sessionId || !transports[sessionId]) {
+          res.status(400).send('Invalid or missing session ID')
+          return
+        }
+
+        const transport = transports[sessionId]
+        await transport.handleRequest(req, res)
+
+        // Clean up resources after session termination
+        if (transport.sessionId) {
+          delete transports[transport.sessionId]
+        }
+      } catch (error) {
+        console.error('Error handling DELETE request:', error)
+        if (!res.headersSent) {
+          res.status(500).send('Internal server error')
+        }
+      }
+    })
 
     app.get('/sse', async (req: Request, res: Response) => {
       const sseTransport = new SSEServerTransport('/messages', res);
@@ -93,9 +215,8 @@ export class FeishuMcpServer {
     app.listen(port, () => {
       Logger.info(`HTTP server listening on port ${port}`);
       Logger.info(`SSE endpoint available at http://localhost:${port}/sse`);
-      Logger.info(
-        `Message endpoint available at http://localhost:${port}/messages`,
-      );
+      Logger.info(`Message endpoint available at http://localhost:${port}/messages`);
+      Logger.info(`StreamableHTTP endpoint available at http://localhost:${port}/mcp`);
     });
   }
 }

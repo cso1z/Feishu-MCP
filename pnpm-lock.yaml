@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.13.1
-        version: 1.13.1
+        specifier: ^1.17.5
+        version: 1.17.5
       '@types/yargs':
         specifier: ^17.0.33
         version: 17.0.33
@@ -549,8 +549,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@modelcontextprotocol/sdk@1.13.1':
-    resolution: {integrity: sha512-8q6+9aF0yA39/qWT/uaIj6zTpC+Qu07DnN/lb9mjoquCJsAh6l3HyYqc9O3t2j7GilseOQOQimLg7W3By6jqvg==}
+  '@modelcontextprotocol/sdk@1.17.5':
+    resolution: {integrity: sha512-QakrKIGniGuRVfWBdMsDea/dx1PNE739QJ7gCM41s9q+qaCYTHCdsIBXQVVXry3mfWAiaM9kT22Hyz53Uw8mfg==}
     engines: {node: '>=18'}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -2783,13 +2783,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@modelcontextprotocol/sdk@1.13.1':
+  '@modelcontextprotocol/sdk@1.17.5':
     dependencies:
       ajv: 6.12.6
       content-type: 1.0.5
       cors: 2.8.5
       cross-spawn: 7.0.6
       eventsource: 3.0.5
+      eventsource-parser: 3.0.0
       express: 5.0.1
       express-rate-limit: 7.5.0(express@5.0.1)
       pkce-challenge: 5.0.0
