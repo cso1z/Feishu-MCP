@@ -189,6 +189,46 @@ export class ParamUtils {
   }
   
   /**
+   * 处理画板ID参数
+   * 验证并规范化画板ID，支持从URL中提取
+   * 
+   * @param whiteboardId 画板ID或URL
+   * @returns 规范化的画板ID
+   * @throws 如果画板ID无效则抛出错误
+   */
+  public static processWhiteboardId(whiteboardId: string): string {
+    if (!whiteboardId) {
+      throw new ParamValidationError('whiteboardId', '画板ID不能为空');
+    }
+    
+    try {
+      // 从URL中提取画板ID
+      let normalizedWhiteboardId = whiteboardId;
+      if (whiteboardId.includes('feishu.cn/board/')) {
+        // 从URL中提取画板ID
+        const matches = whiteboardId.match(/board\/([^\/\?]+)/);
+        if (matches) {
+          normalizedWhiteboardId = matches[1];
+        } else {
+          throw new ParamValidationError('whiteboardId', '无法从URL中提取画板ID');
+        }
+      }
+      
+      // 验证画板ID格式（基本格式检查）
+      if (!/^[a-zA-Z0-9_-]{5,}$/.test(normalizedWhiteboardId)) {
+        throw new ParamValidationError('whiteboardId', '画板ID格式无效');
+      }
+      
+      return normalizedWhiteboardId;
+    } catch (error) {
+      if (error instanceof ParamValidationError) {
+        throw error;
+      }
+      throw new ParamValidationError('whiteboardId', formatErrorMessage(error));
+    }
+  }
+  
+  /**
    * 批量处理通用参数
    * 验证并规范化常用参数集
    * 

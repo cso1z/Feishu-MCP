@@ -920,3 +920,7 @@ url:https://open.feishu.cn/open-apis/suite/docs-api/search/object
   "msg": ""
 }
 ```
+## 20. 获取画板缩略图
+* 请求：curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/MVPUwrM3****YLngv/download_as_image' \
+  -H 'Authorization: Bearer u-cXlil7g6F6MV9aBhJG2Gcpl5k0sAlhGhiW0055Q02ex0'
+* 二进制图片

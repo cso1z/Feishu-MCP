@@ -1067,16 +1067,7 @@ export class FeishuApiService extends BaseApiService {
    */
   public async getWhiteboardContent(whiteboardId: string): Promise<any> {
     try {
-      // 从URL中提取画板ID
-      let normalizedWhiteboardId = whiteboardId;
-      if (whiteboardId.includes('feishu.cn/board/')) {
-        // 从URL中提取画板ID
-        const matches = whiteboardId.match(/board\/([^\/\?]+)/);
-        if (matches) {
-          normalizedWhiteboardId = matches[1];
-        }
-      }
-
+      const normalizedWhiteboardId = ParamUtils.processWhiteboardId(whiteboardId);
       const endpoint = `/board/v1/whiteboards/${normalizedWhiteboardId}/nodes`;
       
       Logger.info(`开始获取画板内容，画板ID: ${normalizedWhiteboardId}`);
@@ -1086,6 +1077,31 @@ export class FeishuApiService extends BaseApiService {
       return response;
     } catch (error) {
       this.handleApiError(error, '获取画板内容失败');
+    }
+  }
+
+  /**
+   * 获取画板缩略图
+   * @param whiteboardId 画板ID或URL
+   * @returns 画板缩略图的二进制数据
+   */
+  public async getWhiteboardThumbnail(whiteboardId: string): Promise<Buffer> {
+    try {
+      const normalizedWhiteboardId = ParamUtils.processWhiteboardId(whiteboardId);
+      const endpoint = `/board/v1/whiteboards/${normalizedWhiteboardId}/download_as_image`;
+      
+      Logger.info(`开始获取画板缩略图，画板ID: ${normalizedWhiteboardId}`);
+      
+      // 使用通用的request方法获取二进制响应
+      const response = await this.request<ArrayBuffer>(endpoint, 'GET', {}, true, {}, 'arraybuffer');
+      
+      const thumbnailBuffer = Buffer.from(response);
+      Logger.info(`画板缩略图获取成功，大小: ${thumbnailBuffer.length} 字节`);
+      
+      return thumbnailBuffer;
+    } catch (error) {
+      this.handleApiError(error, '获取画板缩略图失败');
+      return Buffer.from([]); // 永远不会执行到这里
     }
   }
 
