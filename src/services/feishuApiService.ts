@@ -48,47 +48,6 @@ export class FeishuApiService extends BaseApiService {
     return this.config.feishu.baseUrl;
   }
 
-  /**
-   * 获取API认证端点
-   * @returns 认证端点URL
-   */
-  protected getAuthEndpoint(): string {
-    return '/auth/v3/tenant_access_token/internal';
-  }
-
-  /**
-   * 获取访问令牌
-   * @returns 访问令牌
-   * @throws 如果获取令牌失败则抛出错误
-   */
-  protected async getAccessToken(): Promise<string> {
-    // 尝试从缓存获取
-    const cachedToken = this.cacheManager.getToken();
-    if (cachedToken) {
-      Logger.debug('使用缓存的访问令牌');
-      return cachedToken;
-    }
-
-    // 通过HTTP请求调用配置的tokenEndpoint接口
-    const { appId, appSecret, authType, tokenEndpoint } = this.config.feishu;
-    const params = new URLSearchParams({
-      client_id: appId,
-      client_secret: appSecret,
-      token_type: authType
-    });
-    const url = `${tokenEndpoint}?${params.toString()}`;
-    const response = await axios.get(url);
-    const tokenResult = response.data?.data;
-    if (tokenResult && tokenResult.access_token) {
-      Logger.debug('使用Http的访问令牌');
-      CacheManager.getInstance().cacheToken(tokenResult.access_token,tokenResult.expires_in)
-      return tokenResult.access_token;
-    }
-    if (tokenResult && tokenResult.needAuth && tokenResult.url) {
-      throw new Error(`请在浏览器打开以下链接进行授权：\n\n[点击授权](${tokenResult.url})`);
-    }
-    throw new Error('无法获取有效的access_token');
-  }
 
   /**
    * 创建飞书文档

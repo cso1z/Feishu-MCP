@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthService } from './feishuAuthService.js';
 import { Config } from '../utils/config.js';
-import { CacheManager } from '../utils/cache.js';
 import { renderFeishuAuthResultHtml } from '../utils/document.js';
+import { TokenCacheManager } from '../utils/tokenCacheManager.js';
 
 // 通用响应码
 const CODE = {
@@ -29,6 +29,7 @@ const config = Config.getInstance();
 export async function callback(req: Request, res: Response) {
   const code = req.query.code as string;
   const state = req.query.state as string;
+  const baseUrl = req.query.baseUrl as string;
   console.log(`[callback] query:`, req.query);
   if (!code) {
     console.log('[callback] 缺少code参数');
@@ -37,13 +38,9 @@ export async function callback(req: Request, res: Response) {
   // 校验state（clientKey）
   const client_id = config.feishu.appId;
   const client_secret = config.feishu.appSecret;
-  const expectedClientKey = await CacheManager.getClientKey(client_id, client_secret);
-  if (state !== expectedClientKey) {
-    console.log('[callback] state(clientKey)不匹配');
-    return sendFail(res, 'state(clientKey)不匹配', CODE.PARAM_ERROR);
-  }
+  const expectedClientKey = TokenCacheManager.generateClientKey(client_id, client_secret,state);
 
-  const redirect_uri = `http://localhost:${config.server.port}/callback`;
+  const redirect_uri = `${baseUrl}/callback?baseUrl=${baseUrl}`;
   const session = (req as any).session;
   const code_verifier = session?.code_verifier || undefined;
 
@@ -61,6 +58,7 @@ export async function callback(req: Request, res: Response) {
     if (!data || data.code !== 0 || !data.access_token) {
       return sendFail(res, `获取 access_token 失败，飞书返回: ${JSON.stringify(tokenResp)}`, CODE.CUSTOM);
     }
+    TokenCacheManager.getInstance().cacheUserToken(expectedClientKey,data)
     // 获取用户信息
     const access_token = data.access_token;
     let userInfo = null;
@@ -75,10 +73,6 @@ export async function callback(req: Request, res: Response) {
   }
 }
 
-export async function getTokenByParams({ client_id, client_secret, token_type }: { client_id: string, client_secret: string, token_type?: string }) {
-  const authService = new AuthService();
-  if (client_id) authService.config.feishu.appId = client_id;
-  if (client_secret) authService.config.feishu.appSecret = client_secret;
-  if (token_type) authService.config.feishu.authType = token_type === 'user' ? 'user' : 'tenant';
-  return await authService.getToken();
-} 
+// export async function getTokenByParams({ client_id, client_secret,token, token_type }: { client_id: string, client_secret: string,token?:string, token_type?: string }) {
+//   return await authService.getToken({client_id,client_secret,token,authType: token_type});
+// }

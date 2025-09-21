@@ -7,13 +7,25 @@ import { randomUUID } from 'node:crypto'
 import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
-import { callback, getTokenByParams } from './services/callbackService.js';
+import { callback } from './services/callbackService.js';
+import { FeishuOAuthServer } from './auth/feishuOAuthServer.js';
+import { AuthenticatedRequest, verifyAndGetUserToken, verifyUserToken } from './auth/authMiddleware.js';
+import { UserContextManager } from './utils/userContext.js';
+import {
+  bindSessionUserKey,
+  generateAuthErrorResponse,
+  getBaseUrl,
+  getRequestKey, isAuthForTenant,
+  isUserAuthSupported
+} from './utils/auth';
 
 export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
+  private oauthServer: FeishuOAuthServer;
 
   constructor() {
     this.connectionManager = new SSEConnectionManager();
+    this.oauthServer = new FeishuOAuthServer();
   }
 
   async connect(transport: Transport): Promise<void> {
@@ -37,6 +49,14 @@ export class FeishuMcpServer {
 
     // Parse JSON requests for the Streamable HTTP endpoint only, will break SSE endpoint
     app.use("/mcp", express.json());
+    
+    // Parse URL-encoded form data for OAuth endpoints
+    app.use(express.urlencoded({ extended: true }));
+
+    // app.use(express.json({
+    //   limit: '4mb',           // 消息端点使用较小的限制
+    //   type: 'application/json'
+    // }));
 
     app.post('/mcp', async (req, res) => {
       try {
@@ -152,11 +172,17 @@ export class FeishuMcpServer {
       }
     })
 
-    app.get('/sse', async (req: Request, res: Response) => {
+    app.get('/sse',verifyUserToken, async (req: Request, res: Response) => {
+      Logger.log(`[SSE Connection] New SSE connection established params:${JSON.stringify(req.params)}  query:${JSON.stringify(req.query)} headers:${JSON.stringify(req.headers)} `,);
       const sseTransport = new SSEServerTransport('/messages', res);
       const sessionId = sseTransport.sessionId;
-      Logger.log(`[SSE Connection] New SSE connection established for sessionId ${sessionId}   params:${JSON.stringify(req.params)} headers:${JSON.stringify(req.headers)} `,);
       this.connectionManager.addConnection(sessionId, sseTransport, req, res);
+      if (!isAuthForTenant() && !isUserAuthSupported(req)) {
+        const userKey = req.query.userKey;
+        if (typeof userKey === 'string') {
+          bindSessionUserKey(sessionId, userKey);
+        }
+      }
       try {
         const tempServer = new FeishuMcp();
         await tempServer.connect(sseTransport);
@@ -171,9 +197,10 @@ export class FeishuMcpServer {
       }
     });
 
-    app.post('/messages', async (req: Request, res: Response) => {
+
+    app.post('/messages',verifyAndGetUserToken, async (req: AuthenticatedRequest, res: Response) => {
       const sessionId = req.query.sessionId as string;
-      Logger.info(`[SSE messages] Received message with sessionId: ${sessionId}, params: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}`,);
+      Logger.error(`[SSE messages] Received message with sessionId: ${sessionId}, params: ${JSON.stringify(req.query)}, header:${JSON.stringify(req.body)}, body: ${JSON.stringify(req.body)}`,);
 
       if (!sessionId) {
         res.status(400).send('Missing sessionId query parameter');
@@ -189,34 +216,61 @@ export class FeishuMcpServer {
           .send(`No active connection found for sessionId: ${sessionId}`);
         return;
       }
-      await transport.handlePostMessage(req, res);
-    });
-
-    app.get('/callback', callback);
-
-    app.get('/getToken', async (req: Request, res: Response) => {
-      const { client_id, client_secret, token_type } = req.query;
-      if (!client_id || !client_secret) {
-        res.status(400).json({ code: 400, msg: '缺少 client_id 或 client_secret' });
-        return;
-      }
+      // 使用 UserContextManager 在异步上下文中传递用户令牌
+      const userContextManager = UserContextManager.getInstance();
       try {
-        const tokenResult = await getTokenByParams({
-          client_id: client_id as string,
-          client_secret: client_secret as string,
-          token_type: token_type as string
-        });
-        res.json({ code: 0, msg: 'success', data: tokenResult });
-      } catch (e: any) {
-        res.status(500).json({ code: 500, msg: e.message || '获取token失败' });
+        await userContextManager.run(
+          {
+            feishuToken: req.feishuToken,
+            reqKey: getRequestKey(req),
+            isUserAuthSupported:isUserAuthSupported(req),
+            baseUrl:getBaseUrl(req)
+          },
+          async () => {
+            await transport.handlePostMessage(req, res);
+          }
+        );
+      } catch (error: any) {
+        Logger.error(`[SSE messages] Error handling message for sessionId ${sessionId}:`, error);
+        // 检查是否是401错误（用户令牌过期）
+        if (error && error.status === 401) {
+          Logger.warn(`[SSE messages] User access token expired for sessionId ${sessionId}`);
+         const {error, error_description, statusCode}=  generateAuthErrorResponse(isUserAuthSupported(req),getBaseUrl(req), getRequestKey(req)||"");
+          if (!res.writableEnded) {
+            res.status(statusCode).json({
+              error: error,
+              error_description: error_description,
+            });
+          }
+          return;
+        }
+
+        // 处理其他错误
+        if (!res.writableEnded) {
+          res.status(500).json({
+            error: 'server_error',
+            error_description: 'Internal server error while processing message.',
+            details: error.message || 'Unknown error'
+          });
+        }
       }
     });
+
+    // 集成飞书 OAuth 服务器路由
+    app.use('/', this.oauthServer.getRouter());
+
+    // 保留原有的回调端点（用于兼容性）
+    app.get('/callback', callback);
 
     app.listen(port, '0.0.0.0', () => {
       Logger.info(`HTTP server listening on port ${port}`);
       Logger.info(`SSE endpoint available at http://localhost:${port}/sse`);
       Logger.info(`Message endpoint available at http://localhost:${port}/messages`);
       Logger.info(`StreamableHTTP endpoint available at http://localhost:${port}/mcp`);
+      Logger.info(`OAuth 2.0 Authorization endpoint available at http://localhost:${port}/authorize`);
+      Logger.info(`OAuth 2.0 Token endpoint available at http://localhost:${port}/token`);
+      Logger.info(`OAuth 2.0 Registration endpoint available at http://localhost:${port}/register`);
+      Logger.info(`OAuth 2.0 Discovery endpoint available at http://localhost:${port}/.well-known/oauth-authorization-server`);
     });
   }
 }

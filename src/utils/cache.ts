@@ -1,7 +1,6 @@
 import { Config } from './config.js';
 import { Logger } from './logger.js';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as crypto from 'crypto';
 
 /**
  * 缓存项接口
@@ -21,7 +20,6 @@ export class CacheManager {
   private static instance: CacheManager;
   private cache: Map<string, CacheItem<any>>;
   private readonly config: Config;
-  private userTokenCacheFile = path.resolve(process.cwd(), 'user_token_cache.json');
 
   /**
    * 私有构造函数，用于单例模式
@@ -29,7 +27,6 @@ export class CacheManager {
   private constructor() {
     this.cache = new Map();
     this.config = Config.getInstance();
-    this.loadUserTokenCache();
 
     // 定期清理过期缓存
     setInterval(() => {
@@ -75,9 +72,6 @@ export class CacheManager {
     });
     
     Logger.debug(`缓存设置: ${key} (TTL: ${actualTtl}秒)`);
-    if (key.startsWith('user_access_token:')) {
-      this.saveUserTokenCache();
-    }
     return true;
   }
   
@@ -121,9 +115,6 @@ export class CacheManager {
     const result = this.cache.delete(key);
     if (result) {
       Logger.debug(`缓存删除: ${key}`);
-      if (key.startsWith('user_access_token:')) {
-        this.saveUserTokenCache();
-      }
     }
     return result;
   }
@@ -267,73 +258,57 @@ export class CacheManager {
   }
 
 
+  /**
+   * @deprecated 请使用 TokenCacheManager.cacheUserToken() 替代
+   */
   public cacheUserToken(key: string, tokenObj: any, expiresIn: number): boolean {
+    Logger.warn('CacheManager.cacheUserToken() is deprecated, please use TokenCacheManager.cacheUserToken()');
     return this.set(`user_access_token:${key}`, tokenObj, expiresIn);
   }
 
+  /**
+   * @deprecated 请使用 TokenCacheManager.getUserToken() 替代
+   */
   public getUserToken(key: string): any {
+    Logger.warn('CacheManager.getUserToken() is deprecated, please use TokenCacheManager.getUserToken()');
     return this.get<any>(`user_access_token:${key}`);
   }
 
-  /**
-   * 缓存访问令牌
-   * @param token 访问令牌
-   * @param expiresInSeconds 过期时间（秒）
-   * @returns 是否成功设置缓存
-   */
-  public cacheToken( token: string, expiresInSeconds: number): boolean {
-    return this.set(`access_token`, token, expiresInSeconds);
-  }
+  //
+  // /**
+  //  * 缓存访问令牌
+  //  * @param token 访问令牌
+  //  * @param expiresInSeconds 过期时间（秒）
+  //  * @returns 是否成功设置缓存
+  //  */
+  // public cacheToken( token: string, expiresInSeconds: number): boolean {
+  //   return this.set(`access_token`, token, expiresInSeconds);
+  // }
+  //
+  // /**
+  //  * 获取缓存的访问令牌
+  //  * @returns 访问令牌，如果未找到或已过期则返回null
+  //  */
+  // public getToken(): string | null {
+  //   return this.get(`access_token`);
+  // }
 
   /**
-   * 获取缓存的访问令牌
-   * @returns 访问令牌，如果未找到或已过期则返回null
+   * @deprecated 请使用 TokenCacheManager.generateClientKey() 替代
    */
-  public getToken(): string | null {
-    return this.get(`access_token`);
+  public static async getClientKey(client_id: string, client_secret: string, token: string | null = null): Promise<string> {
+    Logger.warn('CacheManager.getClientKey() is deprecated, please use TokenCacheManager.generateClientKey()');
+    const tokenPart = token ? ':' + token : '';
+    return crypto.createHash('sha256').update(client_id + ':' + client_secret + tokenPart).digest('hex');
   }
 
   /**
-   * 生成client_id+client_secret签名
-   * @param client_id
-   * @param client_secret
-   * @returns 唯一key
+   * 生成随机字符串，用于返回给 Cursor 等客户端的 key
+   * @param length 字符串长度，默认 32
+   * @returns 随机字符串
    */
-  public static async getClientKey(client_id: string, client_secret: string): Promise<string> {
-    const crypto = await import('crypto');
-    return crypto.createHash('sha256').update(client_id + ':' + client_secret).digest('hex');
-  }
-
-  private loadUserTokenCache() {
-    if (fs.existsSync(this.userTokenCacheFile)) {
-      try {
-        const raw = fs.readFileSync(this.userTokenCacheFile, 'utf-8');
-        const obj = JSON.parse(raw);
-        for (const k in obj) {
-          if (k.startsWith('user_access_token:')) {
-            this.cache.set(k, obj[k]);
-          }
-        }
-        Logger.info(`已加载本地 user_token_cache.json，共${Object.keys(obj).length}条`);
-      } catch (e) {
-        Logger.warn('加载 user_token_cache.json 失败', e);
-      }
-    }
-  }
-
-  private saveUserTokenCache() {
-    const obj: Record<string, any> = {};
-    for (const [k, v] of this.cache.entries()) {
-      if (k.startsWith('user_access_token:')) {
-        obj[k] = v;
-      }
-    }
-    try {
-      fs.writeFileSync(this.userTokenCacheFile, JSON.stringify(obj, null, 2), 'utf-8');
-      Logger.debug('user_token_cache.json 已写入');
-    } catch (e) {
-      Logger.warn('写入 user_token_cache.json 失败', e);
-    }
+  public static generateRandomKey(length: number = 32): string {
+    return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
   }
 
 } 
