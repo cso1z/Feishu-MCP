@@ -7,13 +7,21 @@ import { randomUUID } from 'node:crypto'
 import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
-import { callback, getTokenByParams } from './services/callbackService.js';
+import { callback} from './services/callbackService.js';
+import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager } from './utils/auth';
 
 export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
+  private userAuthManager: UserAuthManager;
+  private userContextManager: UserContextManager;
 
   constructor() {
     this.connectionManager = new SSEConnectionManager();
+    this.userAuthManager = UserAuthManager.getInstance();
+    this.userContextManager = UserContextManager.getInstance();
+    
+    // 初始化TokenCacheManager，确保在启动时从文件加载缓存
+    TokenCacheManager.getInstance();
   }
 
   async connect(transport: Transport): Promise<void> {
@@ -153,9 +161,23 @@ export class FeishuMcpServer {
     })
 
     app.get('/sse', async (req: Request, res: Response) => {
+      // 获取 userKey 参数
+      let userKey = req.query.userKey as string | undefined;
+      
       const sseTransport = new SSEServerTransport('/messages', res);
       const sessionId = sseTransport.sessionId;
-      Logger.log(`[SSE Connection] New SSE connection established for sessionId ${sessionId}   params:${JSON.stringify(req.params)} headers:${JSON.stringify(req.headers)} `,);
+      
+      // 如果 userKey 为空，使用 sessionId 替代
+      if (!userKey) {
+        userKey = sessionId;
+      }
+      
+      Logger.log(`[SSE Connection] New SSE connection established for sessionId ${sessionId}, userKey: ${userKey}, params:${JSON.stringify(req.params)} headers:${JSON.stringify(req.headers)} `,);
+      
+      // 创建用户会话映射
+      this.userAuthManager.createSession(sessionId, userKey);
+      Logger.log(`[UserAuth] Created session mapping: sessionId=${sessionId}, userKey=${userKey}`);
+      
       this.connectionManager.addConnection(sessionId, sseTransport, req, res);
       try {
         const tempServer = new FeishuMcp();
@@ -164,6 +186,8 @@ export class FeishuMcpServer {
       } catch (error) {
         Logger.error(`[SSE Connection] Error connecting server to transport for ${sessionId}:`, error);
         this.connectionManager.removeConnection(sessionId);
+        // 清理用户会话映射
+        this.userAuthManager.removeSession(sessionId);
         if (!res.writableEnded) {
           res.status(500).end('Failed to connect MCP server to transport');
         }
@@ -173,7 +197,11 @@ export class FeishuMcpServer {
 
     app.post('/messages', async (req: Request, res: Response) => {
       const sessionId = req.query.sessionId as string;
-      Logger.info(`[SSE messages] Received message with sessionId: ${sessionId}, params: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}`,);
+      
+      // 通过 sessionId 获取 userKey
+      const userKey = this.userAuthManager.getUserKeyBySessionId(sessionId);
+      
+      Logger.info(`[SSE messages] Received message with sessionId: ${sessionId}, userKey: ${userKey}, params: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}`,);
 
       if (!sessionId) {
         res.status(400).send('Missing sessionId query parameter');
@@ -189,28 +217,23 @@ export class FeishuMcpServer {
           .send(`No active connection found for sessionId: ${sessionId}`);
         return;
       }
-      await transport.handlePostMessage(req, res);
+
+      // 获取 baseUrl
+      const baseUrl = getBaseUrl(req);
+      
+      // 在用户上下文中执行 transport.handlePostMessage
+      this.userContextManager.run(
+        {
+          userKey: userKey || '',
+          baseUrl: baseUrl
+        },
+        async () => {
+          await transport.handlePostMessage(req, res);
+        }
+      );
     });
 
     app.get('/callback', callback);
-
-    app.get('/getToken', async (req: Request, res: Response) => {
-      const { client_id, client_secret, token_type } = req.query;
-      if (!client_id || !client_secret) {
-        res.status(400).json({ code: 400, msg: '缺少 client_id 或 client_secret' });
-        return;
-      }
-      try {
-        const tokenResult = await getTokenByParams({
-          client_id: client_id as string,
-          client_secret: client_secret as string,
-          token_type: token_type as string
-        });
-        res.json({ code: 0, msg: 'success', data: tokenResult });
-      } catch (e: any) {
-        res.status(500).json({ code: 500, msg: e.message || '获取token失败' });
-      }
-    });
 
     app.listen(port, '0.0.0.0', () => {
       Logger.info(`HTTP server listening on port ${port}`);

@@ -103,10 +103,22 @@
 ![赋予编辑权限](image/add_edit_permission.png)
 
 ### 四、添加redirect_uri回调地址:http://localhost:3333/callback (3333为mcp server默认端口)
+* 注意如果是部署在服务器上时对应的host和port是需要更换
 ![安全设置](image/redirect_uri.png)
 
 ### 五、查看应用app Id与app Secret 
 ![应用详情](image/appid.png)
+
+### 六、配置cursor
+```
+{
+  "mcpServers": {
+    "feishu": {
+      "url": "http://localhost:3333/sse?userKey=123456789"
+    }
+  }
+}
+```
 
 ### 六、注
 1. 具体可参见[官方云文档常见问题](https://open.feishu.cn/document/server-docs/docs/faq)

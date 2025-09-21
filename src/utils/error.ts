@@ -178,4 +178,22 @@ export function formatErrorMessage(error: any, context?: string): string {
 export function wrapError(message: string, originalError: any): Error {
   const errorMessage = formatErrorMessage(originalError);
   return new Error(`${message}: ${errorMessage}`);
+}
+
+/**
+ * 授权异常类
+ * 用于处理需要用户授权的情况
+ */
+export class AuthRequiredError extends Error {
+  public readonly authType: 'tenant' | 'user';
+  public readonly authUrl?: string;
+  public readonly message: string;
+
+  constructor(authType: 'tenant' | 'user', message: string, authUrl?: string) {
+    super(message);
+    this.name = 'AuthRequiredError';
+    this.authType = authType;
+    this.authUrl = authUrl;
+    this.message = message;
+  }
 } 

@@ -1,9 +1,9 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
-import { formatErrorMessage } from '../utils/error.js';
-import { CacheManager } from '../utils/cache.js';
+import { formatErrorMessage, AuthRequiredError } from '../utils/error.js';
 import { Config } from '../utils/config.js';
+import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth';
 
 /**
  * API请求错误接口
@@ -30,21 +30,20 @@ export interface ApiResponse<T = any> {
  * 提供通用的HTTP请求处理和认证功能
  */
 export abstract class BaseApiService {
-  protected accessToken: string = '';
-  protected tokenExpireTime: number | null = null;
 
   /**
    * 获取API基础URL
    * @returns API基础URL
    */
   protected abstract getBaseUrl(): string;
-  
+
   /**
    * 获取访问令牌
+   * @param userKey 用户标识（可选）
    * @returns 访问令牌
    */
-  protected abstract getAccessToken(): Promise<string>;
-  
+  protected abstract getAccessToken(userKey?: string): Promise<string>;
+
   /**
    * 处理API错误
    * @param error 错误对象
@@ -95,25 +94,35 @@ export abstract class BaseApiService {
    * @param needsAuth 是否需要认证
    * @param additionalHeaders 附加请求头
    * @param responseType 响应类型
+   * @param retry 是否允许重试，默认为false
    * @returns 响应数据
    */
   protected async request<T = any>(
-    endpoint: string, 
-    method: string = 'GET', 
-    data?: any, 
+    endpoint: string,
+    method: string = 'GET',
+    data?: any,
     needsAuth: boolean = true,
     additionalHeaders?: Record<string, string>,
-    responseType?: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream'
+    responseType?: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream',
+    retry: boolean = false
   ): Promise<T> {
+    // 获取用户上下文
+    const userContextManager = UserContextManager.getInstance();
+    const userKey = userContextManager.getUserKey();
+    const baseUrl = userContextManager.getBaseUrl();
+    const clientKey = AuthUtils.generateClientKey(userKey);
+
+    Logger.debug(`[BaseService] Request context - userKey: ${userKey}, baseUrl: ${baseUrl}`);
+
     try {
       // 构建请求URL
       const url = `${this.getBaseUrl()}${endpoint}`;
-      
+
       // 准备请求头
       const headers: Record<string, string> = {
         ...additionalHeaders
       };
-      
+
       // 如果数据是FormData，合并FormData的headers
       // 否则设置为application/json
       if (data instanceof FormData) {
@@ -124,7 +133,7 @@ export abstract class BaseApiService {
       
       // 添加认证令牌
       if (needsAuth) {
-        const accessToken = await this.getAccessToken();
+        const accessToken = await this.getAccessToken(userKey);
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
       
@@ -174,30 +183,32 @@ export abstract class BaseApiService {
       // 返回数据
       return response.data.data;
     } catch (error) {
-      // 处理401错误，可能是令牌过期
-      if (error instanceof AxiosError && error.response?.status === 401) {
-        // 清除当前令牌，下次请求会重新获取
-        this.accessToken = '';
-        this.tokenExpireTime = null;
-        Logger.warn(`访问令牌可能已过期，已清除缓存的令牌`);
-        const clientKey = await CacheManager.getClientKey(Config.getInstance().feishu.appId, Config.getInstance().feishu.appSecret);
-        CacheManager.getInstance().removeUserToken(clientKey)
-        // 如果这是重试请求，避免无限循环
-        if ((error as any).isRetry) {
-          this.handleApiError(error, `API请求失败 (${endpoint})`);
+      const config = Config.getInstance().feishu;
+
+      // 处理授权异常
+      if (error instanceof AuthRequiredError) {
+         return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey);
+      }
+
+      // 处理认证相关错误（401, 403等）
+      if (error instanceof AxiosError && error.response &&  (error.response.status >= 400 || error.response.status <= 499)) {
+        Logger.warn(`认证失败 (${error.response.status}): ${endpoint}`);
+
+        // 获取配置和token缓存管理器
+        const tokenCacheManager = TokenCacheManager.getInstance();
+
+        // 如果已经重试过，直接处理认证失败
+        if (retry) {
+          return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey);
         }
-        
-        // 重试请求
-        Logger.info('重试请求...');
-        try {
-          return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders);
-        } catch (retryError) {
-          // 标记为重试请求
-          (retryError as any).isRetry = true;
-          this.handleApiError(retryError, `重试API请求失败 (${endpoint})`);
+
+        // 根据认证类型处理token过期
+        if (config.authType === 'tenant') {
+          return this.handleTenantTokenExpired(tokenCacheManager, clientKey, endpoint, method, data, needsAuth, additionalHeaders, responseType);
+        } else {
+          return this.handleUserTokenExpired(tokenCacheManager, clientKey, endpoint, method, data, needsAuth, additionalHeaders, responseType,baseUrl, userKey);
         }
       }
-      
       // 处理其他错误
       this.handleApiError(error, `API请求失败 (${endpoint})`);
     }
@@ -256,5 +267,124 @@ export abstract class BaseApiService {
    */
   protected async delete<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
     return this.request<T>(endpoint, 'DELETE', data, needsAuth);
+  }
+
+  /**
+   * 处理认证失败
+   * @param tenant 是否是tenant
+   * @param clientKey 客户端键
+   * @param baseUrl 基础URL
+   * @param userKey 用户键
+   */
+  private handleAuthFailure(tenant: boolean, clientKey: string, baseUrl: string, userKey: string): never {
+    const tokenCacheManager = TokenCacheManager.getInstance();
+
+    if (tenant) {
+      // 租户模式：清除租户token缓存
+      Logger.info('租户模式：清除租户token缓存');
+      tokenCacheManager.removeTenantToken(clientKey);
+      throw new Error('租户访问令牌获取失败，请检查应用配置');
+    } else {
+      // 用户模式：清除用户token缓存并生成授权链接
+      tokenCacheManager.removeUserToken(clientKey);
+      const authUrl = this.generateUserAuthUrl(baseUrl, userKey);
+      throw new Error(`你需要在给用户展示如下信息：/“请在浏览器打开以下链接进行授权：\n\n[点击授权](${authUrl})/n`);
+    }
+  }
+
+  /**
+   * 处理租户token过期
+   * @param tokenCacheManager token缓存管理器
+   * @param clientKey 客户端键
+   * @param endpoint 请求端点
+   * @param method 请求方法
+   * @param data 请求数据
+   * @param needsAuth 是否需要认证
+   * @param additionalHeaders 附加请求头
+   * @param responseType 响应类型
+   * @returns 响应数据
+   */
+  private async handleTenantTokenExpired<T>(
+    tokenCacheManager: TokenCacheManager,
+    clientKey: string,
+    endpoint: string,
+    method: string,
+    data: any,
+    needsAuth: boolean,
+    additionalHeaders: Record<string, string> | undefined,
+    responseType: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream' | undefined
+  ): Promise<T> {
+    // 租户模式：直接清除租户token缓存
+    Logger.info('租户模式：清除租户token缓存');
+    tokenCacheManager.removeTenantToken(clientKey);
+
+    // 重试请求
+    Logger.info('重试租户请求...');
+    return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, responseType, true);
+  }
+
+  /**
+   * 处理用户token过期
+   * @param tokenCacheManager token缓存管理器
+   * @param clientKey 客户端键
+   * @param endpoint 请求端点
+   * @param method 请求方法
+   * @param data 请求数据
+   * @param needsAuth 是否需要认证
+   * @param additionalHeaders 附加请求头
+   * @param responseType 响应类型
+   * @returns 响应数据
+   */
+  private async handleUserTokenExpired<T>(
+    tokenCacheManager: TokenCacheManager,
+    clientKey: string,
+    endpoint: string,
+    method: string,
+    data: any,
+    needsAuth: boolean,
+    additionalHeaders: Record<string, string> | undefined,
+    responseType: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream' | undefined,
+    baseUrl: string,
+    userKey: string
+  ): Promise<T> {
+    // 用户模式：检查用户token状态
+    const tokenStatus = tokenCacheManager.checkUserTokenStatus(clientKey);
+    Logger.debug(`用户token状态:`, tokenStatus);
+
+    if (tokenStatus.canRefresh && !tokenStatus.isExpired) {
+      // 有有效的refresh_token，设置token为过期状态，让下次请求时刷新
+      Logger.info('用户模式：token过期，将在下次请求时刷新');
+      const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
+      if (tokenInfo) {
+        // 设置access_token为过期，但保留refresh_token
+        tokenInfo.expires_at = Math.floor(Date.now() / 1000) - 1;
+        tokenCacheManager.cacheUserToken(clientKey, tokenInfo);
+      }
+
+      // 重试请求
+      Logger.info('重试用户请求...');
+      return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, responseType, true);
+    } else {
+      // refresh_token已过期或不存在，直接清除缓存
+      Logger.warn('用户模式：refresh_token已过期，清除用户token缓存');
+      tokenCacheManager.removeUserToken(clientKey);
+      return this.handleAuthFailure(true,clientKey,baseUrl,userKey);
+    }
+  }
+
+  /**
+   * 生成用户授权URL
+   * @param baseUrl 基础URL
+   * @param userKey 用户键
+   * @returns 授权URL
+   */
+  private generateUserAuthUrl(baseUrl: string, userKey: string): string {
+    const { appId, appSecret } = Config.getInstance().feishu;
+    const clientKey = AuthUtils.generateClientKey(userKey);
+    const redirect_uri = `${baseUrl}/callback`;
+    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
+    const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
+
+    return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
   }
 } 

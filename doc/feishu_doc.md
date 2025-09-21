@@ -969,3 +969,45 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9Q
   "msg": "success"
 }
 ```
+
+20. 权限
+* 获取块："contact:user.employee_id:readonly",
+    "docx:document",
+    "docx:document:readonly"
+* 创建文档： "docx:document",
+  "docx:document:create"
+* 创建块：    "contact:user.employee_id:readonly",
+  "docx:document"
+* 创建嵌套块： "contact:user.employee_id:readonly",
+  "docx:document"
+* 更新块：  "contact:user.employee_id:readonly",
+  "docx:document"
+* 获取块内容：  "contact:user.employee_id:readonly",
+  "docx:document",
+  "docx:document:readonly"
+* 获取所有子块：  "contact:user.employee_id:readonly",
+  "docx:document",
+  "docx:document:readonly"
+* 删除块：   "docx:document"
+* 获取画板缩略图片： "board:whiteboard:node:read"
+* 获取所有画板节点：  "board:whiteboard:node:read",
+  "contact:user.employee_id:readonly"
+* wiki转节点： "wiki:node:read",
+  "wiki:wiki",
+  "wiki:wiki:readonly"
+* 搜索云文档：
+* 上传图片：   "bitable:app",
+  "docs:doc",
+  "docs:document.media:upload",
+  "drive:drive",
+  "sheets:spreadsheet"
+* 下载图片：  "bitable:app",
+  "bitable:app:readonly",
+  "docs:doc",
+  "docs:doc:readonly",
+  "docs:document.media:download",
+  "drive:drive",
+  "drive:drive:readonly",
+  "sheets:spreadsheet",
+  "sheets:spreadsheet:readonly"
+* 刷新token:offline_access
