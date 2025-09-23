@@ -395,6 +395,41 @@ export class FeishuApiService extends BaseApiService {
     return this.createDocumentBlock(documentId, parentBlockId, blockContent, index);
   }
 
+  /**
+   * 创建Mermaid块
+   * @param documentId 文档ID或URL
+   * @param parentBlockId 父块ID
+   * @param mermaidCode Mermaid代码
+   * @param index 插入位置索引
+   * @returns 创建结果
+   */
+  public async createMermaidBlock(
+    documentId: string,
+    parentBlockId: string,
+    mermaidCode: string,
+    index: number = 0
+  ): Promise<any> {
+    const normalizedDocId = ParamUtils.processDocumentId(documentId);
+    const endpoint = `/docx/v1/documents/${normalizedDocId}/blocks/${parentBlockId}/children?document_revision_id=-1`;
+
+    const blockContent = {
+      block_type: 40,
+      add_ons: {
+        component_id: "",
+        component_type_id: "blk_631fefbbae02400430b8f9f4",
+        record: JSON.stringify({
+          data: mermaidCode,
+        })
+      }
+    };
+    const payload = {
+      children: [blockContent],
+      index
+    };
+    Logger.info(`请求创建Mermaid块: ${JSON.stringify(payload).slice(0, 500)}...`);
+    const response = await this.post(endpoint, payload);
+    return response;
+  }
 
   /**
    * 删除文档中的块，支持批量删除
@@ -609,6 +644,14 @@ export class FeishuApiService extends BaseApiService {
             };
           }
           break;
+        case BlockType.MERMAID:
+          if ('mermaid' in options && options.mermaid) {
+            const mermaidOptions = options.mermaid;
+            blockConfig.options = {
+              code: mermaidOptions.code,
+            };
+          }
+          break;
           
         default:
           Logger.warn(`未知的块类型: ${blockType}，尝试作为标准类型处理`);
@@ -668,6 +711,12 @@ export class FeishuApiService extends BaseApiService {
             blockConfig.options = {
               width: imageOptions.width || 100,
               height: imageOptions.height || 100
+            };
+          } else if ("mermaid" in options){
+            blockConfig.type = BlockType.MERMAID;
+            const mermaidConfig = options.mermaid;
+            blockConfig.options = {
+              code: mermaidConfig.code,
             };
           }
           break;

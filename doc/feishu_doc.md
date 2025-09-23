@@ -924,3 +924,48 @@ url:https://open.feishu.cn/open-apis/suite/docs-api/search/object
 * 请求：curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/MVPUwrM3****YLngv/download_as_image' \
   -H 'Authorization: Bearer u-cXlil7g6F6MV9aBhJG2Gcpl5k0sAlhGhiW0055Q02ex0'
 * 二进制图片
+
+
+## 21. 创建Mermaid
+* 请求参数
+```
+curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9QKVxqAovc5q5snk1/blocks/XL8NdbMQuo9QKVxqAovc5q5snk1/children?document_revision_id=-1' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer t-g1049n0tIACUCTTMG3HQODPWHEW7SWTDR6VZ3KA3' \
+-d '{
+	"children": [
+		{
+			"add_ons": {
+				"component_id": "",
+				"component_type_id": "blk_631fefbbae02400430b8f9f4",
+				"record": "{\"data\":\"graph TD\\n    A[Kotlin111源代码] --\\u003e|编译| B[Gradle编译过程]\\n    B --\\u003e C{CoroutineTracker\\u003cbr/\\u003e插件}\\n    C --\\u003e|字节码插桩| D[注入追踪代码]\\n    C --\\u003e|配置解析| E[过滤规则]\\n    \\n    D --\\u003e F[运行时追踪]\\n    E --\\u003e F\\n    \\n    F --\\u003e G{追踪方式}\\n    G --\\u003e|方式1| H[拦截器追踪]\\n    G --\\u003e|方式2| I[线程追踪]\\n    \\n    H --\\u003e J[日志输出]\\n    I --\\u003e J\\n    \\n    J --\\u003e K[问题分析]\\n    K --\\u003e L[性能优化]\\n    \\n    style A fill:#d0e1f9,stroke:#4a90e2\\n    style C fill:#fbe5d6,stroke:#ed7d31\\n    style F fill:#e2f0d9,stroke:#70ad47\\n    style G fill:#fff2cc,stroke:#ffd700\\n    style K fill:#f4cccc,stroke:#cc0000\\n\",\"theme\":\"default\",\"view\":\"codeChart\"}"
+			},
+			"block_type": 40
+		}
+	],
+	"index": 0
+}'
+```
+* 返回数据
+```
+{
+  "code": 0,
+  "data": {
+    "children": [
+      {
+        "add_ons": {
+          "component_id": "",
+          "component_type_id": "blk_631fefbbae02400430b8f9f4",
+          "record": "{\"data\":\"graph TD\\n    A[Kotlin111源代码] -->|编译| B[Gradle编译过程]\\n    B --> C{CoroutineTracker<br/>插件}\\n    C -->|字节码插桩| D[注入追踪代码]\\n    C -->|配置解析| E[过滤规则]\\n    \\n    D --> F[运行时追踪]\\n    E --> F\\n    \\n    F --> G{追踪方式}\\n    G -->|方式1| H[拦截器追踪]\\n    G -->|方式2| I[线程追踪]\\n    \\n    H --> J[日志输出]\\n    I --> J\\n    \\n    J --> K[问题分析]\\n    K --> L[性能优化]\\n    \\n    style A fill:#d0e1f9,stroke:#4a90e2\\n    style C fill:#fbe5d6,stroke:#ed7d31\\n    style F fill:#e2f0d9,stroke:#70ad47\\n    style G fill:#fff2cc,stroke:#ffd700\\n    style K fill:#f4cccc,stroke:#cc0000\\n\",\"theme\":\"default\",\"view\":\"codeChart\"}"
+        },
+        "block_id": "doxcncLxsriOMnMhpB3Rqq6FM5b",
+        "block_type": 40,
+        "parent_id": "XL8NdbMQuo9QKVxqAovc5q5snk1"
+      }
+    ],
+    "client_token": "7912c58c-9a1e-4902-9305-690fd7b6122d",
+    "document_revision_id": 84
+  },
+  "msg": "success"
+}
+```

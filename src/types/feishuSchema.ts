@@ -150,7 +150,7 @@ export const ListBlockSchema = z.object({
 
 // 块类型枚举 - 用于批量创建块工具
 export const BlockTypeEnum = z.string().describe(
-  "Block type (required). Supports: 'text', 'code', 'heading', 'list', 'image', as well as 'heading1' through 'heading9'. " +
+  "Block type (required). Supports: 'text', 'code', 'heading', 'list', 'image','mermaid',as well as 'heading1' through 'heading9'. " +
   "For headings, we recommend using 'heading' with level property, but 'heading1'-'heading9' are also supported. " +
   "For images, use 'image' to create empty image blocks that can be filled later. " +
   "For text blocks, you can include both regular text and equation elements in the same block."
@@ -172,6 +172,18 @@ export const ImageBlockSchema = z.object({
   height: ImageHeightSchema
 });
 
+// Mermaid代码参数定义
+export const MermaidCodeSchema = z.string().describe(
+  'Mermaid code (required). The complete Mermaid chart code, e.g. \'graph TD; A-->B;\'. ' +
+  'IMPORTANT: When node text contains special characters like parentheses (), brackets [], or arrows -->, ' +
+  'wrap the entire text in double quotes to prevent parsing errors. ' +
+  'Example: A["finish()/返回键"] instead of A[finish()/返回键].'
+);
+
+export const MermaidBlockSchema = z.object({
+  code: MermaidCodeSchema,
+});
+
 // 块配置定义 - 用于批量创建块工具
 export const BlockConfigSchema = z.object({
   blockType: BlockTypeEnum,
@@ -181,6 +193,7 @@ export const BlockConfigSchema = z.object({
     z.object({ heading: HeadingBlockSchema }).describe("Heading block options. Used with both 'heading' and 'headingN' formats."),
     z.object({ list: ListBlockSchema }).describe("List block options. Used when blockType is 'list'."),
     z.object({ image: ImageBlockSchema }).describe("Image block options. Used when blockType is 'image'. Creates empty image blocks."),
+    z.object({ mermaid: MermaidBlockSchema}).describe("Mermaid block options.  Used when blockType is 'mermaid'."),
     z.record(z.any()).describe("Fallback for any other block options")
   ]).describe('Options for the specific block type. Provide the corresponding options object based on blockType.'),
 });

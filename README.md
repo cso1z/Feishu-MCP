@@ -2,7 +2,6 @@
 
 
 [![npm version](https://img.shields.io/npm/v/feishu-mcp?color=blue&label=npm)](https://www.npmjs.com/package/feishu-mcp)
-[![smithery badge](https://smithery.ai/badge/@cso1z/feishu-mcp)](https://smithery.ai/server/@cso1z/feishu-mcp)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 为 [Cursor](https://cursor.sh/)、[Windsurf](https://codeium.com/windsurf)、[Cline](https://cline.bot/) 和其他 AI 驱动的编码工具提供访问、编辑和结构化处理飞书文档的能力，基于 [Model Context Protocol](https://modelcontextprotocol.io/introduction) 服务器实现。
@@ -47,7 +46,7 @@
 | | `get_feishu_whiteboard_content`                              | 获取画板内容 | 获取画板中的图形元素和结构(流程图、思维导图等) | ✅ 已完成 |
 | **高级功能** | 表格操作                                                         | 创建和编辑表格           | 结构化数据展示       | 🚧 计划中 |
 | | 图表插入                                                         | 支持各类数据可视化图表       | 数据展示和分析       | 🚧 计划中 |
-| | 流程图插入                                                        | 支持流程图和思维导图        | 流程梳理和可视化      | 🚧 计划中 |
+| | 流程图插入                                                        | 支持流程图和思维导图        | 流程梳理和可视化      | ✅ 已完成 |
 | 图片插入  | `upload_and_bind_image_to_block` | 支持插入本地和远程图片       | 修改文档内容        | ✅ 已完成 |
 | | 公式支持                                                         | 支持数学公式            | 学术和技术文档       | ✅ 已完成 |
 
@@ -61,6 +60,7 @@
 - **列表**：有序列表（编号）、无序列表（项目符号）
 - **图片**：支持本地图片和网络图片
 - **公式**：在文本块中插入数学公式，支持LaTeX语法
+- **mermaid图表**：支持流程图、时序图、思维导图、类图、饼图等等
 
 ---
 
@@ -71,6 +71,8 @@
 - ~~**批量增强**：新增批量更新、批量图片上传，单次操作效率提升50%~~ 0.0.15 ✅
 - **流程优化**：减少多步调用，实现一键完成复杂任务
 - ~~**支持多种凭证类型**：包括 tenant_access_token和 user_access_token，满足不同场景下的认证需求~~  (飞书应用配置发生变更) 0.0.16 ✅。
+- **支持cursor用户登录**：方便在cursor平台用户认证
+- ~~**支持mermaid图表**：流程图、时序图等等，丰富文档内容~~ 0.1.11 ✅
 
 ---
 

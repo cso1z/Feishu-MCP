@@ -94,7 +94,8 @@ export enum BlockType {
   CODE = 'code',
   HEADING = 'heading',
   LIST = 'list',
-  IMAGE = 'image'
+  IMAGE = 'image',
+  MERMAID = 'mermaid'
 }
 
 /**
@@ -168,6 +169,8 @@ export class BlockFactory {
         return this.createListBlock(options);
       case BlockType.IMAGE:
         return this.createImageBlock(options);
+      case BlockType.MERMAID:
+        return this.createMermaidBlock(options);
       default:
         Logger.error(`不支持的块类型: ${type}`);
         throw new Error(`不支持的块类型: ${type}`);
@@ -350,6 +353,29 @@ export class BlockFactory {
         height: height,
         token: "" // 空token，需要后续通过API设置
       }
+    };
+  }
+
+  /**
+   * 创建Mermaid
+   * @param options Mermaid块选项
+   * @returns Mermaid块内容对象
+   */
+  public createMermaidBlock(
+    options: {
+      code?: string;
+    } = {},
+  ): FeishuBlock {
+    const { code } = options;
+    return {
+      block_type: 40,
+      add_ons: {
+        component_id: '',
+        component_type_id: 'blk_631fefbbae02400430b8f9f4',
+        record: JSON.stringify({
+          data: code,
+        }),
+      },
     };
   }
 }

@@ -20,6 +20,7 @@ import {
   MediaIdSchema,
   MediaExtraSchema,
   ImagesArraySchema,
+  // MermaidCodeSchema,
   // ImageWidthSchema,
   // ImageHeightSchema
 } from '../../types/feishuSchema.js';
@@ -443,6 +444,39 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   //       const errorMessage = formatErrorMessage(error);
   //       return {
   //         content: [{ type: "text", text: `创建飞书列表块失败: ${errorMessage}` }],
+  //       };
+  //     }
+  //   },
+  // );
+
+  // 添加创建飞书Mermaid块工具
+  // server.tool(
+  //   "create_feishu_mermaid_block",
+  //   "Creates a new Mermaid block in a Feishu document. This tool allows you to insert a Mermaid diagram by specifying the Mermaid code.  Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.",
+  //   {
+  //     documentId: DocumentIdSchema,
+  //     parentBlockId: ParentBlockIdSchema,
+  //     mermaidCode: MermaidCodeSchema,
+  //     index: IndexSchema
+  //   },
+  //   async ({ documentId, parentBlockId, mermaidCode, index }) => {
+  //     try {
+  //       if (!feishuService) {
+  //         return {
+  //           content: [{ type: "text", text: "Feishu service is not initialized. Please check the configuration" }],
+  //         };
+  //       }
+  //       Logger.info(`开始创建飞书Mermaid块，文档ID: ${documentId}，父块ID: ${parentBlockId}，插入位置: ${index}`);
+  //       const result = await (feishuService as any).createMermaidBlock(documentId, parentBlockId, mermaidCode, index);
+  //       Logger.info(`飞书Mermaid块创建成功`);
+  //       return {
+  //         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+  //       };
+  //     } catch (error) {
+  //       Logger.error(`创建飞书Mermaid块失败:`, error);
+  //       const errorMessage = formatErrorMessage(error);
+  //       return {
+  //         content: [{ type: "text", text: `创建飞书Mermaid块失败: ${errorMessage}` }],
   //       };
   //     }
   //   },
