@@ -135,12 +135,16 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
         const whiteboardBlocks = blocks.filter((block: any) => block.block_type === 43);
         const hasWhiteboardBlocks = whiteboardBlocks.length > 0;
 
+        // 检查是否有 block_type 为 27 的块（图片块）
+        const imageBlocks = blocks.filter((block: any) => block.block_type === 27);
+        const hasImageBlocks = imageBlocks.length > 0;
+
         let responseText = JSON.stringify(blocks, null, 2);
         
         if (hasWhiteboardBlocks) {
           responseText += '\n\n⚠️ 检测到画板块 (block_type: 43)！\n';
-          responseText += `发现 ${whiteboardBlocks.length} 个画板块。画板块包含丰富的图形内容，如形状、文本、思维导图等。\n`;
-          responseText += '建议使用 get_feishu_whiteboard_content 工具来获取画板的具体内容和结构。\n';
+          responseText += `发现 ${whiteboardBlocks.length} 个画板块。\n`;
+          responseText += '💡 提示：如果您需要获取画板的具体内容（如流程图、思维导图等），可以使用 get_feishu_whiteboard_content 工具。\n';
           responseText += '画板信息:\n';
           whiteboardBlocks.forEach((block: any, index: number) => {
             responseText += `  ${index + 1}. 块ID: ${block.block_id}`;
@@ -149,7 +153,22 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
             }
             responseText += '\n';
           });
-          responseText += '请使用上述画板ID调用 get_feishu_whiteboard_content 工具。';
+          responseText += '📝 注意：只有在需要分析画板内容时才调用上述工具，仅了解文档结构时无需获取。';
+        }
+
+        if (hasImageBlocks) {
+          responseText += '\n\n🖼️ 检测到图片块 (block_type: 27)！\n';
+          responseText += `发现 ${imageBlocks.length} 个图片块。\n`;
+          responseText += '💡 提示：如果您需要查看图片的具体内容，可以使用 get_feishu_image_resource 工具下载图片。\n';
+          responseText += '图片信息:\n';
+          imageBlocks.forEach((block: any, index: number) => {
+            responseText += `  ${index + 1}. 块ID: ${block.block_id}`;
+            if (block.image && block.image.token) {
+              responseText += `, 媒体ID: ${block.image.token}`;
+            }
+            responseText += '\n';
+          });
+          responseText += '📝 注意：只有在需要查看图片内容时才调用上述工具，仅了解文档结构时无需获取。';
         }
 
         return {
