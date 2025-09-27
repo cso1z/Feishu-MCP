@@ -275,6 +275,10 @@ export class CacheManager {
     return this.get<any>(`user_access_token:${key}`);
   }
 
+  public removeUserToken(key: string): boolean {
+    return this.delete(`user_access_token:${key}`);
+  }
+
   /**
    * 缓存访问令牌
    * @param token 访问令牌

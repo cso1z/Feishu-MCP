@@ -198,6 +198,45 @@ export const BlockConfigSchema = z.object({
   ]).describe('Options for the specific block type. Provide the corresponding options object based on blockType.'),
 });
 
+// 表格列数参数定义
+export const TableColumnSizeSchema = z.number().min(1).describe(
+  'Table column size (required). The number of columns in the table. Must be at least 1.'
+);
+
+// 表格行数参数定义
+export const TableRowSizeSchema = z.number().min(1).describe(
+  'Table row size (required). The number of rows in the table. Must be at least 1.'
+);
+
+// 表格单元格坐标参数定义
+export const TableCellCoordinateSchema = z.object({
+  row: z.number().min(0).describe('Row coordinate (0-based). The row position of the cell in the table.'),
+  column: z.number().min(0).describe('Column coordinate (0-based). The column position of the cell in the table.')
+});
+
+
+// 表格单元格内容配置定义
+export const TableCellContentSchema = z.object({
+  coordinate: TableCellCoordinateSchema,
+  content: BlockConfigSchema
+});
+
+// 表格创建参数定义 - 专门用于创建表格块工具
+export const TableCreateSchema = z.object({
+  columnSize: TableColumnSizeSchema,
+  rowSize: TableRowSizeSchema,
+  cells: z.array(TableCellContentSchema).optional().describe(
+    'Array of cell configurations (optional). Each cell specifies its position (row, column) and content block configuration. ' +
+    'If not provided, empty text blocks will be created for all cells. ' +
+    'IMPORTANT: Multiple cells can have the same coordinates (row, column) - when this happens, ' +
+    'the content blocks will be added sequentially to the same cell, allowing you to create rich content ' +
+    'with multiple blocks (text, code, images, etc.) within a single cell. ' +
+    'Example: [{coordinate:{row:0,column:0}, content:{blockType:"text", options:{text:{textStyles:[{text:"Header"}]}}}, ' +
+    '{coordinate:{row:0,column:0}, content:{blockType:"code", options:{code:{code:"console.log(\'hello\')", language:30}}}}] ' +
+    'will add both a text block and a code block to cell (0,0).'
+  )
+});
+
 // 媒体ID参数定义
 export const MediaIdSchema = z.string().describe(
   'Media ID (required). The unique identifier for a media resource (image, file, etc.) in Feishu. ' +

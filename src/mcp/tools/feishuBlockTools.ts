@@ -23,6 +23,7 @@ import {
   // MermaidCodeSchema,
   // ImageWidthSchema,
   // ImageHeightSchema
+  TableCreateSchema
 } from '../../types/feishuSchema.js';
 
 /**
@@ -702,6 +703,63 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         const errorMessage = formatErrorMessage(error);
         return {
           content: [{ type: 'text', text: `批量上传图片并绑定到块失败: ${errorMessage}` }],
+        };
+      }
+    },
+  );
+
+  // 添加创建飞书表格工具
+  server.tool(
+    'create_feishu_table',
+    'Creates a table block in a Feishu document with specified rows and columns. Each cell can contain different types of content blocks (text, lists, code, etc.). This tool creates the complete table structure including table cells and their content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    {
+      documentId: DocumentIdSchema,
+      parentBlockId: ParentBlockIdSchema,
+      index: IndexSchema,
+      tableConfig: TableCreateSchema,
+    },
+    async ({ documentId, parentBlockId, index = 0, tableConfig }) => {
+      try {
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
+          };
+        }
+
+        Logger.info(`开始创建飞书表格，文档ID: ${documentId}，父块ID: ${parentBlockId}，表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}，插入位置: ${index}`);
+
+        const result = await feishuService.createTableBlock(
+          documentId, 
+          parentBlockId, 
+          tableConfig, 
+          index
+        );
+
+        // 构建返回信息
+        let resultText = `表格创建成功！\n\n表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}\n`;
+        
+        // 如果有图片token，显示图片信息
+        if (result.imageTokens && result.imageTokens.length > 0) {
+          resultText += `\n\n📸 发现 ${result.imageTokens.length} 个图片:\n`;
+          result.imageTokens.forEach((imageToken: any, index: number) => {
+            resultText += `${index + 1}. 坐标(${imageToken.row}, ${imageToken.column}) - blockId: ${imageToken.blockId}\n`;
+          });
+          resultText +="你需要使用upload_and_bind_image_to_block工具绑定图片"
+        }
+
+        resultText += `\n\n完整结果:\n${JSON.stringify(result, null, 2)}`;
+
+        return {
+          content: [{
+            type: 'text',
+            text: resultText
+          }],
+        };
+      } catch (error) {
+        Logger.error(`创建飞书表格失败:`, error);
+        const errorMessage = formatErrorMessage(error);
+        return {
+          content: [{ type: 'text', text: `创建飞书表格失败: ${errorMessage}` }],
         };
       }
     },

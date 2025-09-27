@@ -378,4 +378,117 @@ export class BlockFactory {
       },
     };
   }
+
+  /**
+   * 创建表格块
+   * @param options 表格块选项
+   * @returns 表格块内容对象
+   */
+  public createTableBlock(options: {
+    columnSize: number;
+    rowSize: number;
+    cells?: Array<{
+      coordinate: { row: number; column: number };
+      content: any;
+    }>;
+  }): any {
+    const { columnSize, rowSize, cells = [] } = options;
+    
+    // 生成表格ID
+    const tableId = `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const imageBlocks=  Array<{
+      coordinate: { row: number; column: number };
+      localBlockId: string;
+    }>()
+
+    // 创建表格单元格
+    const tableCells = [];
+    const descendants = [];
+    
+    for (let row = 0; row < rowSize; row++) {
+      for (let col = 0; col < columnSize; col++) {
+        const cellId = `table_cell${row}_${col}`;
+        
+        // 查找是否有配置的单元格内容
+        const cellConfigs = cells.filter(cell => 
+          cell.coordinate.row === row && cell.coordinate.column === col
+        );
+        
+        // 创建单元格内容
+        const cellContentBlocks = [];
+        const cellContentIds = [];
+        
+        if (cellConfigs.length > 0) {
+          // 处理多个内容块
+          cellConfigs.forEach((cellConfig, index) => {
+            const cellContentId = `${cellId}_child_${index}`;
+            const cellContentBlock = {
+              block_id: cellContentId,
+              ...cellConfig.content,
+              children: []
+            };
+            cellContentBlocks.push(cellContentBlock);
+            cellContentIds.push(cellContentId);
+            Logger.info(`处理块：${JSON.stringify(cellConfig)}  ${index}`)
+            if (cellConfig.content.block_type === 27) {
+              //把图片块保存起来，用于后续获取该图片块的token
+              imageBlocks.push({
+                coordinate: cellConfig.coordinate,
+                localBlockId: cellContentId,
+              });
+            }
+          });
+        } else {
+          // 创建空的文本块
+          const cellContentId = `${cellId}_child`;
+          const cellContentBlock = {
+            block_id: cellContentId,
+            ...this.createTextBlock({
+              textContents: [{ text: "" }]
+            }),
+            children: []
+          };
+          cellContentBlocks.push(cellContentBlock);
+          cellContentIds.push(cellContentId);
+        }
+        
+        // 创建表格单元格块
+        const tableCell = {
+          block_id: cellId,
+          block_type: 32, // 表格单元格类型
+          table_cell: {},
+          children: cellContentIds
+        };
+
+        tableCells.push(cellId);
+        descendants.push(tableCell);
+        descendants.push(...cellContentBlocks);
+      }
+    }
+    
+    // 创建表格主体
+    const tableBlock = {
+      block_id: tableId,
+      block_type: 31, // 表格块类型
+      table: {
+        property: {
+          row_size: rowSize,
+          column_size: columnSize
+        }
+      },
+      children: tableCells
+    };
+    
+    descendants.unshift(tableBlock);
+    
+    // 过滤并记录 block_type 为 27 的元素
+      Logger.info(`发现 ${imageBlocks.length} 个图片块 (block_type: 27):  ${JSON.stringify(imageBlocks)}`);
+
+    return {
+      children_id: [tableId],
+      descendants: descendants,
+      imageBlocks:imageBlocks
+    };
+  }
 }

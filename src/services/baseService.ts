@@ -2,6 +2,8 @@ import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
 import { formatErrorMessage } from '../utils/error.js';
+import { CacheManager } from '../utils/cache.js';
+import { Config } from '../utils/config.js';
 
 /**
  * API请求错误接口
@@ -177,8 +179,9 @@ export abstract class BaseApiService {
         // 清除当前令牌，下次请求会重新获取
         this.accessToken = '';
         this.tokenExpireTime = null;
-        Logger.warn('访问令牌可能已过期，已清除缓存的令牌');
-        
+        Logger.warn(`访问令牌可能已过期，已清除缓存的令牌`);
+        const clientKey = await CacheManager.getClientKey(Config.getInstance().feishu.appId, Config.getInstance().feishu.appSecret);
+        CacheManager.getInstance().removeUserToken(clientKey)
         // 如果这是重试请求，避免无限循环
         if ((error as any).isRetry) {
           this.handleApiError(error, `API请求失败 (${endpoint})`);

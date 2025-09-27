@@ -432,6 +432,129 @@ export class FeishuApiService extends BaseApiService {
   }
 
   /**
+   * 创建表格块
+   * @param documentId 文档ID或URL
+   * @param parentBlockId 父块ID
+   * @param tableConfig 表格配置
+   * @param index 插入位置索引
+   * @returns 创建结果
+   */
+  public async createTableBlock(
+    documentId: string,
+    parentBlockId: string,
+    tableConfig: {
+      columnSize: number;
+      rowSize: number;
+      cells?: Array<{
+        coordinate: { row: number; column: number };
+        content: any;
+      }>;
+    },
+    index: number = 0
+  ): Promise<any> {
+    const normalizedDocId = ParamUtils.processDocumentId(documentId);
+    const endpoint = `/docx/v1/documents/${normalizedDocId}/blocks/${parentBlockId}/descendant?document_revision_id=-1`;
+
+    // 处理表格配置，为每个单元格创建正确的内容块
+    const processedTableConfig = {
+      ...tableConfig,
+      cells: tableConfig.cells?.map(cell => ({
+        ...cell,
+        content: this.createBlockContent(cell.content.blockType, cell.content.options)
+      }))
+    };
+
+    // 使用 BlockFactory 创建表格块内容
+    const tableStructure = this.blockFactory.createTableBlock(processedTableConfig);
+    
+    const payload = {
+      children_id: tableStructure.children_id,
+      descendants: tableStructure.descendants,
+      index
+    };
+
+    Logger.info(`请求创建表格块: ${tableConfig.rowSize}x${tableConfig.columnSize}，单元格数量: ${tableConfig.cells?.length || 0}`);
+    const response = await this.post(endpoint, payload);
+    
+    // 创建表格成功后，获取单元格中的图片token
+    const imageTokens = await this.extractImageTokensFromTable(
+      response,
+      tableStructure.imageBlocks
+    );
+    
+    return {
+      ...response,
+      imageTokens: imageTokens
+    };
+  }
+
+  /**
+   * 从表格中提取图片块信息（优化版本）
+   * @param tableResponse 创建表格的响应数据
+   * @param cells 表格配置，包含原始cells信息
+   * @returns 图片块信息数组，包含坐标和块ID信息
+   */
+  private async extractImageTokensFromTable(
+    tableResponse: any,
+    cells?: Array<{
+      coordinate: { row: number; column: number };
+      localBlockId: string;
+    }>
+  ): Promise<Array<{row: number, column: number, blockId: string}>> {
+    try {
+      const imageTokens: Array<{row: number, column: number, blockId: string}> = [];
+
+      Logger.info(`tableResponse: ${JSON.stringify(tableResponse)}`);
+
+      // 判断 cells 是否为空
+      if (!cells || cells.length === 0) {
+        Logger.info('表格中没有图片单元格，跳过图片块信息提取');
+        return imageTokens;
+      }
+
+      // 创建 localBlockId 到 block_id 的映射
+      const blockIdMap = new Map<string, string>();
+      if (tableResponse && tableResponse.block_id_relations) {
+        for (const relation of tableResponse.block_id_relations) {
+          blockIdMap.set(relation.temporary_block_id, relation.block_id);
+        }
+        Logger.debug(`创建了 ${blockIdMap.size} 个块ID映射关系`);
+      }
+
+      // 遍历所有图片单元格
+      for (const cell of cells) {
+        const { coordinate, localBlockId } = cell;
+        const { row, column } = coordinate;
+
+        // 根据 localBlockId 在创建表格的返回数据中找到 block_id
+        const blockId = blockIdMap.get(localBlockId);
+        if (!blockId) {
+          Logger.warn(`未找到 localBlockId ${localBlockId} 对应的 block_id`);
+          continue;
+        }
+
+        Logger.debug(`处理单元格 (${row}, ${column})，localBlockId: ${localBlockId}，blockId: ${blockId}`);
+
+        // 直接添加块信息
+        imageTokens.push({
+          row,
+          column,
+          blockId
+        });
+
+        Logger.info(`提取到图片块信息: 位置(${row}, ${column})，blockId: ${blockId}`);
+      }
+
+      Logger.info(`成功提取 ${imageTokens.length} 个图片块信息`);
+      return imageTokens;
+
+    } catch (error) {
+      Logger.error(`提取表格图片块信息失败: ${error}`);
+      return [];
+    }
+  }
+
+  /**
    * 删除文档中的块，支持批量删除
    * @param documentId 文档ID或URL
    * @param parentBlockId 父块ID（通常是文档ID）
