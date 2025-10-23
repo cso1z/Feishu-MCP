@@ -1,0 +1,53 @@
+# 依赖目录
+node_modules
+npm-debug.log
+pnpm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 构建输出
+dist
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# Git 相关
+.git
+.gitignore
+.gitattributes
+
+# IDE 配置
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 测试相关
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+__tests__
+test
+
+# 文档和示例
+*.md
+!README.md
+docs
+examples
+image
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# 其他
+*.log
+.cache
+tmp
+temp
