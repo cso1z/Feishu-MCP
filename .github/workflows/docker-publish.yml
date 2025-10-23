@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'claude/**'  # 允许在 claude 开头的分支上测试
     tags:
       - 'v*'
   workflow_dispatch:
