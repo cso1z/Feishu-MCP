@@ -10,8 +10,8 @@ WORKDIR /app
 # 复制 package.json 和 pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml* ./
 
-# 安装依赖
-RUN pnpm install --frozen-lockfile
+# 安装依赖（跳过 prepare 脚本，因为此时还没有源代码）
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # 复制源代码
 COPY . .
@@ -34,8 +34,8 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-lock.yaml* ./
 COPY --from=builder /app/README.md ./
 
-# 仅安装生产依赖
-RUN pnpm install --prod --frozen-lockfile
+# 仅安装生产依赖（跳过脚本，因为已经有构建产物）
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # 设置环境变量
 ENV NODE_ENV=production
