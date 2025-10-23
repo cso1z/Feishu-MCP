@@ -103,7 +103,79 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 **已发布到 Smithery 平台，可访问：** https://smithery.ai/server/@cso1z/feishu-mcp
 
-### 方式三：本地运行
+### 方式三：使用 Docker 运行
+
+#### 使用 GitHub Container Registry 镜像
+
+```bash
+docker run -d \
+  -p 3333:3333 \
+  -e FEISHU_APP_ID=<你的飞书应用ID> \
+  -e FEISHU_APP_SECRET=<你的飞书应用密钥> \
+  --name feishu-mcp \
+  ghcr.io/cherrylover/feishu-mcp:latest
+```
+
+#### 本地构建 Docker 镜像
+
+```bash
+# 克隆仓库
+git clone https://github.com/CherryLover/Feishu-MCP.git
+cd Feishu-MCP
+
+# 构建镜像
+docker build -t feishu-mcp .
+
+# 运行容器
+docker run -d \
+  -p 3333:3333 \
+  -e FEISHU_APP_ID=<你的飞书应用ID> \
+  -e FEISHU_APP_SECRET=<你的飞书应用密钥> \
+  --name feishu-mcp \
+  feishu-mcp
+```
+
+#### 使用 docker-compose (推荐)
+
+创建 `docker-compose.yml` 文件：
+
+```yaml
+version: '3.8'
+
+services:
+  feishu-mcp:
+    image: ghcr.io/cherrylover/feishu-mcp:latest
+    # 或使用本地构建:
+    # build: .
+    ports:
+      - "3333:3333"
+    environment:
+      - FEISHU_APP_ID=<你的飞书应用ID>
+      - FEISHU_APP_SECRET=<你的飞书应用密钥>
+      - PORT=3333
+      - FEISHU_AUTH_TYPE=tenant
+    restart: unless-stopped
+```
+
+启动服务：
+
+```bash
+docker-compose up -d
+```
+
+查看日志：
+
+```bash
+docker-compose logs -f
+```
+
+停止服务：
+
+```bash
+docker-compose down
+```
+
+### 方式四：本地运行
 
 
 #### 🌿 分支说明

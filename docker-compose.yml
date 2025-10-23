@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  feishu-mcp:
+    # 使用 GitHub Container Registry 的镜像
+    image: ghcr.io/cherrylover/feishu-mcp:latest
+
+    # 或者使用本地构建（取消下面的注释）
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
+    container_name: feishu-mcp
+
+    ports:
+      - "3333:3333"
+
+    environment:
+      # 必填：飞书应用凭证
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+
+      # 可选：服务端口
+      - PORT=3333
+
+      # 可选：认证凭证类型 (tenant/user)
+      # 建议本地运行时使用 user（用户级，需OAuth授权）
+      # 云端/生产环境使用 tenant（应用级，默认）
+      - FEISHU_AUTH_TYPE=tenant
+
+      # 可选：自定义 token 获取接口地址
+      # - FEISHU_TOKEN_ENDPOINT=http://localhost:3333/getToken
+
+      # 可选：飞书 API 基础 URL
+      # - FEISHU_BASE_URL=https://open.feishu.cn/open-apis
+
+    # 容器重启策略
+    restart: unless-stopped
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 资源限制（可选）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
