@@ -97,7 +97,7 @@
 ### 方式一：使用 NPM 快速运行
 
 ```bash
-npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu_auth_type=121121211
+npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu_auth_type=<tenant/user>
 ```
 
 ### 方式二：本地运行
