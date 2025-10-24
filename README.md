@@ -100,7 +100,6 @@
 npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu_auth_type=121121211
 ```
 
-
 ### 方式二：本地运行
 1. **克隆仓库**
    ```bash
