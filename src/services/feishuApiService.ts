@@ -4,7 +4,7 @@ import { Config } from '../utils/config.js';
 import { CacheManager } from '../utils/cache.js';
 import { ParamUtils } from '../utils/paramUtils.js';
 import { BlockFactory, BlockType } from './blockFactory.js';
-import { AuthUtils,TokenCacheManager } from '../utils/auth';
+import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
 import { AuthRequiredError } from '../utils/error.js';
 import axios from 'axios';
 import FormData from 'form-data';

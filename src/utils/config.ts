@@ -378,8 +378,7 @@ export class Config {
     }
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
-    Logger.info(`- Token获取地址: ${this.feishu.tokenEndpoint} (来源: ${this.configSources['feishu.tokenEndpoint']})`);
-    
+
     Logger.info('日志配置:');
     Logger.info(`- 日志级别: ${LogLevel[this.log.level]} (来源: ${this.configSources['log.level']})`);
     Logger.info(`- 显示时间戳: ${this.log.showTimestamp} (来源: ${this.configSources['log.showTimestamp']})`);
@@ -423,11 +422,6 @@ export class Config {
       return false;
     }
 
-    if (!this.feishu.tokenEndpoint) {
-      Logger.error('缺少飞书Token获取地址，请通过环境变量FEISHU_TOKEN_ENDPOINT或命令行参数--feishu-token-endpoint提供');
-      return false;
-    }
-    
     return true;
   }
 } 

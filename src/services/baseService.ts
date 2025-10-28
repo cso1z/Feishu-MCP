@@ -3,7 +3,7 @@ import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
 import { formatErrorMessage, AuthRequiredError } from '../utils/error.js';
 import { Config } from '../utils/config.js';
-import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth';
+import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth/index.js';
 
 /**
  * API请求错误接口

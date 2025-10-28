@@ -97,7 +97,7 @@
 ### 方式一：使用 NPM 快速运行
 
 ```bash
-npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu_auth_type=<tenant/user>
+npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user>
 ```
 
 ### 方式二：本地运行
@@ -154,7 +154,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
       }
     },
     "feishu_local": {
-      "url": "http://localhost:3333/sse?:userKey=123456"
+      "url": "http://localhost:3333/sse?userKey=123456"
     }
   }
 }

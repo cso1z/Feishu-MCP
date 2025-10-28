@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './feishuAuthService.js';
 import { Config } from '../utils/config.js';
 import { renderFeishuAuthResultHtml } from '../utils/document.js';
-import { AuthUtils,TokenCacheManager } from '../utils/auth';
+import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
 
 // 通用响应码
 const CODE = {

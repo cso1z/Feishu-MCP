@@ -8,7 +8,7 @@ import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
 import { callback} from './services/callbackService.js';
-import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager } from './utils/auth';
+import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager } from './utils/auth/index.js';
 
 export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
