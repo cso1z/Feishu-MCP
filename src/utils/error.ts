@@ -68,6 +68,30 @@ export function formatErrorMessage(error: any, context?: string): string {
     let troubleshooter = '';
     let logId = '';
 
+    // 优先处理 Axios 响应：直接读取 response.data.data.msg 或 response.data.msg
+    if (error?.response?.data && typeof error.response.data === 'object') {
+      const respData = error.response.data as any;
+      const msgFromResp = respData?.data?.msg ?? respData?.msg;
+      const codeFromResp = respData?.data?.code ?? respData?.code;
+      const logFromResp = respData?.log_id || respData?.error?.log_id || error.response.headers?.['x-tt-logid'] || '';
+
+      if (typeof msgFromResp === 'string') {
+        let formatted = '';
+        if (context) {
+          formatted += `${context}: `;
+        }
+        if (codeFromResp !== undefined) {
+          formatted += `${msgFromResp} (错误码: ${codeFromResp})`;
+        } else {
+          formatted += msgFromResp;
+        }
+        if (logFromResp) {
+          formatted += `\n日志ID: ${logFromResp}`;
+        }
+        return formatted;
+      }
+    }
+
     // 处理飞书API标准错误格式
     if (error.apiError) {
       const apiError = error.apiError;

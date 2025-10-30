@@ -190,9 +190,20 @@ export abstract class BaseApiService {
          return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey);
       }
 
-      // 处理认证相关错误（401, 403等）
-      if (error instanceof AxiosError && error.response &&  (error.response.status >= 400 || error.response.status <= 499)) {
-        Logger.warn(`认证失败 (${error.response.status}): ${endpoint}`);
+      const tokenError = new Set<number>([
+        4001,         // Invalid token, please refresh
+        20006,        // 过期 User Access Token
+        20013,        // get tenant access token fail
+        99991663,     // Invalid access token for authorization (often tenant token)
+        99991668,     // Invalid access token for authorization (user token)
+        99991677,     // user token expire
+        99991669,     // invalid user refresh token
+        99991664,     // invalid app token
+        99991665      // invalid tenant code
+      ]);
+      // 处理认证相关错误（401, 403等 或 明确的 token 错误码）
+      if (error instanceof AxiosError && error.response && tokenError.has(Number(error.response.data?.code))) {
+        Logger.warn(`认证失败 (${error.response.status}): ${endpoint}  ${JSON.stringify(error.response.data)}`);
 
         // 获取配置和token缓存管理器
         const tokenCacheManager = TokenCacheManager.getInstance();
