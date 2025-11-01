@@ -5,7 +5,7 @@ import { CacheManager } from '../utils/cache.js';
 import { ParamUtils } from '../utils/paramUtils.js';
 import { BlockFactory, BlockType } from './blockFactory.js';
 import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
-import { AuthRequiredError } from '../utils/error.js';
+import { AuthService } from './feishuAuthService.js';
 import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
@@ -20,6 +20,7 @@ export class FeishuApiService extends BaseApiService {
   private readonly cacheManager: CacheManager;
   private readonly blockFactory: BlockFactory;
   private readonly config: Config;
+  private readonly authService: AuthService;
 
   /**
    * 私有构造函数，用于单例模式
@@ -29,6 +30,7 @@ export class FeishuApiService extends BaseApiService {
     this.cacheManager = CacheManager.getInstance();
     this.blockFactory = BlockFactory.getInstance();
     this.config = Config.getInstance();
+    this.authService = new AuthService();
   }
 
   /**
@@ -76,7 +78,7 @@ export class FeishuApiService extends BaseApiService {
       return this.getTenantAccessToken(appId, appSecret, clientKey);
     } else {
       // 用户模式：获取用户访问令牌
-      return this.getUserAccessToken(appId, appSecret, clientKey, userKey);
+      return this.authService.getUserAccessToken(clientKey, appId, appSecret);
     }
   }
 
@@ -137,102 +139,7 @@ export class FeishuApiService extends BaseApiService {
     }
   }
 
-  /**
-   * 获取用户访问令牌
-   * @param appId 应用ID
-   * @param appSecret 应用密钥
-   * @param clientKey 客户端缓存键
-   * @param userKey 用户标识
-   * @returns 用户访问令牌
-   */
-  private async getUserAccessToken(appId: string, appSecret: string, clientKey: string, _userKey?: string): Promise<string> {
-    const tokenCacheManager = TokenCacheManager.getInstance();
-    
-    // 检查用户token状态
-    const tokenStatus = tokenCacheManager.checkUserTokenStatus(clientKey);
-    Logger.debug(`用户token状态:`, tokenStatus);
-    
-    if (tokenStatus.isValid && !tokenStatus.shouldRefresh) {
-      // token有效且不需要刷新，直接返回
-      const cachedToken = tokenCacheManager.getUserToken(clientKey);
-      if (cachedToken) {
-        Logger.debug('使用缓存的用户访问令牌');
-        return cachedToken;
-      }
-    }
-    
-    if (tokenStatus.canRefresh && (tokenStatus.isExpired || tokenStatus.shouldRefresh)) {
-      // 可以刷新token
-      Logger.info('尝试刷新用户访问令牌');
-      try {
-        const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
-        if (tokenInfo && tokenInfo.refresh_token) {
-          const refreshedToken = await this.refreshUserToken(
-            tokenInfo.refresh_token,
-            clientKey,
-            appId,
-            appSecret
-          );
-          if (refreshedToken && refreshedToken.access_token) {
-            Logger.info('用户访问令牌刷新成功');
-            return refreshedToken.access_token;
-          }
-        }
-      } catch (error) {
-        Logger.warn('刷新用户访问令牌失败:', error);
-        // 刷新失败，清除缓存，需要重新授权
-        tokenCacheManager.removeUserToken(clientKey);
-      }
-    }
-    
-    // 没有有效的token或刷新失败，需要用户授权
-    Logger.warn('没有有效的用户token，需要用户授权');
-    
-    throw new AuthRequiredError('user', '需要用户授权');
-  }
 
-  /**
-   * 刷新用户访问令牌
-   * @param refreshToken 刷新令牌
-   * @param clientKey 客户端缓存键
-   * @param appId 应用ID
-   * @param appSecret 应用密钥
-   * @returns 刷新后的token信息
-   */
-  private async refreshUserToken(refreshToken: string, clientKey: string, appId: string, appSecret: string): Promise<any> {
-    const tokenCacheManager = TokenCacheManager.getInstance();
-    
-    const body = {
-      grant_type: 'refresh_token',
-      client_id: appId,
-      client_secret: appSecret,
-      refresh_token: refreshToken
-    };
-    
-    Logger.debug('刷新用户访问令牌请求:', body);
-    const response = await axios.post('https://open.feishu.cn/open-apis/authen/v2/oauth/token', body, { 
-      headers: { 'Content-Type': 'application/json' } 
-    });
-    const data = response.data;
-    
-    if (data && data.access_token && data.expires_in) {
-      // 计算过期时间戳
-      data.expires_at = Math.floor(Date.now() / 1000) + data.expires_in;
-      if (data.refresh_token_expires_in) {
-        data.refresh_token_expires_at = Math.floor(Date.now() / 1000) + data.refresh_token_expires_in;
-      }
-      
-      // 缓存新的token信息
-      const refreshTtl = data.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
-      tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl);
-      Logger.info('用户访问令牌刷新并缓存成功');
-      
-      return data;
-    } else {
-      Logger.warn('刷新用户访问令牌失败:', data);
-      throw new Error('刷新用户访问令牌失败');
-    }
-  }
 
   /**
    * 创建飞书文档

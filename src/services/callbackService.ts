@@ -89,6 +89,10 @@ export async function callback(req: Request, res: Response) {
         data.refresh_token_expires_at = Math.floor(Date.now() / 1000) + data.refresh_token_expires_in;
       }
       
+      // 添加client_id和client_secret，用于后续刷新token
+      data.client_id = appId;
+      data.client_secret = appSecret;
+      
       // 缓存token信息
       const refreshTtl = data.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
       tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl);

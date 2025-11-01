@@ -8,7 +8,7 @@ import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
 import { callback} from './services/callbackService.js';
-import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager } from './utils/auth/index.js';
+import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager, TokenRefreshManager } from './utils/auth/index.js';
 
 export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
@@ -22,6 +22,11 @@ export class FeishuMcpServer {
     
     // 初始化TokenCacheManager，确保在启动时从文件加载缓存
     TokenCacheManager.getInstance();
+    
+    // 启动Token自动刷新管理器
+    const tokenRefreshManager = TokenRefreshManager.getInstance();
+    tokenRefreshManager.start();
+    Logger.info('Token自动刷新管理器已在服务器启动时初始化');
   }
 
   async connect(transport: Transport): Promise<void> {

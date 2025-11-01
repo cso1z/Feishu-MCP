@@ -14,6 +14,8 @@ export interface UserTokenInfo {
   expires_at: number;
   refresh_token_expires_at: number;
   generated_token: string;
+  client_id: string; // 应用ID，用于刷新token
+  client_secret: string; // 应用密钥，用于刷新token
 }
 
 /**
@@ -490,5 +492,24 @@ export class TokenCacheManager {
     }, 5 * 60 * 1000);
     
     Logger.info('Token缓存清理定时器已启动，每5分钟执行一次');
+  }
+
+  /**
+   * 获取所有用户token的key列表（不包含前缀）
+   * @returns 用户token的key数组
+   */
+  public getAllUserTokenKeys(): string[] {
+    const keys: string[] = [];
+    
+    for (const [key] of this.cache.entries()) {
+      if (key.startsWith('user_access_token:')) {
+        // 提取clientKey（去掉前缀）
+        const clientKey = key.substring('user_access_token:'.length);
+        keys.push(clientKey);
+      }
+    }
+    
+    Logger.debug(`获取到 ${keys.length} 个用户token keys`);
+    return keys;
   }
 }
