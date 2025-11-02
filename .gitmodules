@@ -1,0 +1,3 @@
+[submodule "doc/wiki-repo"]
+	path = doc/wiki-repo
+	url = https://github.com/cso1z/Feishu-MCP.wiki.git
