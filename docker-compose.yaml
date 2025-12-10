@@ -1,0 +1,18 @@
+services:
+  feishu-mcp:
+    build: .
+    ports:
+      - "3333:3333"
+    environment:
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - FEISHU_BASE_URL=${FEISHU_BASE_URL:-https://open.feishu.cn/open-apis}
+      - FEISHU_AUTH_TYPE=${FEISHU_AUTH_TYPE:-tenant}
+      - PORT=${PORT:-3333}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL=${CACHE_TTL:-300}
+    volumes:
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    restart: unless-stopped
