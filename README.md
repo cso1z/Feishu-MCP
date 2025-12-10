@@ -129,6 +129,83 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    pnpm run dev
    ```
 
+## 🐳 Docker 部署
+
+### 方式一：使用 Docker Compose（推荐）
+
+1. **克隆仓库**
+   ```bash
+   git clone https://github.com/cso1z/Feishu-MCP.git
+   cd Feishu-MCP
+   ```
+
+2. **配置环境变量**
+   复制 `.env.example` 文件并重命名为 `.env`，然后填写你的飞书应用凭证：
+   ```env
+   FEISHU_APP_ID=cli_xxxxx
+   FEISHU_APP_SECRET=xxxxx
+   PORT=3333
+   FEISHU_AUTH_TYPE=tenant/user
+   ```
+
+3. **启动服务**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **查看日志**
+   ```bash
+   docker-compose logs -f
+   ```
+
+### 方式二：直接使用 Docker
+
+1. **构建镜像**
+   ```bash
+   docker build -t feishu-mcp .
+   ```
+
+2. **运行容器**
+   ```bash
+   docker run -d \
+     --name feishu-mcp \
+     -p 3333:3333 \
+     -e FEISHU_APP_ID=your_app_id \
+     -e FEISHU_APP_SECRET=your_app_secret \
+     -e FEISHU_AUTH_TYPE=tenant \
+     feishu-mcp
+   ```
+
+   或者使用环境变量文件：
+   ```bash
+   docker run -d \
+     --name feishu-mcp \
+     -p 3333:3333 \
+     --env-file .env \
+     feishu-mcp
+   ```
+
+### 环境变量说明
+
+Docker 部署支持以下环境变量：
+
+| 变量名 | 必需 | 描述 | 默认值 |
+|--------|------|------|--------|
+| `FEISHU_APP_ID` | ✅ | 飞书应用 ID | - |
+| `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥 | - |
+| `FEISHU_BASE_URL` | ❌ | 飞书 API 基础地址 | `https://open.feishu.cn/open-apis` |
+| `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型 (`tenant`/`user`) | `tenant` |
+| `PORT` | ❌ | 服务器端口 | `3333` |
+| `LOG_LEVEL` | ❌ | 日志级别 (`error`/`warn`/`info`/`debug`) | `info` |
+| `CACHE_ENABLED` | ❌ | 是否启用缓存 | `true` |
+| `CACHE_TTL` | ❌ | 缓存过期时间（秒） | `300` |
+
+### 数据持久化
+
+Docker 部署会自动挂载以下卷以实现数据持久化：
+- `/app/logs` - 日志文件目录
+- `/app/cache` - 缓存文件目录
+
 ## ⚙️ 项目配置
 
 ### 环境变量配置
@@ -142,7 +219,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
-```json
+```
 {
   "mcpServers": {
     "feishu-mcp": {
