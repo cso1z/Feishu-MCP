@@ -23,7 +23,8 @@ import {
   // MermaidCodeSchema,
   // ImageWidthSchema,
   // ImageHeightSchema
-  TableCreateSchema
+  TableCreateSchema,
+  WhiteboardFillArraySchema
 } from '../../types/feishuSchema.js';
 
 /**
@@ -69,7 +70,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   // 添加通用飞书块创建工具（支持文本、代码、标题）
   server.tool(
     'batch_create_feishu_blocks',
-    'PREFERRED: Efficiently creates multiple blocks (text, code, heading, list) in a single API call. USE THIS TOOL when creating multiple consecutive blocks at the same position - reduces API calls by up to 90%. KEY FEATURES: (1) Handles any number of blocks by auto-batching large requests (>50 blocks), (2) Creates blocks at consecutive positions in a document, (3) Supports direct heading level format (e.g. "heading1", "heading2") or standard "heading" type with level in options. CORRECT FORMAT: mcp_feishu_batch_create_feishu_blocks({documentId:"doc123",parentBlockId:"para123",startIndex:0,blocks:[{blockType:"text",options:{...}},{blockType:"heading1",options:{heading:{content:"Title"}}}]}). For separate positions, use individual block creation tools instead. For wiki links (https://xxx.feishu.cn/wiki/xxx), first convert with convert_feishu_wiki_to_document_id tool.',
+    'PREFERRED: Efficiently creates multiple blocks (text, code, heading, list, image, mermaid, whiteboard) in a single API call. USE THIS TOOL when creating multiple consecutive blocks at the same position - reduces API calls by up to 90%. KEY FEATURES: (1) Handles any number of blocks by auto-batching large requests (>50 blocks), (2) Creates blocks at consecutive positions in a document, (3) Supports direct heading level format (e.g. "heading1", "heading2") or standard "heading" type with level in options. CORRECT FORMAT: mcp_feishu_batch_create_feishu_blocks({documentId:"doc123",parentBlockId:"para123",startIndex:0,blocks:[{blockType:"text",options:{...}},{blockType:"heading1",options:{heading:{content:"Title"}}}]}). For whiteboard blocks, use blockType:"whiteboard" with options:{whiteboard:{align:1}}. After creating a whiteboard block, you will receive a token in the response (board.token field) which can be used with fill_whiteboard_with_plantuml tool. The fill_whiteboard_with_plantuml tool supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. For separate positions, use individual block creation tools instead. For wiki links (https://xxx.feishu.cn/wiki/xxx), first convert with convert_feishu_wiki_to_document_id tool.',
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
@@ -142,6 +143,10 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
           const imageBlocks = result.children?.filter((child: any) => child.block_type === 27) || [];
           const hasImageBlocks = imageBlocks.length > 0;
 
+          // 检查是否有画板块（block_type=43）
+          const whiteboardBlocks = result.children?.filter((child: any) => child.block_type === 43) || [];
+          const hasWhiteboardBlocks = whiteboardBlocks.length > 0;
+
           const responseData = {
             ...result,
             nextIndex: index + blockContents.length,
@@ -151,6 +156,17 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
                 count: imageBlocks.length,
                 blockIds: imageBlocks.map((block: any) => block.block_id),
                 reminder: "检测到图片块已创建！请使用 upload_and_bind_image_to_block 工具上传图片并绑定到对应的块ID。"
+              }
+            }),
+            ...(hasWhiteboardBlocks && {
+              whiteboardBlocksInfo: {
+                count: whiteboardBlocks.length,
+                blocks: whiteboardBlocks.map((block: any) => ({
+                  blockId: block.block_id,
+                  token: block.board?.token,
+                  align: block.board?.align
+                })),
+                reminder: "检测到画板块已创建！请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: 1) 和 Mermaid (syntax_type: 2) 两种格式。"
               }
             })
           };
@@ -250,12 +266,31 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
             });
             const hasImageBlocks = allImageBlocks.length > 0;
 
-            const responseText = `所有飞书块创建成功，共分 ${totalBatches} 批创建了 ${createdBlocksCount} 个块。\n\n` +
+            // 检查所有批次中是否有画板块（block_type=43）
+            const allWhiteboardBlocks: any[] = [];
+            results.forEach(batchResult => {
+              const whiteboardBlocks = batchResult.children?.filter((child: any) => child.block_type === 43) || [];
+              allWhiteboardBlocks.push(...whiteboardBlocks);
+            });
+            const hasWhiteboardBlocks = allWhiteboardBlocks.length > 0;
+
+            let responseText = `所有飞书块创建成功，共分 ${totalBatches} 批创建了 ${createdBlocksCount} 个块。\n\n` +
                                `最后一批结果: ${JSON.stringify(results[results.length - 1], null, 2)}\n\n` +
-                               `下一个索引位置: ${currentStartIndex}，总创建块数: ${createdBlocksCount}` +
-                               (hasImageBlocks ? `\n\n⚠️ 检测到 ${allImageBlocks.length} 个图片块已创建！\n` +
-                                `图片块IDs: ${allImageBlocks.map(block => block.block_id).join(', ')}\n` +
-                                `请使用 upload_and_bind_image_to_block 工具上传图片并绑定到对应的块ID。` : '');
+                               `下一个索引位置: ${currentStartIndex}，总创建块数: ${createdBlocksCount}`;
+            
+            if (hasImageBlocks) {
+              responseText += `\n\n⚠️ 检测到 ${allImageBlocks.length} 个图片块已创建！\n` +
+                             `图片块IDs: ${allImageBlocks.map(block => block.block_id).join(', ')}\n` +
+                             `请使用 upload_and_bind_image_to_block 工具上传图片并绑定到对应的块ID。`;
+            }
+            
+            if (hasWhiteboardBlocks) {
+              responseText += `\n\n⚠️ 检测到 ${allWhiteboardBlocks.length} 个画板块已创建！\n` +
+                             `画板块信息:\n${allWhiteboardBlocks.map((block: any) => 
+                               `  - blockId: ${block.block_id}, token: ${block.board?.token || 'N/A'}\n`
+                             ).join('')}` +
+                             `请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: 1) 和 Mermaid (syntax_type: 2) 两种格式。`;
+            }
             
             return {
               content: [
@@ -760,6 +795,119 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         const errorMessage = formatErrorMessage(error);
         return {
           content: [{ type: 'text', text: `创建飞书表格失败: ${errorMessage}` }],
+        };
+      }
+    },
+  );
+
+  // 添加批量填充画板工具（支持 PlantUML 和 Mermaid）
+  server.tool(
+    'fill_whiteboard_with_plantuml',
+    'Batch fills multiple whiteboard blocks with diagram content (PlantUML or Mermaid). Use this tool after creating whiteboard blocks with batch_create_feishu_blocks tool. Each item in the array should contain whiteboardId (the token from board.token field), code and syntax_type. Supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. Returns detailed results including which whiteboards were filled successfully and which failed, along with failure reasons. The same whiteboard can be filled multiple times.',
+    {
+      whiteboards: WhiteboardFillArraySchema,
+    },
+    async ({ whiteboards }) => {
+      try {
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
+          };
+        }
+
+        if (!whiteboards || whiteboards.length === 0) {
+          return {
+            content: [{ type: 'text', text: '错误：画板数组不能为空' }],
+          };
+        }
+
+        Logger.info(`开始批量填充画板内容，共 ${whiteboards.length} 个画板`);
+        
+        const results = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        // 逐个处理每个画板
+        for (let i = 0; i < whiteboards.length; i++) {
+          const item = whiteboards[i];
+          const { whiteboardId, code, syntax_type } = item;
+          const syntaxTypeName = syntax_type === 1 ? 'PlantUML' : 'Mermaid';
+          
+          Logger.info(`处理第 ${i + 1}/${whiteboards.length} 个画板，画板ID: ${whiteboardId}，语法类型: ${syntaxTypeName}`);
+          
+          try {
+            const result = await feishuService.createDiagramNode(
+              whiteboardId,
+              code,
+              syntax_type
+            );
+            
+            Logger.info(`画板填充成功，画板ID: ${whiteboardId}`);
+            successCount++;
+            
+            results.push({
+              whiteboardId: whiteboardId,
+              syntaxType: syntaxTypeName,
+              status: 'success',
+              nodeId: result.node_id,
+              result: result
+            });
+          } catch (error: any) {
+            Logger.error(`画板填充失败，画板ID: ${whiteboardId}`, error);
+            failCount++;
+            
+            // 提取详细的错误信息
+            let errorMessage = formatErrorMessage(error);
+            let errorCode: number | undefined;
+            let logId: string | undefined;
+            
+            if (error?.apiError) {
+              const apiError = error.apiError;
+              if (apiError.code !== undefined && apiError.msg) {
+                errorCode = apiError.code;
+                errorMessage = apiError.msg;
+                if (apiError.log_id) {
+                  logId = apiError.log_id;
+                }
+              }
+            } else if (error?.err) {
+              errorMessage = error.err;
+            } else if (error?.message) {
+              errorMessage = error.message;
+            }
+            
+            results.push({
+              whiteboardId: whiteboardId,
+              syntaxType: syntaxTypeName,
+              status: 'failed',
+              error: {
+                message: errorMessage,
+                code: errorCode,
+                logId: logId,
+                details: error
+              }
+            });
+          }
+        }
+
+        // 构建返回结果
+        const summary = {
+          total: whiteboards.length,
+          success: successCount,
+          failed: failCount,
+          results: results
+        };
+
+        Logger.info(`批量填充画板完成，成功: ${successCount}，失败: ${failCount}`);
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
+        };
+      } catch (error: any) {
+        Logger.error(`批量填充画板内容失败:`, error);
+        const errorMessage = formatErrorMessage(error);
+        return {
+          content: [{ type: 'text', text: `批量填充画板内容失败: ${errorMessage}\n\n错误详情: ${JSON.stringify(error, null, 2)}` }],
         };
       }
     },

@@ -393,7 +393,7 @@ export abstract class BaseApiService {
     const { appId, appSecret } = Config.getInstance().feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
     const redirect_uri = `${baseUrl}/callback`;
-    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
+    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read board:whiteboard:node:create contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
     return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;

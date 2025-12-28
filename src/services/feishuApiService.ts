@@ -826,6 +826,21 @@ export class FeishuApiService extends BaseApiService {
             };
           }
           break;
+
+        case BlockType.WHITEBOARD:
+          if ('whiteboard' in options && options.whiteboard) {
+            const whiteboardOptions = options.whiteboard;
+            blockConfig.options = {
+              align: (whiteboardOptions.align === 1 || whiteboardOptions.align === 2 || whiteboardOptions.align === 3)
+                ? whiteboardOptions.align : 1
+            };
+          } else {
+            // 默认画板块选项
+            blockConfig.options = {
+              align: 1
+            };
+          }
+          break;
           
         default:
           Logger.warn(`未知的块类型: ${blockType}，尝试作为标准类型处理`);
@@ -891,6 +906,13 @@ export class FeishuApiService extends BaseApiService {
             const mermaidConfig = options.mermaid;
             blockConfig.options = {
               code: mermaidConfig.code,
+            };
+          } else if ("whiteboard" in options){
+            blockConfig.type = BlockType.WHITEBOARD;
+            const whiteboardConfig = options.whiteboard;
+            blockConfig.options = {
+              align: (whiteboardConfig.align === 1 || whiteboardConfig.align === 2 || whiteboardConfig.align === 3)
+                ? whiteboardConfig.align : 1
             };
           }
           break;
@@ -1325,6 +1347,40 @@ export class FeishuApiService extends BaseApiService {
     } catch (error) {
       this.handleApiError(error, '获取画板缩略图失败');
       return Buffer.from([]); // 永远不会执行到这里
+    }
+  }
+
+  /**
+   * 在画板中创建图表节点（支持 PlantUML 和 Mermaid）
+   * @param whiteboardId 画板ID（token）
+   * @param code 图表代码（PlantUML 或 Mermaid）
+   * @param syntaxType 语法类型：1=PlantUML, 2=Mermaid
+   * @returns 创建结果
+   */
+  public async createDiagramNode(whiteboardId: string, code: string, syntaxType: number): Promise<any> {
+    try {
+      const normalizedWhiteboardId = ParamUtils.processWhiteboardId(whiteboardId);
+      const endpoint = `/board/v1/whiteboards/${normalizedWhiteboardId}/nodes/plantuml`;
+      
+      const syntaxTypeName = syntaxType === 1 ? 'PlantUML' : 'Mermaid';
+      Logger.info(`开始在画板中创建 ${syntaxTypeName} 节点，画板ID: ${normalizedWhiteboardId}`);
+      Logger.debug(`${syntaxTypeName} 代码: ${code.substring(0, 200)}...`);
+      
+      const payload = {
+        plant_uml_code: code,
+        style_type:1, // 画板样式（默认为2 经典样式） 示例值：1 可选值有： 1：画板样式（解析之后为多个画板节点，粘贴到画板中，不可对语法进行二次编辑） 2：经典样式（解析之后为一张图片，粘贴到画板中，可对语法进行二次编辑）（只有PlantUml语法支持经典样式
+        syntax_type: syntaxType
+      };
+      
+      Logger.debug(`请求载荷: ${JSON.stringify(payload, null, 2)}`);
+      const response = await this.post(endpoint, payload);
+      
+      Logger.info(`${syntaxTypeName} 节点创建成功`);
+      return response;
+    } catch (error) {
+      const syntaxTypeName = syntaxType === 1 ? 'PlantUML' : 'Mermaid';
+      Logger.error(`创建 ${syntaxTypeName} 节点失败，画板ID: ${whiteboardId}`, error);
+      this.handleApiError(error, `创建 ${syntaxTypeName} 节点失败`);
     }
   }
 

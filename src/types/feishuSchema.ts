@@ -150,9 +150,10 @@ export const ListBlockSchema = z.object({
 
 // 块类型枚举 - 用于批量创建块工具
 export const BlockTypeEnum = z.string().describe(
-  "Block type (required). Supports: 'text', 'code', 'heading', 'list', 'image','mermaid',as well as 'heading1' through 'heading9'. " +
+  "Block type (required). Supports: 'text', 'code', 'heading', 'list', 'image','mermaid','whiteboard',as well as 'heading1' through 'heading9'. " +
   "For headings, we recommend using 'heading' with level property, but 'heading1'-'heading9' are also supported. " +
   "For images, use 'image' to create empty image blocks that can be filled later. " +
+  "For whiteboards, use 'whiteboard' to create empty whiteboard blocks that return a token for filling content. " +
   "For text blocks, you can include both regular text and equation elements in the same block."
 );
 
@@ -184,6 +185,16 @@ export const MermaidBlockSchema = z.object({
   code: MermaidCodeSchema,
 });
 
+// 画板对齐方式参数定义
+export const WhiteboardAlignSchema = z.number().optional().default(2).describe(
+  'Whiteboard alignment: 1 for left, 2 for center (default), 3 for right.'
+);
+
+// 画板块内容定义 - 用于批量创建块工具
+export const WhiteboardBlockSchema = z.object({
+  align: WhiteboardAlignSchema,
+});
+
 // 块配置定义 - 用于批量创建块工具
 export const BlockConfigSchema = z.object({
   blockType: BlockTypeEnum,
@@ -194,6 +205,7 @@ export const BlockConfigSchema = z.object({
     z.object({ list: ListBlockSchema }).describe("List block options. Used when blockType is 'list'."),
     z.object({ image: ImageBlockSchema }).describe("Image block options. Used when blockType is 'image'. Creates empty image blocks."),
     z.object({ mermaid: MermaidBlockSchema}).describe("Mermaid block options.  Used when blockType is 'mermaid'."),
+    z.object({ whiteboard: WhiteboardBlockSchema }).describe("Whiteboard block options. Used when blockType is 'whiteboard'. Creates empty whiteboard blocks that return a token for filling content."),
     z.record(z.any()).describe("Fallback for any other block options")
   ]).describe('Options for the specific block type. Provide the corresponding options object based on blockType.'),
 });
@@ -295,6 +307,39 @@ export const WhiteboardIdSchema = z.string().describe(
   'Whiteboard ID (required). This is the token value from the board.token field when getting document blocks.\n' +
   'When you find a block with block_type: 43, the whiteboard ID is located in board.token field.\n' +
   'Example: "EPJKwvY5ghe3pVbKj9RcT2msnBX"'
+);
+
+// 画板代码参数定义（支持 PlantUML 和 Mermaid）
+export const WhiteboardCodeSchema = z.string().describe(
+  'Diagram code (required). The complete diagram code to create in the whiteboard.\n' +
+  'Supports both PlantUML and Mermaid formats.\n' +
+  'PlantUML example: "@startuml\nAlice -> Bob: Hello\n@enduml"\n' +
+  'Mermaid example: "graph TD\nA[Start] --> B[End]"'
+);
+
+// 语法类型参数定义
+export const SyntaxTypeSchema = z.number().describe(
+  'Syntax type (required). Specifies the diagram syntax format.\n' +
+  '1: PlantUML syntax\n' +
+  '2: Mermaid syntax'
+);
+
+// 画板内容配置定义（包含画板ID和内容配置）
+export const WhiteboardContentSchema = z.object({
+  whiteboardId: WhiteboardIdSchema,
+  code: WhiteboardCodeSchema,
+  syntax_type: SyntaxTypeSchema,
+}).describe(
+  'Whiteboard content configuration. Contains the whiteboard ID, diagram code and syntax type.\n' +
+  'whiteboardId: The token value from board.token field when creating whiteboard block (required)\n' +
+  'code: The diagram code (PlantUML or Mermaid format) (required)\n' +
+  'syntax_type: 1 for PlantUML, 2 for Mermaid (required)'
+);
+
+// 批量填充画板数组定义
+export const WhiteboardFillArraySchema = z.array(WhiteboardContentSchema).describe(
+  'Array of whiteboard fill items (required). Each item must include whiteboardId, code and syntax_type.\n' +
+  'Example: [{whiteboardId:"token1", code:"@startuml...", syntax_type:1}, {whiteboardId:"token2", code:"graph TD...", syntax_type:2}]'
 );
 
 // 文档标题参数定义

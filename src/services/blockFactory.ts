@@ -95,7 +95,8 @@ export enum BlockType {
   HEADING = 'heading',
   LIST = 'list',
   IMAGE = 'image',
-  MERMAID = 'mermaid'
+  MERMAID = 'mermaid',
+  WHITEBOARD = 'whiteboard'
 }
 
 /**
@@ -171,6 +172,8 @@ export class BlockFactory {
         return this.createImageBlock(options);
       case BlockType.MERMAID:
         return this.createMermaidBlock(options);
+      case BlockType.WHITEBOARD:
+        return this.createWhiteboardBlock(options);
       default:
         Logger.error(`不支持的块类型: ${type}`);
         throw new Error(`不支持的块类型: ${type}`);
@@ -376,6 +379,24 @@ export class BlockFactory {
           data: code,
         }),
       },
+    };
+  }
+
+  /**
+   * 创建画板块内容（空画板块，需要后续填充内容）
+   * @param options 画板块选项
+   * @returns 画板块内容对象
+   */
+  public createWhiteboardBlock(options: {
+    align?: AlignType
+  } = {}): FeishuBlock {
+    const { align = AlignType.CENTER } = options;
+    
+    return {
+      block_type: 43, // 43表示画板块
+      board: {
+        align: align // 1 居左，2 居中，3 居右
+      }
     };
   }
 

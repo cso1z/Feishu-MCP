@@ -992,6 +992,8 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9Q
 * 获取画板缩略图片： "board:whiteboard:node:read"
 * 获取所有画板节点：  "board:whiteboard:node:read",
   "contact:user.employee_id:readonly"
+* 创建画板块： "docx:document"
+* 填充画板内容（创建 PlantUML 节点）： "board:whiteboard:node:write"
 * wiki转节点： "wiki:node:read",
   "wiki:wiki",
   "wiki:wiki:readonly"
@@ -1011,3 +1013,109 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9Q
   "sheets:spreadsheet",
   "sheets:spreadsheet:readonly"
 * 刷新token:offline_access
+
+## 22. 创建画板块并填充内容
+
+### 22.1 创建画板块（空块）
+* 请求接口：
+```
+curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>/children?document_revision_id=-1' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer <access_token>' \
+-d '{
+    "children": [
+        {
+            "block_type": 43,
+            "board": {
+                "align": 1
+            }
+        }
+    ],
+    "index": 0
+}'
+```
+* 请求参数说明：
+  - `block_type`: 块类型，固定为 43（画板块）
+  - `board.align`: 对齐方式（可选），1=左对齐（默认），2=居中，3=右对齐
+  - `index`: 插入位置索引（可选），默认为 0
+
+* 返回数据：
+```
+{
+    "code": 0,
+    "data": {
+        "children": [
+            {
+                "block_id": "doxcnzMS8D4ADseW9FLeWNbgyTg",
+                "block_type": 43,
+                "board": {
+                    "align": 1,
+                    "token": "EVFqwnBiohdWmFbRzKdceUbsn0g"
+                },
+                "parent_id": "NUhrdlyUbobaQ7xtGWrcKeCWnih"
+            }
+        ],
+        "client_token": "bc25a4f0-9a24-4ade-9ca2-6c1db43fa61d",
+        "document_revision_id": 7
+    },
+    "msg": "success"
+}
+```
+> 注：创建成功后，返回数据中的 `board.token` 字段即为画板ID（whiteboard_id），后续需要使用此token来填充画板内容。
+
+### 22.2 填充画板内容（创建图表节点，支持 PlantUML 和 Mermaid）
+* 请求接口：
+```
+curl -i -X POST 'https://open.feishu.cn/open-apis/board/v1/whiteboards/<whiteboard_id>/nodes/plantuml' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer <access_token>' \
+-d '{
+    "plant_uml_code": "@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi\n@enduml",
+    "style_type": 1,
+    "syntax_type": 1
+}'
+```
+
+* 请求参数说明：
+  - `plant_uml_code`: 图表代码（必填），支持 PlantUML 或 Mermaid 格式的完整图表代码
+  - `style_type`: 样式类型（必填），1=画板样式（解析为多个画板节点，不可二次编辑），2=经典样式（解析为图片，可二次编辑，仅 PlantUML 支持）
+  - `syntax_type`: 语法类型（必填），1=PlantUML 语法，2=Mermaid 语法
+
+* PlantUML 格式示例（syntax_type: 1）：
+```
+{
+    "plant_uml_code": "@startuml\nAlice -> Bob: Hello\n@enduml",
+    "style_type": 1,
+    "syntax_type": 1
+}
+```
+
+* Mermaid 格式示例（syntax_type: 2）：
+```
+{
+    "plant_uml_code": "graph TD\nA[Start] --> B[End]",
+    "style_type": 1,
+    "syntax_type": 2
+}
+```
+
+* 返回数据：
+```
+{
+    "code": 0,
+    "data": {
+        "node_id": "o1:1"
+    },
+    "msg": "success"
+}
+```
+
+* 使用流程：
+  1. 首先使用创建块接口创建画板块（block_type: 43），获取返回的 `board.token`
+  2. 使用获取到的 `token` 作为 URL 路径中的 `whiteboard_id` 参数，调用填充画板内容接口
+  3. 根据要创建的图表类型，设置 `syntax_type`：1=PlantUML，2=Mermaid
+  4. 设置 `style_type`：1=画板样式（推荐），2=经典样式（仅 PlantUML 支持）
+
+* 支持的图表类型：
+  - **PlantUML (syntax_type: 1)**: 时序图、活动图、类图、用例图、组件图、思维导图、流程图等
+  - **Mermaid (syntax_type: 2)**: 流程图、时序图、类图、ER图、甘特图、状态图、组件图等
