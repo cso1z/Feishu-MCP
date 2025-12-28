@@ -6,6 +6,7 @@ import { ParamUtils } from '../utils/paramUtils.js';
 import { BlockFactory, BlockType } from './blockFactory.js';
 import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
 import { AuthService } from './feishuAuthService.js';
+import { ScopeInsufficientError } from '../utils/error.js';
 import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
@@ -73,12 +74,259 @@ export class FeishuApiService extends BaseApiService {
     const clientKey = AuthUtils.generateClientKey(userKey);
     Logger.debug(`[FeishuApiService] 获取访问令牌，userKey: ${userKey}, clientKey: ${clientKey}, authType: ${authType}`);
     
+    // 在使用token之前先校验scope（使用appId+appSecret获取临时tenant token来调用scope接口）
+    await this.validateScopeWithVersion(appId, appSecret, authType);
+    
+    // 校验通过后，获取实际的token
     if (authType === 'tenant') {
       // 租户模式：获取租户访问令牌
-      return this.getTenantAccessToken(appId, appSecret, clientKey);
+      return await this.getTenantAccessToken(appId, appSecret, clientKey);
     } else {
       // 用户模式：获取用户访问令牌
-      return this.authService.getUserAccessToken(clientKey, appId, appSecret);
+      return await this.authService.getUserAccessToken(clientKey, appId, appSecret);
+    }
+  }
+
+  /**
+   * 获取应用权限范围
+   * @param accessToken 访问令牌
+   * @param authType 认证类型（tenant或user）
+   * @returns 应用权限范围列表
+   */
+  private async getApplicationScopes(accessToken: string, authType: 'tenant' | 'user'): Promise<string[]> {
+    try {
+      const endpoint = '/application/v6/scopes';
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      Logger.debug('请求应用权限范围:', endpoint);
+      const response = await axios.get(`${this.getBaseUrl()}${endpoint}`, { headers });
+      const data = response.data;
+      
+      if (data.code !== 0) {
+        throw new Error(`获取应用权限范围失败：${data.msg || '未知错误'} (错误码: ${data.code})`);
+      }
+      
+      // 提取权限列表
+      // API返回格式: { "data": { "scopes": [{ "grant_status": 1, "scope_name": "...", "scope_type": "tenant"|"user" }] } }
+      const scopes: string[] = [];
+      if (data.data && Array.isArray(data.data.scopes)) {
+        // 根据authType过滤，只取已授权的scope（grant_status === 1）
+        for (const scopeItem of data.data.scopes) {
+          if (scopeItem.grant_status === 1 && scopeItem.scope_type === authType && scopeItem.scope_name) {
+            scopes.push(scopeItem.scope_name);
+          }
+        }
+      }
+      
+      Logger.debug(`获取应用权限范围成功，共 ${scopes.length} 个${authType}权限`);
+      return scopes;
+    } catch (error) {
+      Logger.error('获取应用权限范围失败:', error);
+      throw new Error('获取应用权限范围失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  /**
+   * 校验scope权限是否充足
+   * @param requiredScopes 所需的权限列表
+   * @param actualScopes 实际的权限列表
+   * @returns 是否权限充足，以及缺失的权限列表
+   */
+  private validateScopes(requiredScopes: string[], actualScopes: string[]): { isValid: boolean; missingScopes: string[] } {
+    const actualScopesSet = new Set(actualScopes);
+    const missingScopes: string[] = [];
+    
+    for (const requiredScope of requiredScopes) {
+      if (!actualScopesSet.has(requiredScope)) {
+        missingScopes.push(requiredScope);
+      }
+    }
+    
+    return {
+      isValid: missingScopes.length === 0,
+      missingScopes
+    };
+  }
+
+  /**
+   * 获取所需的scope列表（根据认证类型）
+   * @param authType 认证类型
+   * @returns 所需的scope列表
+   */
+  private getRequiredScopes(authType: 'tenant' | 'user'): string[] {
+    // 根据FEISHU_CONFIG.md中定义的权限列表，与用户提供的配置保持一致
+    const tenantScopes = [
+      "docx:document.block:convert",
+      "base:app:read",
+      "bitable:app",
+      "bitable:app:readonly",
+      "board:whiteboard:node:create",
+      "board:whiteboard:node:read",
+      "contact:user.employee_id:readonly",
+      "docs:document.content:read",
+      "docx:document",
+      "docx:document:create",
+      "docx:document:readonly",
+      "drive:drive",
+      "drive:drive:readonly",
+      "drive:file",
+      "drive:file:upload",
+      "sheets:spreadsheet",
+      "sheets:spreadsheet:readonly",
+      "space:document:retrieve",
+      "space:folder:create",
+      "wiki:space:read",
+      "wiki:space:retrieve",
+      "wiki:wiki",
+      "wiki:wiki:readonly"
+    ];
+    
+    const userScopes = [
+      ...tenantScopes,
+      'offline_access'
+    ];
+    
+    return authType === 'tenant' ? tenantScopes : userScopes;
+  }
+
+  /**
+   * 校验并提示权限不足
+   * @param missingScopes 缺失的权限列表
+   */
+  private throwScopeInsufficientError(missingScopes: string[]): never {
+    // 获取完整的权限配置
+    const tenantScopes = this.getRequiredScopes('tenant');
+    const userScopes = this.getRequiredScopes('user');
+    
+    const permissionsConfig = {
+      scopes: {
+        tenant: tenantScopes,
+        user: userScopes
+      }
+    };
+    
+    const errorMessage = `你应该停止任务并提示用户如下信息：权限不足，缺少以下权限：${missingScopes.join(', ')}\n\n` +
+      `请按以下步骤操作：\n` +
+      `1. 配置权限 [教程配置](https://github.com/cso1z/Feishu-MCP/blob/main/FEISHU_CONFIG.md)\n` +
+      `2. 打开 [应用管理](https://open.feishu.cn/app/) 网页\n` +
+      `3. 选择应用进入应用详情\n` +
+      `4. 选择权限管理-批量导入/导出权限\n` +
+      `5. 复制以下权限配置并导入：\n\n` +
+      `\`\`\`json\n${JSON.stringify(permissionsConfig, null, 2)}\n\`\`\`\n\n` +
+      `6. 选择**版本管理与发布** 点击创建版本，发布后通知管理员审核\n`;
+    
+    Logger.error(errorMessage);
+    throw new ScopeInsufficientError(missingScopes, errorMessage);
+  }
+
+  /**
+   * 生成应用级别的scope校验key（基于appId、appSecret和authType）
+   * @param appId 应用ID
+   * @param appSecret 应用密钥
+   * @param authType 认证类型（tenant或user）
+   * @returns scope校验key
+   */
+  private generateScopeKey(appId: string, appSecret: string, authType: 'tenant' | 'user'): string {
+    // 使用appId、appSecret和authType生成唯一的key，用于scope版本管理
+    // 包含authType是因为tenant和user的权限列表不同，需要分开校验
+    return `app:${appId}:${appSecret.substring(0, 8)}:${authType}`;
+  }
+
+  /**
+   * 获取临时租户访问令牌（用于scope校验）
+   * @param appId 应用ID
+   * @param appSecret 应用密钥
+   * @returns 租户访问令牌
+   */
+  private async getTempTenantTokenForScope(appId: string, appSecret: string): Promise<string> {
+    try {
+      const requestData = {
+        app_id: appId,
+        app_secret: appSecret,
+      };
+      const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
+      const headers = { 'Content-Type': 'application/json' };
+      
+      Logger.debug('获取临时租户token用于scope校验:', url);
+      const response = await axios.post(url, requestData, { headers });
+      const data = response.data;
+      
+      if (data.code !== 0) {
+        throw new Error(`获取临时租户访问令牌失败：${data.msg || '未知错误'} (错误码: ${data.code})`);
+      }
+      
+      if (!data.tenant_access_token) {
+        throw new Error('获取临时租户访问令牌失败：响应中没有token');
+      }
+      
+      Logger.debug('临时租户token获取成功，用于scope校验');
+      return data.tenant_access_token;
+    } catch (error) {
+      Logger.error('获取临时租户访问令牌失败:', error);
+      throw new Error('获取临时租户访问令牌失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  /**
+   * 校验scope权限（带版本管理）
+   * @param appId 应用ID
+   * @param appSecret 应用密钥
+   * @param authType 认证类型
+   */
+   async validateScopeWithVersion(appId: string, appSecret: string, authType: 'tenant' | 'user'): Promise<void> {
+    const tokenCacheManager = TokenCacheManager.getInstance();
+    
+    // 生成应用级别的scope校验key（包含authType，因为tenant和user权限不同）
+    const scopeKey = this.generateScopeKey(appId, appSecret, authType);
+
+    const scopeVersion = '1.0.0'; // 当前scope版本号，可以根据需要更新
+    
+    // 检查是否需要校验
+    if (!tokenCacheManager.shouldValidateScope(scopeKey, scopeVersion)) {
+      Logger.debug(`Scope版本已校验过，跳过校验: ${scopeKey}`);
+      return;
+    }
+    
+    Logger.info(`开始校验scope权限，版本: ${scopeVersion}, scopeKey: ${scopeKey}`);
+    
+    try {
+      // 使用appId和appSecret获取临时tenant token来调用scope接口
+      const tempTenantToken = await this.getTempTenantTokenForScope(appId, appSecret);
+
+      // 获取实际权限范围（使用tenant token，但根据authType过滤scope_type）
+      const actualScopes = await this.getApplicationScopes(tempTenantToken, authType);
+
+      // 获取当前版本所需的scope列表
+      const requiredScopes = this.getRequiredScopes(authType);
+
+      // 校验权限
+      const validationResult = this.validateScopes(requiredScopes, actualScopes);
+      
+      if (!validationResult.isValid) {
+        // 权限不足，抛出错误
+        this.throwScopeInsufficientError(validationResult.missingScopes);
+      }
+      
+      // 权限充足，保存版本信息
+      const scopeVersionInfo = {
+        scopeVersion,
+        scopeList: requiredScopes,
+        validatedAt: Math.floor(Date.now() / 1000),
+        validatedVersion: scopeVersion
+      };
+      
+      tokenCacheManager.saveScopeVersionInfo(scopeKey, scopeVersionInfo);
+      Logger.info(`Scope权限校验成功，版本: ${scopeVersion}`);
+    } catch (error) {
+      // 如果是权限不足错误，需要重新抛出，中断流程
+      if (error instanceof ScopeInsufficientError) {
+        throw error;
+      }
+      // 如果获取权限范围失败（网络错误、API调用失败等），记录警告但不阻止token使用
+      Logger.warn(`Scope权限校验失败，但继续使用token: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

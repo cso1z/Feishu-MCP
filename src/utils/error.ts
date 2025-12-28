@@ -220,4 +220,20 @@ export class AuthRequiredError extends Error {
     this.authUrl = authUrl;
     this.message = message;
   }
+}
+
+/**
+ * 权限不足异常类
+ * 用于处理应用权限范围不足的情况
+ */
+export class ScopeInsufficientError extends Error {
+  public readonly missingScopes: string[];
+  public readonly message: string;
+
+  constructor(missingScopes: string[], message: string) {
+    super(message);
+    this.name = 'ScopeInsufficientError';
+    this.missingScopes = missingScopes;
+    this.message = message;
+  }
 } 

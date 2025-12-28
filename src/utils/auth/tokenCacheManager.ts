@@ -46,6 +46,16 @@ export interface TokenStatus {
 }
 
 /**
+ * Scope版本信息接口
+ */
+export interface ScopeVersionInfo {
+  scopeVersion: string; // 当前scope版本号
+  scopeList: string[]; // 当前版本所需的scope列表
+  validatedAt: number; // 校验时间戳（秒）
+  validatedVersion: string; // 已校验的版本号
+}
+
+/**
  * Token缓存管理器
  * 专门处理用户token和租户token的缓存管理
  */
@@ -54,6 +64,7 @@ export class TokenCacheManager {
   private cache: Map<string, CacheItem<any>>;
   private userTokenCacheFile: string;
   private tenantTokenCacheFile: string;
+  private scopeVersionCacheFile: string;
 
   /**
    * 私有构造函数，用于单例模式
@@ -62,6 +73,7 @@ export class TokenCacheManager {
     this.cache = new Map();
     this.userTokenCacheFile = path.resolve(process.cwd(), 'user_token_cache.json');
     this.tenantTokenCacheFile = path.resolve(process.cwd(), 'tenant_token_cache.json');
+    this.scopeVersionCacheFile = path.resolve(process.cwd(), 'scope_version_cache.json');
     
     this.loadTokenCaches();
     this.startCacheCleanupTimer();
@@ -83,6 +95,7 @@ export class TokenCacheManager {
   private loadTokenCaches(): void {
     this.loadUserTokenCache();
     this.loadTenantTokenCache();
+    this.loadScopeVersionCache();
   }
 
   /**
@@ -511,5 +524,122 @@ export class TokenCacheManager {
     
     Logger.debug(`获取到 ${keys.length} 个用户token keys`);
     return keys;
+  }
+
+  /**
+   * 获取scope版本信息
+   * @param clientKey 客户端缓存键
+   * @returns scope版本信息，如果未找到则返回null
+   */
+  public getScopeVersionInfo(clientKey: string): ScopeVersionInfo | null {
+    const cacheKey = `scope_version:${clientKey}`;
+    const cacheItem = this.cache.get(cacheKey);
+    
+    if (!cacheItem) {
+      Logger.debug(`Scope版本信息未找到: ${clientKey}`);
+      return null;
+    }
+
+    Logger.debug(`获取Scope版本信息成功: ${clientKey}`);
+    return cacheItem.data as ScopeVersionInfo;
+  }
+
+  /**
+   * 保存scope版本信息
+   * @param clientKey 客户端缓存键
+   * @param scopeVersionInfo scope版本信息
+   * @returns 是否成功保存
+   */
+  public saveScopeVersionInfo(clientKey: string, scopeVersionInfo: ScopeVersionInfo): boolean {
+    try {
+      const cacheKey = `scope_version:${clientKey}`;
+      const now = Date.now();
+      
+      // scope版本信息永久有效，不设置过期时间
+      const cacheItem: CacheItem<ScopeVersionInfo> = {
+        data: scopeVersionInfo,
+        timestamp: now,
+        expiresAt: Number.MAX_SAFE_INTEGER // 永久有效
+      };
+
+      this.cache.set(cacheKey, cacheItem);
+      this.saveScopeVersionCache();
+      
+      Logger.debug(`Scope版本信息保存成功: ${clientKey}, 版本: ${scopeVersionInfo.scopeVersion}`);
+      return true;
+    } catch (error) {
+      Logger.error(`保存Scope版本信息失败: ${clientKey}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 检查scope版本是否需要校验
+   * @param clientKey 客户端缓存键
+   * @param currentScopeVersion 当前scope版本号
+   * @returns 是否需要校验
+   */
+  public shouldValidateScope(clientKey: string, currentScopeVersion: string): boolean {
+    const scopeVersionInfo = this.getScopeVersionInfo(clientKey);
+    
+    if (!scopeVersionInfo) {
+      Logger.debug(`Scope版本信息不存在，需要校验: ${clientKey}`);
+      return true;
+    }
+
+    // 如果版本号不同，需要重新校验
+    if (scopeVersionInfo.validatedVersion !== currentScopeVersion) {
+      Logger.debug(`Scope版本号已更新，需要重新校验: ${clientKey}, 旧版本: ${scopeVersionInfo.validatedVersion}, 新版本: ${currentScopeVersion}`);
+      return true;
+    }
+
+    Logger.debug(`Scope版本已校验过，无需重复校验: ${clientKey}, 版本: ${currentScopeVersion}`);
+    return false;
+  }
+
+  /**
+   * 加载scope版本缓存
+   */
+  private loadScopeVersionCache(): void {
+    if (fs.existsSync(this.scopeVersionCacheFile)) {
+      try {
+        const raw = fs.readFileSync(this.scopeVersionCacheFile, 'utf-8');
+        const cacheData = JSON.parse(raw);
+        
+        let loadedCount = 0;
+        for (const key in cacheData) {
+          if (key.startsWith('scope_version:')) {
+            this.cache.set(key, cacheData[key]);
+            loadedCount++;
+          }
+        }
+        
+        Logger.info(`已加载Scope版本缓存，共 ${loadedCount} 条记录`);
+      } catch (error) {
+        Logger.warn('加载Scope版本缓存失败:', error);
+      }
+    } else {
+      Logger.info('Scope版本缓存文件不存在，将创建新的缓存');
+    }
+  }
+
+  /**
+   * 保存scope版本缓存到文件
+   */
+  private saveScopeVersionCache(): void {
+    const cacheData: Record<string, any> = {};
+    
+    for (const [key, value] of this.cache.entries()) {
+      if (key.startsWith('scope_version:')) {
+        cacheData[key] = value;
+      }
+    }
+    
+    try {
+      fs.writeFileSync(this.scopeVersionCacheFile, JSON.stringify(cacheData, null, 2), 'utf-8');
+      Logger.debug('Scope版本缓存已保存到文件');
+    } catch (error) {
+      Logger.warn('保存Scope版本缓存失败:', error);
+    }
   }
 }

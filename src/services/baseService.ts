@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
-import { formatErrorMessage, AuthRequiredError } from '../utils/error.js';
+import { formatErrorMessage, AuthRequiredError, ScopeInsufficientError } from '../utils/error.js';
 import { Config } from '../utils/config.js';
 import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth/index.js';
 
@@ -185,6 +185,11 @@ export abstract class BaseApiService {
     } catch (error) {
       const config = Config.getInstance().feishu;
 
+      // 优先处理权限不足异常
+      if (error instanceof ScopeInsufficientError) {
+        return this.handleScopeInsufficientError(error);
+      }
+
       // 处理授权异常
       if (error instanceof AuthRequiredError) {
          return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey);
@@ -278,6 +283,14 @@ export abstract class BaseApiService {
    */
   protected async delete<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
     return this.request<T>(endpoint, 'DELETE', data, needsAuth);
+  }
+
+  /**
+   * 处理权限不足异常
+   * @param error 权限不足错误
+   */
+  private handleScopeInsufficientError(error: ScopeInsufficientError): never {
+    throw error;
   }
 
   /**
