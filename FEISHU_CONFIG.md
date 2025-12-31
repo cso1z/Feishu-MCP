@@ -112,7 +112,9 @@
 ![应用详情](image/appid.png)
 
 ### 六、配置cursor
-```
+
+#### HTTP 模式（SSE）
+```json
 {
   "mcpServers": {
     "feishu": {
@@ -122,6 +124,32 @@
 }
 ```
 
-### 六、注
+#### Stdio 模式
+如果使用 stdio 模式，需要配置回调 URL 用于用户授权：
+
+```json
+{
+  "mcpServers": {
+    "feishu": {
+      "command": "node",
+      "args": ["/path/to/Feishu-MCP/build/cli.js"],
+      "env": {
+        "FEISHU_APP_ID": "your_app_id",
+        "FEISHU_APP_SECRET": "your_app_secret",
+        "FEISHU_AUTH_TYPE": "user",
+        "FEISHU_CALLBACK_URL": "http://localhost:3333/callback"
+      }
+    }
+  }
+}
+```
+
+**重要说明**：
+- 在 stdio 模式下使用用户授权（`FEISHU_AUTH_TYPE=user`）时，**必须**配置 `FEISHU_CALLBACK_URL` 环境变量
+- 回调 URL 必须与飞书应用后台配置的 redirect_uri 一致
+- 如果不配置 `FEISHU_CALLBACK_URL`，系统会使用默认的 `http://localhost:3333/callback`
+- 建议同时运行一个 HTTP 服务器来处理回调，或者使用公网可访问的回调地址
+
+### 七、注
 1. 具体可参见[官方云文档常见问题](https://open.feishu.cn/document/server-docs/docs/faq)
 1. 具体可参见[知识库常见问题](https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-qa)
