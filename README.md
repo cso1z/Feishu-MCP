@@ -155,10 +155,13 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 | `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥                                                             | - |
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
+| `FEISHU_CALLBACK_URL` | ❌ | OAuth 回调 URL，**在 stdio 模式下使用 `user` 认证时必需**。必须与飞书应用后台配置的 redirect_uri 一致 | `http://localhost:3333/callback` |
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
-```
+#### Stdio 模式配置
+
+```json
 {
   "mcpServers": {
     "feishu-mcp": {
@@ -167,9 +170,24 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
       "env": {
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",
-        "FEISHU_AUTH_TYPE": "<tenant/user>"
+        "FEISHU_AUTH_TYPE": "<tenant/user>",
+        "FEISHU_CALLBACK_URL": "http://localhost:3333/callback"
       }
-    },
+    }
+  }
+}
+```
+
+**⚠️ 重要提示**：
+- 使用 `FEISHU_AUTH_TYPE=user` 时，**必须**配置 `FEISHU_CALLBACK_URL`
+- 回调 URL 必须与飞书应用后台配置的 redirect_uri 完全一致
+- 建议同时运行一个 HTTP 服务器来处理回调（见下方 HTTP 模式配置）
+
+#### HTTP 模式配置（SSE）
+
+```json
+{
+  "mcpServers": {
     "feishu_local": {
       "url": "http://localhost:3333/sse?userKey=123456"
     }

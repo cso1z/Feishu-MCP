@@ -398,14 +398,26 @@ export abstract class BaseApiService {
 
   /**
    * 生成用户授权URL
-   * @param baseUrl 基础URL
+   * @param baseUrl 基础URL（从请求中获取，可能为空）
    * @param userKey 用户键
    * @returns 授权URL
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
-    const { appId, appSecret } = Config.getInstance().feishu;
+    const config = Config.getInstance();
+    const { appId, appSecret, callbackUrl } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
-    const redirect_uri = `${baseUrl}/callback`;
+    
+    // 优先使用配置的callbackUrl（用于stdio模式），否则使用baseUrl（用于HTTP模式）
+    let redirect_uri: string;
+    if (callbackUrl) {
+      redirect_uri = callbackUrl;
+    } else if (baseUrl) {
+      redirect_uri = `${baseUrl}/callback`;
+    } else {
+      // 如果都没有，使用默认的localhost地址
+      redirect_uri = `http://localhost:${config.server.port}/callback`;
+    }
+    
     const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read board:whiteboard:node:create contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
