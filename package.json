@@ -1,6 +1,6 @@
 {
   "name": "feishu-mcp",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Model Context Protocol server for Feishu integration",
   "type": "module",
   "main": "dist/index.js",
