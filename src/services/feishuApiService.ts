@@ -1228,6 +1228,171 @@ export class FeishuApiService extends BaseApiService {
   }
 
   /**
+   * 获取所有知识空间列表（遍历所有分页）
+   * @param pageSize 每页数量，默认20
+   * @returns 所有知识空间列表（仅包含 items 数组，不包含 has_more 和 page_token）
+   */
+  public async getAllWikiSpacesList(pageSize: number = 20): Promise<any> {
+    try {
+      Logger.info(`开始获取所有知识空间列表，每页数量: ${pageSize}`);
+      
+      const endpoint = '/wiki/v2/spaces';
+      let allItems: any[] = [];
+      let pageToken: string | undefined = undefined;
+      let hasMore = true;
+
+      // 循环获取所有页的数据
+      while (hasMore) {
+        const params: any = { page_size: pageSize };
+        if (pageToken) {
+          params.page_token = pageToken;
+        }
+
+        Logger.debug(`请求知识空间列表，page_token: ${pageToken || 'null'}, page_size: ${pageSize}`);
+        const response = await this.get(endpoint, params);
+        
+        if (response && response.items) {
+          const newItems = response.items;
+          allItems = [...allItems, ...newItems];
+          hasMore = response.has_more || false;
+          pageToken = response.page_token;
+          
+          Logger.debug(`当前页获取到 ${newItems.length} 个知识空间，累计 ${allItems.length} 个，hasMore: ${hasMore}`);
+        } else {
+          hasMore = false;
+          Logger.warn('知识空间列表响应格式异常:', JSON.stringify(response, null, 2));
+        }
+      }
+
+      Logger.info(`知识空间列表获取完成，共 ${allItems.length} 个空间`);
+      return allItems; // 直接返回数组，不包装在 items 中
+    } catch (error) {
+      this.handleApiError(error, '获取知识空间列表失败');
+    }
+  }
+
+  /**
+   * 获取所有知识空间子节点列表（遍历所有分页）
+   * @param spaceId 知识空间ID
+   * @param parentNodeToken 父节点Token（可选，为空时获取根节点）
+   * @param pageSize 每页数量，默认20
+   * @returns 所有子节点列表（仅包含 items 数组，不包含 has_more 和 page_token）
+   */
+  public async getAllWikiSpaceNodes(spaceId: string, parentNodeToken?: string, pageSize: number = 20): Promise<any> {
+    try {
+      Logger.info(`开始获取知识空间子节点列表，space_id: ${spaceId}, parent_node_token: ${parentNodeToken || 'null'}, 每页数量: ${pageSize}`);
+      
+      const endpoint = `/wiki/v2/spaces/${spaceId}/nodes`;
+      let allItems: any[] = [];
+      let pageToken: string | undefined = undefined;
+      let hasMore = true;
+
+      // 循环获取所有页的数据
+      while (hasMore) {
+        const params: any = { page_size: pageSize };
+        if (parentNodeToken) {
+          params.parent_node_token = parentNodeToken;
+        }
+        if (pageToken) {
+          params.page_token = pageToken;
+        }
+
+        Logger.debug(`请求知识空间子节点列表，page_token: ${pageToken || 'null'}, page_size: ${pageSize}`);
+        const response = await this.get(endpoint, params);
+        
+        if (response && response.items) {
+          const newItems = response.items;
+          allItems = [...allItems, ...newItems];
+          hasMore = response.has_more || false;
+          pageToken = response.page_token;
+          
+          Logger.debug(`当前页获取到 ${newItems.length} 个子节点，累计 ${allItems.length} 个，hasMore: ${hasMore}`);
+        } else {
+          hasMore = false;
+          Logger.warn('知识空间子节点列表响应格式异常:', JSON.stringify(response, null, 2));
+        }
+      }
+
+      Logger.info(`知识空间子节点列表获取完成，共 ${allItems.length} 个节点`);
+      return allItems; // 直接返回数组，不包装在 items 中
+    } catch (error) {
+      this.handleApiError(error, '获取知识空间子节点列表失败');
+    }
+  }
+
+  /**
+   * 获取知识空间信息
+   * @param spaceId 知识空间ID，传入 'my_library' 时获取"我的知识库"
+   * @param lang 语言（仅当 spaceId 为 'my_library' 时有效），默认'en'
+   * @returns 知识空间信息
+   */
+  public async getWikiSpaceInfo(spaceId: string, lang: string = 'en'): Promise<any> {
+    try {
+      const endpoint = `/wiki/v2/spaces/${spaceId}`;
+      const params: any = {};
+      
+      // 当 spaceId 为 'my_library' 时，添加 lang 参数
+      if (spaceId === 'my_library') {
+        params.lang = lang;
+      }
+      
+      const response = await this.get(endpoint, params);
+      Logger.debug(`获取知识空间信息成功 (space_id: ${spaceId}):`, response);
+      
+      // 如果响应中包含 space 字段，直接返回 space 对象；否则返回整个响应
+      if (response && response.space) {
+        return response.space;
+      }
+      return response;
+    } catch (error) {
+      this.handleApiError(error, `获取知识空间信息失败 (space_id: ${spaceId})`);
+    }
+  }
+
+  /**
+   * 创建知识空间节点（知识库节点）
+   * @param spaceId 知识空间ID
+   * @param title 节点标题
+   * @param parentNodeToken 父节点Token（可选，为空时在根节点下创建）
+   * @returns 创建的节点信息，包含 node_token（节点ID）和 obj_token（文档ID）
+   */
+  public async createWikiSpaceNode(
+    spaceId: string,
+    title: string,
+    parentNodeToken?: string
+  ): Promise<any> {
+    try {
+      Logger.info(`开始创建知识空间节点，space_id: ${spaceId}, title: ${title}, parent_node_token: ${parentNodeToken || 'null（根节点）'}`);
+      
+      const endpoint = `/wiki/v2/spaces/${spaceId}/nodes`;
+      
+      const payload: any = {
+        title,
+        obj_type: 'docx',
+        node_type: 'origin',
+      };
+      
+      if (parentNodeToken) {
+        payload.parent_node_token = parentNodeToken;
+      }
+      
+      const response = await this.post(endpoint, payload);
+      
+      // 提取 node 对象，统一返回格式
+      if (response && response.data && response.data.node) {
+        const node = response.data.node;
+        Logger.info(`知识空间节点创建成功，node_token: ${node.node_token}, obj_token: ${node.obj_token}`);
+        return node;
+      }
+      
+      Logger.info(`知识空间节点创建成功`);
+      return response;
+    } catch (error) {
+      this.handleApiError(error, '创建知识空间节点失败');
+    }
+  }
+
+  /**
    * 获取文件夹中的文件清单
    * @param folderToken 文件夹Token
    * @param orderBy 排序方式，默认按修改时间排序
@@ -1278,55 +1443,317 @@ export class FeishuApiService extends BaseApiService {
   }
 
   /**
-   * 搜索飞书文档
+   * 搜索飞书文档（支持分页和轮询）
    * @param searchKey 搜索关键字
-   * @param count 每页数量，默认50
-   * @returns 搜索结果，包含所有页的数据
+   * @param maxSize 最大返回数量，如果未指定则只返回一页
+   * @param offset 偏移量，用于分页，默认0
+   * @returns 搜索结果，包含数据和分页信息
    */
-  public async searchDocuments(searchKey: string, count: number = 50): Promise<any> {
+  public async searchDocuments(searchKey: string, maxSize?: number, offset: number = 0): Promise<any> {
     try {
-      Logger.info(`开始搜索文档，关键字: ${searchKey}`);
+      Logger.info(`开始搜索文档，关键字: ${searchKey}, maxSize: ${maxSize || '未指定'}, offset: ${offset}`);
 
       const endpoint = `/suite/docs-api/search/object`;
-      let offset = 0;
-      let allResults: any[] = [];
+      const PAGE_SIZE = 50; // 文档API固定使用50
+      const allResults: any[] = [];
+      let currentOffset = offset;
       let hasMore = true;
 
-      // 循环获取所有页的数据
-      while (hasMore && offset + count < 200) {
+      // 如果指定了maxSize，轮询获取直到满足maxSize或没有更多数据
+      while (hasMore && (maxSize === undefined || allResults.length < maxSize)) {
         const payload = {
           search_key: searchKey,
           docs_types: ["doc"],
-          count: count,
-          offset: offset
+          count: PAGE_SIZE,
+          offset: currentOffset
         };
 
-        Logger.debug(`请求搜索，offset: ${offset}, count: ${count}`);
+        Logger.debug(`请求搜索文档，offset: ${currentOffset}, count: ${PAGE_SIZE}`);
         const response = await this.post(endpoint, payload);
         
         Logger.debug('搜索响应:', JSON.stringify(response, null, 2));
 
         if (response && response.docs_entities) {
-          const newDocs = response.docs_entities;
-          allResults = [...allResults, ...newDocs];
-          hasMore = response.has_more || false;
-          offset += count;
-          
-          Logger.debug(`当前页获取到 ${newDocs.length} 条数据，累计 ${allResults.length} 条，总计 ${response.total} 条，hasMore: ${hasMore}`);
+          const resultCount = response.docs_entities.length;
+          const apiHasMore = response.has_more || false;
+
+          // 更新offset
+          currentOffset += resultCount;
+
+          if (resultCount > 0) {
+            allResults.push(...response.docs_entities);
+            hasMore = apiHasMore; // 保持API返回的hasMore
+            // 如果指定了maxSize，只取需要的数量
+            if (maxSize == undefined || allResults.length >= maxSize) {
+              // 如果已经达到maxSize，停止轮询，但保持API返回的hasMore值
+              Logger.debug(`已达到maxSize ${maxSize}，停止获取，但API还有更多: ${hasMore}`);
+              break; // 停止轮询
+            }
+          } else {
+            hasMore = false;
+          }
+          Logger.debug(`文档搜索进度: 已获取 ${allResults.length} 条，hasMore: ${hasMore}`);
         } else {
-          hasMore = false;
           Logger.warn('搜索响应格式异常:', JSON.stringify(response, null, 2));
+          hasMore = false;
         }
       }
 
       const resultCount = allResults.length;
-      Logger.info(`文档搜索完成，找到 ${resultCount} 个结果`);
+      Logger.info(`文档搜索完成，找到 ${resultCount} 个结果${maxSize ? `(maxSize: ${maxSize})` : ''}`);
+      
       return {
-        data: allResults
+        items: allResults,
+        hasMore: hasMore,
+        nextOffset: currentOffset
       };
     } catch (error) {
       this.handleApiError(error, '搜索文档失败');
+      throw error;
     }
+  }
+
+  /**
+   * 搜索Wiki知识库节点（支持分页和轮询）
+   * @param query 搜索关键字
+   * @param maxSize 最大返回数量，如果未指定则只返回一页
+   * @param pageToken 分页token，用于获取下一页，可选
+   * @returns 搜索结果，包含数据和分页信息
+   */
+  public async searchWikiNodes(query: string, maxSize?: number, pageToken?: string): Promise<any> {
+    try {
+      Logger.info(`开始搜索知识库，关键字: ${query}, maxSize: ${maxSize || '未指定'}, pageToken: ${pageToken || '无'}`);
+
+      const endpoint = `/wiki/v1/nodes/search`;
+      const PAGE_SIZE = 20; // Wiki API每页固定使用20
+      const allResults: any[] = [];
+      let currentPageToken = pageToken;
+      let hasMore = true;
+
+      // 如果指定了maxSize，轮询获取直到满足maxSize或没有更多数据
+      while (hasMore && (maxSize === undefined || allResults.length < maxSize)) {
+        const size = Math.min(PAGE_SIZE, 100); // Wiki API最大支持100
+        let url = `${endpoint}?page_size=${size}`;
+        if (currentPageToken) {
+          url += `&page_token=${currentPageToken}`;
+        }
+
+        const payload = {
+          query: query
+        };
+
+        Logger.debug(`请求搜索知识库，pageSize: ${size}, pageToken: ${currentPageToken || '无'}`);
+        const response = await this.post(url, payload);
+        
+        Logger.debug('知识库搜索响应:', JSON.stringify(response, null, 2));
+
+        // baseService的post方法已经提取了response.data.data，所以response直接就是data字段的内容
+        if (response && response.items) {
+          const resultCount = response.items?.length || 0;
+          const apiHasMore = response.has_more || false;
+          currentPageToken = response.page_token || null;
+
+          if (resultCount > 0) {
+            allResults.push(...response.items);
+            hasMore = apiHasMore; // 保持API返回的hasMore，以便下次调用可以继续
+            if (maxSize !== undefined) {
+              // 如果已经达到maxSize，停止轮询，但保持API返回的hasMore值
+              if (allResults.length >= maxSize) {
+                Logger.debug(`已达到maxSize ${maxSize}，停止获取，但API还有更多: ${hasMore}`);
+                break; // 停止轮询
+              }
+            } else {
+              break; // 只返回一页
+            }
+          } else {
+            hasMore = false;
+          }
+          
+          Logger.debug(`知识库搜索进度: 已获取 ${allResults.length} 条，hasMore: ${hasMore}`);
+        } else {
+          Logger.warn('知识库搜索响应格式异常:', JSON.stringify(response, null, 2));
+          hasMore = false;
+        }
+      }
+
+      const resultCount = allResults.length;
+      Logger.info(`知识库搜索完成，找到 ${resultCount} 个结果${maxSize ? `(maxSize: ${maxSize})` : ''}`);
+      
+      return {
+        items: allResults,
+        hasMore: hasMore,
+        pageToken: currentPageToken,
+        count: resultCount
+      };
+    } catch (error) {
+      this.handleApiError(error, '搜索知识库失败');
+      throw error;
+    }
+  }
+
+  /**
+   * 统一搜索方法，支持文档和知识库搜索
+   * @param searchKey 搜索关键字
+   * @param searchType 搜索类型：'document' | 'wiki' | 'both'，默认'both'
+   * @param offset 文档搜索的偏移量，可选（用于分页）
+   * @param pageToken 知识库搜索的分页token，可选（用于分页）
+   * @returns 搜索结果，包含documents、wikis和分页信息
+   */
+  public async search(
+    searchKey: string,
+    searchType: 'document' | 'wiki' | 'both' = 'both',
+    offset?: number,
+    pageToken?: string
+  ): Promise<any> {
+    try {
+      const MAX_TOTAL_RESULTS = 100; // 总共最多200条（文档+wiki合计）
+      const docOffset = offset ?? 0;
+
+      Logger.info(`开始统一搜索，关键字: ${searchKey}, 类型: ${searchType}, offset: ${docOffset}, pageToken: ${pageToken || '无'}`);
+
+      const documents: any[] = [];
+      const wikis: any[] = [];
+      
+      // 用于生成分页指导的内部变量
+      let documentOffset = docOffset;
+      let wikiPageToken: string | null = null;
+      let documentHasMore = false;
+      let wikiHasMore = false;
+
+      // 搜索文档
+      if (searchType === 'document' || searchType === 'both') {
+        // 计算文档的最大数量（不超过总限制）
+        const maxDocCount = MAX_TOTAL_RESULTS;
+        const docResult = await this.searchDocuments(searchKey, maxDocCount, docOffset);
+        
+        if (docResult.items && docResult.items.length > 0) {
+          documents.push(...docResult.items);
+          documentOffset = docResult.nextOffset;
+          documentHasMore = docResult.hasMore;
+          
+          Logger.debug(`文档搜索: 获取 ${docResult.items.length} 条，新offset: ${documentOffset}, hasMore: ${documentHasMore}`);
+        } else {
+          documentHasMore = false;
+          Logger.debug('文档搜索: 无结果');
+        }
+      }
+
+      // 搜索知识库（仅在文档+wiki总数未达到100条时继续）
+      if (searchType === 'wiki' || searchType === 'both') {
+        const currentDocCount = documents.length;
+        const remainingCount = MAX_TOTAL_RESULTS - currentDocCount;
+        
+        // 如果还有剩余空间，获取知识库
+        if (remainingCount > 0) {
+          const wikiResult = await this.searchWikiNodes(searchKey, remainingCount, pageToken);
+          
+          if (wikiResult.items && wikiResult.items.length > 0) {
+            wikis.push(...wikiResult.items);
+            wikiPageToken = wikiResult.pageToken;
+            wikiHasMore = wikiResult.hasMore;
+            
+            Logger.debug(`知识库搜索: 获取 ${wikiResult.items.length} 条，pageToken: ${wikiPageToken || '无'}, hasMore: ${wikiHasMore}`);
+          } else {
+            wikiHasMore = false;
+            Logger.debug('知识库搜索: 无结果');
+          }
+        } else {
+          Logger.info(`已达到总限制 ${MAX_TOTAL_RESULTS} 条，不再获取知识库`);
+          wikiHasMore = true;
+        }
+      }
+
+      // 生成分页指导信息
+      const paginationGuide = this.generatePaginationGuide(
+        searchType,
+        documentHasMore,
+        wikiHasMore,
+        documentOffset,
+        wikiPageToken
+      );
+      
+      const total = documents.length + wikis.length;
+      const hasMore = documentHasMore || wikiHasMore;
+      Logger.info(`统一搜索完成，文档: ${documents.length} 条, 知识库: ${wikis.length} 条, 总计: ${total} 条, hasMore: ${hasMore}`);
+      
+      // 只返回必要字段，根据搜索类型动态添加
+      const result: any = {
+        paginationGuide
+      };
+      if (searchType === 'document' || searchType === 'both') {
+        result.documents = documents;
+      }
+      if (searchType === 'wiki' || searchType === 'both') {
+        result.wikis = wikis;
+      }
+      return result;
+    } catch (error) {
+      this.handleApiError(error, '统一搜索失败');
+      throw error;
+    }
+  }
+
+  /**
+   * 生成分页指导信息
+   * @param searchType 搜索类型
+   * @param documentHasMore 文档是否还有更多
+   * @param wikiHasMore 知识库是否还有更多
+   * @param documentOffset 文档的下一offset
+   * @param wikiPageToken 知识库的下一页token
+   * @returns 分页指导信息
+   */
+  private generatePaginationGuide(
+    searchType: 'document' | 'wiki' | 'both',
+    documentHasMore: boolean,
+    wikiHasMore: boolean,
+    documentOffset: number,
+    wikiPageToken: string | null
+  ): any {
+    const guide: any = {
+      hasMore: documentHasMore || wikiHasMore,
+      description: ''
+    };
+
+    if (!guide.hasMore) {
+      guide.description = '没有更多结果了';
+      return guide;
+    }
+
+    // 根据搜索类型和hasMore状态生成指导
+    if (searchType === 'document') {
+      if (documentHasMore) {
+        guide.nextPageParams = {
+          searchType: 'document',
+          offset: documentOffset
+        };
+        guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = document offset=${documentOffset} 获取文档的下一页`;
+      }
+    } else if (searchType === 'wiki') {
+      if (wikiHasMore && wikiPageToken) {
+        guide.nextPageParams = {
+          searchType: 'wiki',
+          pageToken: wikiPageToken
+        };
+        guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = wiki pageToken="${wikiPageToken}" 获取知识库的下一页`;
+      }
+    } else if (searchType === 'both') {
+      // both类型：优先返回文档的下一页，如果文档没有更多了，再返回知识库的下一页
+      if (documentHasMore) {
+        guide.nextPageParams = {
+          searchType: 'both',
+          offset: documentOffset
+        };
+        guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = both offset=${documentOffset} 获取文档的下一页`;
+      } else if (wikiHasMore && wikiPageToken) {
+        guide.nextPageParams = {
+          searchType: 'wiki',
+          pageToken: wikiPageToken
+        };
+        guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = wiki pageToken="${wikiPageToken}" 获取知识库的下一页wiki结果`;
+      }
+    }
+
+    return guide;
   }
 
   /**

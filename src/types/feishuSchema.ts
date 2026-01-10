@@ -262,10 +262,16 @@ export const MediaExtraSchema = z.string().optional().describe(
   'These parameters are passed directly to the Feishu API and can modify how the media is returned.'
 );
 
-// 文件夹Token参数定义
+// 文件夹Token参数定义（必传）
 export const FolderTokenSchema = z.string().describe(
   'Folder token (required). The unique identifier for a folder in Feishu. ' +
   'Format is an alphanumeric string like "FWK2fMleClICfodlHHWc4Mygnhb".'
+);
+
+// 文件夹Token参数定义（可选，用于文档创建、获取文件列表等场景）
+export const FolderTokenOptionalSchema = z.string().optional().describe(
+  'Folder token (optional, for Feishu Drive folder mode). The unique identifier for a folder in Feishu Drive. ' +
+  'Format is an alphanumeric string like "FWK2fMleClICfodlHHWc4Mygnhb". '
 );
 
 // 文件夹名称参数定义
@@ -273,9 +279,47 @@ export const FolderNameSchema = z.string().describe(
   'Folder name (required). The name for the new folder to be created.'
 );
 
+// 知识空间ID参数定义
+export const SpaceIdSchema = z.string().describe(
+  'Space ID (optional, required for wiki space mode). The unique identifier for a wiki space in Feishu. ' +
+  'Can be obtained from get_feishu_root_folder_info (wiki_spaces array or my_library.space_id). ' +
+  'Format is typically like "74812***88644".'
+);
+
+// 父节点Token参数定义
+export const ParentNodeTokenSchema = z.string().optional().describe(
+  'Parent node token (optional, used with spaceId). The token of the parent node in a wiki space. ' +
+  'If not provided or empty, will retrieve nodes from the root of the wiki space. ' +
+  'Format is typically like "PdDWwIHD6****MhcIOY7npg".'
+);
+
+// 知识库节点上下文参数定义（包装 spaceId 和 parentNodeToken）
+export const WikiSpaceNodeContextSchema = z.object({
+  spaceId: SpaceIdSchema.optional(),
+  parentNodeToken: ParentNodeTokenSchema,
+}).optional().describe(
+  'Wiki space node context object. Contains spaceId (required when using this object) and optional parentNodeToken. ' +
+  'Used for wiki space operations instead of folderToken.'
+);
+
 // 搜索关键字参数定义
 export const SearchKeySchema = z.string().describe(
   'Search keyword (required). The keyword to search for in documents.'
+);
+
+// 搜索类型枚举
+export const SearchTypeSchema = z.enum(['document', 'wiki', 'both']).optional().default('both').describe(
+  'Search type (optional, default: "both"). "document": only documents, "wiki": only wiki nodes, "both": both (default)'
+);
+
+// 知识库分页token参数定义
+export const PageTokenSchema = z.string().optional().describe(
+  'Wiki page token (optional). Token from previous wiki search result for pagination. Only needed when fetching next page of wiki results.'
+);
+
+// 文档分页偏移量参数定义
+export const OffsetSchema = z.number().optional().describe(
+  'Document offset (optional). Offset for document search pagination. Only needed when fetching next page of document results.'
 );
 
 // 图片路径或URL参数定义

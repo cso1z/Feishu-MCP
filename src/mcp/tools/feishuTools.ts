@@ -7,9 +7,13 @@ import {
   DocumentIdSchema,
   // BlockIdSchema,
   SearchKeySchema,
+  SearchTypeSchema,
+  PageTokenSchema,
+  OffsetSchema,
   WhiteboardIdSchema,
   DocumentTitleSchema,
-  FolderTokenSchema,
+  FolderTokenOptionalSchema,
+  WikiSpaceNodeContextSchema,
 } from '../../types/feishuSchema.js';
 
 /**
@@ -21,27 +25,81 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
   // 添加创建飞书文档工具
   server.tool(
     'create_feishu_document',
-    'Creates a new Feishu document and returns its information. Use this tool when you need to create a document from scratch with a specific title and folder location.',
+    'Creates a new Feishu document and returns its information. Supports two modes: (1) Feishu Drive folder mode: use folderToken to create a document in a folder. (2) Wiki space node mode: use wikiContext with spaceId (and optional parentNodeToken) to create a node (document) in a wiki space. IMPORTANT: In wiki spaces, documents are nodes themselves - they can act as parent nodes containing child documents, and can also be edited as regular documents. The created node returns both node_token (node ID, can be used as parentNodeToken for creating child nodes) and obj_token (document ID, can be used for document editing operations like get_feishu_document_blocks, batch_create_feishu_blocks, etc.). Only one mode can be used at a time - provide either folderToken OR wikiContext, not both.',
     {
       title: DocumentTitleSchema,
-      folderToken: FolderTokenSchema,
+      folderToken: FolderTokenOptionalSchema,
+      wikiContext: WikiSpaceNodeContextSchema,
     },
-    async ({ title, folderToken }) => {
+    async ({ title, folderToken, wikiContext }) => {
       try {
-        Logger.info(`开始创建飞书文档，标题: ${title}${folderToken ? `，文件夹Token: ${folderToken}` : '，使用默认文件夹'}`);
-        const newDoc = await feishuService?.createDocument(title, folderToken);
-        if (!newDoc) {
-          throw new Error('创建文档失败，未返回文档信息');
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
+          };
         }
-        Logger.info(`飞书文档创建成功，文档ID: ${newDoc.objToken || newDoc.document_id}`);
+
+        // 参数验证：必须提供 folderToken 或 wikiContext 之一，但不能同时提供
+        if (folderToken && wikiContext) {
+          return {
+            content: [{ type: 'text', text: '错误：不能同时提供 folderToken 和 wikiContext 参数，请选择其中一种模式。\n- 使用 folderToken 在飞书文档目录中创建文档\n- 使用 wikiContext 在知识库中创建节点（文档）' }],
+          };
+        }
+
+        if (!folderToken && !wikiContext) {
+          return {
+            content: [{ type: 'text', text: '错误：必须提供 folderToken（飞书文档目录模式）或 wikiContext（知识库节点模式）参数之一。' }],
+          };
+        }
+
+        // 模式一：飞书文档目录模式
+        if (folderToken) {
+          Logger.info(`开始创建飞书文档（文件夹模式），标题: ${title}，文件夹Token: ${folderToken}`);
+          const newDoc = await feishuService.createDocument(title, folderToken);
+          if (!newDoc) {
+            throw new Error('创建文档失败，未返回文档信息');
+          }
+          Logger.info(`飞书文档创建成功，文档ID: ${newDoc.objToken || newDoc.document_id}`);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(newDoc, null, 2) }],
+          };
+        }
+
+        // 模式二：知识库节点模式
+        if (wikiContext) {
+          const { spaceId, parentNodeToken } = wikiContext;
+          if (!spaceId) {
+            return {
+              content: [{ type: 'text', text: '错误：使用 wikiContext 模式时，必须提供 spaceId。' }],
+            };
+          }
+          Logger.info(`开始创建知识库节点，标题: ${title}，知识空间ID: ${spaceId}，父节点Token: ${parentNodeToken || 'null（根节点）'}`);
+          const node = await feishuService.createWikiSpaceNode(spaceId, title, parentNodeToken);
+          if (!node) {
+            throw new Error('创建知识库节点失败，未返回节点信息');
+          }
+          
+          // 构建返回信息，说明知识库节点的特殊性质
+          const result = {
+            ...node,
+            _note: '知识库节点既是节点又是文档：node_token 可作为父节点使用，obj_token 可用于文档编辑操作'
+          };
+          
+          Logger.info(`知识库节点创建成功，node_token: ${node.node_token}, obj_token: ${node.obj_token}`);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        // 理论上不会到达这里
         return {
-          content: [{ type: 'text', text: JSON.stringify(newDoc, null, 2) }],
+          content: [{ type: 'text', text: '错误：未知错误' }],
         };
       } catch (error) {
-        Logger.error(`创建飞书文档失败:`, error);
+        Logger.error(`创建文档失败:`, error);
         const errorMessage = formatErrorMessage(error);
         return {
-          content: [{ type: 'text', text: `创建飞书文档失败: ${errorMessage}` }],
+          content: [{ type: 'text', text: `创建文档失败: ${errorMessage}` }],
         };
       }
     },
@@ -217,14 +275,17 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
   //   },
   // );
 
-  // 添加搜索文档工具
+  // 添加搜索文档工具（支持文档和知识库搜索）
   server.tool(
     'search_feishu_documents',
-    'Searches for documents in Feishu. Supports keyword-based search and returns document information including title, type, and owner. Use this tool to find specific content or related documents in your document library.',
+    'Searches for documents and/or Wiki knowledge base nodes in Feishu. Supports keyword-based search with type filtering (document, wiki, or both). Returns document and wiki information including title, type, and owner. Supports pagination: use offset for document search pagination and pageToken for wiki search pagination. Each type (document or wiki) can return up to 100 results maximum per search. Default page size is 20 items.',
     {
       searchKey: SearchKeySchema,
+      searchType: SearchTypeSchema,
+      offset: OffsetSchema,
+      pageToken: PageTokenSchema,
     },
-    async ({ searchKey }) => {
+    async ({ searchKey, searchType, offset, pageToken }) => {
       try {
         if (!feishuService) {
           return {
@@ -232,20 +293,27 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
           };
         }
 
-        Logger.info(`开始搜索飞书文档，关键字: ${searchKey},`);
-        const searchResult = await feishuService.searchDocuments(searchKey);
-        Logger.info(`文档搜索完成，找到 ${searchResult.size} 个结果`);
+        Logger.info(`开始搜索，关键字: ${searchKey}, 类型: ${searchType || 'both'}, offset: ${offset || 0}, pageToken: ${pageToken || '无'}`);
+        
+        const searchResult = await feishuService.search(
+          searchKey,
+          searchType || 'both',
+          offset,
+          pageToken
+        );
+        
+        Logger.info(`搜索完成，文档: ${searchResult.documents?.length || 0} 条，知识库: ${searchResult.wikis?.length || 0} 条`);
         return {
           content: [
             { type: 'text', text: JSON.stringify(searchResult, null, 2) },
           ],
         };
       } catch (error) {
-        Logger.error(`搜索飞书文档失败:`, error);
+        Logger.error(`搜索失败:`, error);
         const errorMessage = formatErrorMessage(error);
         return {
           content: [
-            { type: 'text', text: `搜索飞书文档失败: ${errorMessage}` },
+            { type: 'text', text: `搜索失败: ${errorMessage}` },
           ],
         };
       }

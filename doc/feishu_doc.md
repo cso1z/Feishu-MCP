@@ -228,9 +228,9 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id
 ## 7. 更新块文本内容
 * 请求
 ```
-curl -i -X PATCH 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/blocks/RXZTdBl6qoL5wzxSyuRcMHFnn4d?document_revision_id=-1' \
+curl -i -X PATCH 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>?document_revision_id=-1' \
 -H 'Content-Type: application/json' \
--H 'Authorization: Bearer t-g1043vjC5MA5A6P2TONFYSFS553GLB3YGNGH3E66' \
+-H 'Authorization: Bearer <access_token>' \
 -d '{
 	"update_text_elements": {
 		"elements": [
@@ -265,7 +265,7 @@ curl -i -X PATCH 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0of
   "code": 0,
   "data": {
     "block": {
-      "block_id": "SJi5dloCxoVRiWxq6fgcd89znyf",
+      "block_id": "<block_id>",
       "block_type": 14,
       "code": {
         "elements": [
@@ -300,9 +300,9 @@ curl -i -X PATCH 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0of
           "wrap": true
         }
       },
-      "parent_id": "Jg28dOoZ0ofnMdxcfDrcwJE6n0b"
+      "parent_id": "<parent_block_id>"
     },
-    "client_token": "881fafb3-3ff4-4181-900d-0ebb7f104627",
+    "client_token": "<client_token>",
     "document_revision_id": 20
   },
   "msg": "success"
@@ -312,8 +312,8 @@ curl -i -X PATCH 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0of
 ## 8.获取块内容
 * 请求
 ```
-curl -i -X GET 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/blocks/doxcn4e6moAlWwQL4eevxgQDAIh?document_revision_id=-1' \
--H 'Authorization: Bearer t-g1043vjC5MA5A6P2TONFYSFS553GLB3YGNGH3E66'
+curl -i -X GET 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>?document_revision_id=-1' \
+-H 'Authorization: Bearer <access_token>'
 ```
 * 返回结果
 ```
@@ -321,7 +321,7 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnM
   "code": 0,
   "data": {
     "block": {
-      "block_id": "doxcn4e6moAlWwQL4eevxgQDAIh",
+      "block_id": "<block_id>",
       "block_type": 4,
       "heading2": {
         "elements": [
@@ -357,7 +357,7 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnM
           "folded": false
         }
       },
-      "parent_id": "Jg28dOoZ0ofnMdxcfDrcwJE6n0b"
+      "parent_id": "<parent_block_id>"
     }
   },
   "msg": "success"
@@ -367,8 +367,8 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnM
 ## 9. 创建无序列表块
 * 请求参数：
 ```
-curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/blocks/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/children?document_revision_id=-1' \
--H 'Authorization: Bearer t-g1043vjC5MA5A6P2TONFYSFS553GLB3YGNGH3E66' \
+curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>/children?document_revision_id=-1' \
+-H 'Authorization: Bearer <access_token>' \
 -H 'Content-Type: application/json' \
 -d '{
 	"children": [
@@ -406,7 +406,7 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
   "data": {
     "children": [
       {
-        "block_id": "doxcnogvtkjGJwdAH9ZNbI7mCoh",
+        "block_id": "<block_id>",
         "block_type": 12,
         "bullet": {
           "elements": [
@@ -428,10 +428,10 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
             "folded": false
           }
         },
-        "parent_id": "Jg28dOoZ0ofnMdxcfDrcwJE6n0b"
+        "parent_id": "<parent_block_id>"
       }
     ],
-    "client_token": "27625ea1-8c77-4bca-9d2f-f6a5c3d9fcb6",
+    "client_token": "<client_token>",
     "document_revision_id": 67
   },
   "msg": "success"
@@ -441,9 +441,9 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
 ## 10.创建有无列表块
 * 请求参数
 ```
-curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/blocks/Jg28dOoZ0ofnMdxcfDrcwJE6n0b/children?document_revision_id=-1' \
+curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>/children?document_revision_id=-1' \
 -H 'Content-Type: application/json' \
--H 'Authorization: Bearer t-g1043vjC5MA5A6P2TONFYSFS553GLB3YGNGH3E66' \
+-H 'Authorization: Bearer <access_token>' \
 -d '{
 	"children": [
 		{
@@ -480,7 +480,7 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
   "data": {
     "children": [
       {
-        "block_id": "doxcn920u7BwSlQ4yzFxcZO72fb",
+        "block_id": "<block_id>",
         "block_type": 13,
         "ordered": {
           "elements": [
@@ -502,10 +502,10 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
             "folded": false
           }
         },
-        "parent_id": "Jg28dOoZ0ofnMdxcfDrcwJE6n0b"
+        "parent_id": "<parent_block_id>"
       }
     ],
-    "client_token": "2f164140-822e-4324-9306-0725a5e69bff",
+    "client_token": "<client_token>",
     "document_revision_id": 68
   },
   "msg": "success"
@@ -515,8 +515,8 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/Jg28dOoZ0ofn
 ## 11.把wiki文档id转成documentId(只有转成documentId才能进行后续操作)
 * 请求接口：
 ```
-curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/get_node?obj_type=wiki&token=PdDWwIHD6iV8jFkInMhcIOY7npg' \
--H 'Authorization: Bearer u-cgqN.PmJ90f87V9xSThOkSl42THl4lRbX2001gA22DDc'
+curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/get_node?obj_type=wiki&token=<wiki_token>' \
+-H 'Authorization: Bearer <access_token>'
 ```
 * 返回数据
 ```
@@ -524,21 +524,21 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/get_node?obj_typ
   "code": 0,
   "data": {
     "node": {
-      "creator": "ou_14a35ea3607bb853af3a84b589161b82",
+      "creator": "<user_id>",
       "has_child": true,
       "node_create_time": "1741868733",
-      "node_creator": "ou_14a35ea3607bb853af3a84b589161b82",
-      "node_token": "PdDWwIHD6iV8jFkInMhcIOY7npg",
+      "node_creator": "<user_id>",
+      "node_token": "<node_token>",
       "node_type": "origin",
       "obj_create_time": "1741868733",
       "obj_edit_time": "1741868733",
-      "obj_token": "YLidd9mlKovX6dxJZmicGBBMnQg",
+      "obj_token": "<obj_token>",
       "obj_type": "docx",
-      "origin_node_token": "PdDWwIHD6iV8jFkInMhcIOY7npg",
-      "origin_space_id": "7481269240683888644",
-      "owner": "ou_14a35ea3607bb853af3a84b589161b82",
+      "origin_node_token": "<node_token>",
+      "origin_space_id": "<space_id>",
+      "owner": "<user_id>",
       "parent_node_token": "",
-      "space_id": "7481269240683888644",
+      "space_id": "<space_id>",
       "title": "首页"
     }
   },
@@ -549,9 +549,9 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/get_node?obj_typ
 ## 12. 删除块
 * 请求接口：
 ```
-curl -i -X DELETE 'https://open.feishu.cn/open-apis/docx/v1/documents/WJsOd6selovWbBxU5Ptc5DfBnOe/blocks/WJsOd6selovWbBxU5Ptc5DfBnOe/children/batch_delete?document_revision_id=-1' \
+curl -i -X DELETE 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>/children/batch_delete?document_revision_id=-1' \
 -H 'Content-Type: application/json' \
--H 'Authorization: Bearer t-g1044gk6B5HSWOVH4B26WXAPRUY66HAF36KRR25E' \
+-H 'Authorization: Bearer <access_token>' \
 -d '{
 	"end_index": 1,
 	"start_index": 0
@@ -562,7 +562,7 @@ curl -i -X DELETE 'https://open.feishu.cn/open-apis/docx/v1/documents/WJsOd6selo
 {
   "code": 0,
   "data": {
-    "client_token": "9271d423-208e-4f8c-a86f-75ff8e1efb82",
+    "client_token": "<client_token>",
     "document_revision_id": 3
   },
   "msg": "success"
@@ -572,8 +572,8 @@ curl -i -X DELETE 'https://open.feishu.cn/open-apis/docx/v1/documents/WJsOd6selo
 ### 13. 获取图片资源
 * 请求接口：
 ```
-curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/medias/boxcnrHpsg1QDqXAAAyachabcef/download?extra=%E6%97%A0' \
--H 'Authorization: Bearer t-7f1b******8e560'
+curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/medias/<media_id>/download?extra=%E6%97%A0' \
+-H 'Authorization: Bearer <access_token>'
 ```
 * 返回数据
 返回文件二进制流
@@ -582,7 +582,7 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/medias/boxcnrHpsg1QDqX
 * 请求接口：
 ```
 curl --location 'https://open.feishu.cn/open-apis/drive/explorer/v2/root_folder/meta' \
---header 'Authorization: Bearer t-e13d5ec1954e82e458f3ce04491c54ea8c9abcef'
+--header 'Authorization: Bearer <access_token>'
 ```
 * 返回数据：
 ```
@@ -590,9 +590,9 @@ curl --location 'https://open.feishu.cn/open-apis/drive/explorer/v2/root_folder/
   "code": 0,
   "msg": "Success",
   "data": {
-    "token": "nodbcbHUdOsS613xVzTzFEabcef",
-    "id": "7110173013420512356",
-    "user_id": "7103496998321312356"
+    "token": "<folder_token>",
+    "id": "<folder_id>",
+    "user_id": "<user_id>"
 	}
 }
 ```
@@ -600,8 +600,8 @@ curl --location 'https://open.feishu.cn/open-apis/drive/explorer/v2/root_folder/
 ### 15. 获取文件夹中的文件清单
 * 请求接口：
 ```
-curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/files?direction=DESC&folder_token=C4xYfOKM5ldYzod41TUcmOLFnR6&order_by=EditedTime' \
--H 'Authorization: Bearer t-g1044ihxDPBYG2UZWJXWUTVKXGK4OFDG62LW6TXZ'
+curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/files?direction=DESC&folder_token=<folder_token>&order_by=EditedTime' \
+-H 'Authorization: Bearer <access_token>'
 ```
 * 返回数据：
 ```
@@ -613,41 +613,41 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/files?direction=DESC&f
         "created_time": "1744972693",
         "modified_time": "1744972693",
         "name": "产品优化项目",
-        "owner_id": "ou_c8eb5395f0581cf47190271e032d2e92",
-        "parent_token": "C4xYfOKM5ldYzod41TUcmOLFnR6",
-        "token": "FWK2fMleClICfodlHHWc4Mygnhb",
+        "owner_id": "<user_id>",
+        "parent_token": "<folder_token>",
+        "token": "<folder_token>",
         "type": "folder",
-        "url": "https://vq5iayk07bc.feishu.cn/drive/folder/FWK2fMleClICfodlHHWc4Mygnhb"
+        "url": "https://<domain>.feishu.cn/drive/folder/<folder_token>"
       },
       {
         "created_time": "1744904770",
         "modified_time": "1744904825",
         "name": "Android",
-        "owner_id": "ou_14a35ea3607bb853af3a84b589161b82",
-        "parent_token": "C4xYfOKM5ldYzod41TUcmOLFnR6",
-        "token": "GMgQftudRlaSqbdLimkcxGQWnLb",
+        "owner_id": "<user_id>",
+        "parent_token": "<folder_token>",
+        "token": "<folder_token>",
         "type": "folder",
-        "url": "https://vq5iayk07bc.feishu.cn/drive/folder/GMgQftudRlaSqbdLimkcxGQWnLb"
+        "url": "https://<domain>.feishu.cn/drive/folder/<folder_token>"
       },
       {
         "created_time": "1744904794",
         "modified_time": "1744904794",
         "name": "Kotlin",
-        "owner_id": "ou_14a35ea3607bb853af3a84b589161b82",
-        "parent_token": "C4xYfOKM5ldYzod41TUcmOLFnR6",
-        "token": "VYu5fWOYhl0PUFdaPnUcvvn2nvc",
+        "owner_id": "<user_id>",
+        "parent_token": "<folder_token>",
+        "token": "<folder_token>",
         "type": "folder",
-        "url": "https://vq5iayk07bc.feishu.cn/drive/folder/VYu5fWOYhl0PUFdaPnUcvvn2nvc"
+        "url": "https://<domain>.feishu.cn/drive/folder/<folder_token>"
       },
       {
         "created_time": "1744973513",
         "modified_time": "1744973518",
         "name": "test",
-        "owner_id": "ou_14a35ea3607bb853af3a84b589161b82",
-        "parent_token": "C4xYfOKM5ldYzod41TUcmOLFnR6",
-        "token": "UEMld79l5oSm2Zxf8NOcFtu7n3e",
+        "owner_id": "<user_id>",
+        "parent_token": "<folder_token>",
+        "token": "<document_token>",
         "type": "docx",
-        "url": "https://vq5iayk07bc.feishu.cn/docx/UEMld79l5oSm2Zxf8NOcFtu7n3e"
+        "url": "https://<domain>.feishu.cn/docx/<document_token>"
       }
     ],
     "has_more": false
@@ -661,9 +661,9 @@ curl -i -X GET 'https://open.feishu.cn/open-apis/drive/v1/files?direction=DESC&f
 ```
 curl -i -X POST 'https://open.feishu.cn/open-apis/drive/v1/files/create_folder' \
 -H 'Content-Type: application/json' \
--H 'Authorization: Bearer t-g1044ihxDPBYG2UZWJXWUTVKXGK4OFDG62LW6TXZ' \
+-H 'Authorization: Bearer <access_token>' \
 -d '{
-	"folder_token": "C4xYfOKM5ldYzod41TUcmOLFnR6",
+	"folder_token": "<folder_token>",
 	"name": "产品优化项目"
 }'
 ```
@@ -672,8 +672,8 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/drive/v1/files/create_folder' 
 {
   "code": 0,
   "data": {
-    "token": "FWK2fMleClICfodlHHWc4Mygnhb",
-    "url": "https://vq5iayk07bc.feishu.cn/drive/folder/FWK2fMleClICfodlHHWc4Mygnhb"
+    "token": "<folder_token>",
+    "url": "https://<domain>.feishu.cn/drive/folder/<folder_token>"
   },
   "msg": "success"
 }
@@ -704,7 +704,7 @@ curl --location --request POST '{url}' \
     "data": {
         "children": [
             {
-                "block_id": "doxcnEUmKKppwWrnUIcgZ2ibc9g",
+                "block_id": "<block_id>",
                 // Image BlockID
                 "block_type": 27,
                 "image": {
@@ -712,7 +712,7 @@ curl --location --request POST '{url}' \
                     "token": "",
                     "width": 100
                 },
-                "parent_id": "doxcnQxzmNsMl9rsJRZrCpGx71e"
+                "parent_id": "<parent_block_id>"
             }
         ],
         "client_token": "bc25a4f0-9a24-4ade-9ca2-6c1db43fa61d",
@@ -731,7 +731,7 @@ curl --location --request POST '{url}' \
 --form 'file= ' \ # 文件的二进制内容
 --form 'file_name="test.PNG"' \ # 图片名称
 --form 'parent_type="docx_image"' \ # 素材类型为 docx_image
---form 'parent_node="doxcnEUmKKppwWrnUIcgZ2ibc9g"' \ # Image BlockID
+--form 'parent_node="<block_id>"' \ # Image BlockID
 --form 'size="xxx"' # 图片大小
 ```
 * 返回数据
@@ -739,7 +739,7 @@ curl --location --request POST '{url}' \
 {
     "code": 0,
     "data": {
-        "file_token": "boxbckbfvfcqEg22hAzN8Dh9gJd" // 图片素材 ID
+        "file_token": "<file_token>" // 图片素材 ID
     },
     "msg": "Success"
 }
@@ -752,7 +752,7 @@ url --location --request PATCH '{url}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "replace_image": {
-        "token": "boxbckbfvfcqEg22hAzN8Dh9gJd" # 图片素材 ID
+        "token": "<file_token>" # 图片素材 ID
     }
 }'
 ```
@@ -773,9 +773,9 @@ url:https://open.feishu.cn/open-apis/suite/docs-api/search/object
     "data": {
         "docs_entities": [
             {
-                "docs_token": "shtcnLkpxnlYksumuGNZM1abcef",
+                "docs_token": "<document_token>",
                 "docs_type": "doc",
-                "owner_id": "ou_b97fbe610114d9489ff3b501a71abcef",
+                "owner_id": "<user_id>",
                 "title": "项目进展周报"
             } 
         ],
@@ -787,8 +787,8 @@ url:https://open.feishu.cn/open-apis/suite/docs-api/search/object
 ```
 ### 19. 获取画板内容
 * 请求：
-  curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/PcdvwsVkEhylj7bQ74pcOFKXnHE/nodes' \
-  -H 'Authorization: Bearer u-fqvA2wpLlaWb0CRxO1Zc4j4gmhzM4kahMo00gkE02e7y'
+  curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/<whiteboard_id>/nodes' \
+  -H 'Authorization: Bearer <access_token>'
 * 返回数据：
 ```
 {
@@ -921,17 +921,17 @@ url:https://open.feishu.cn/open-apis/suite/docs-api/search/object
 }
 ```
 ## 20. 获取画板缩略图
-* 请求：curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/MVPUwrM3****YLngv/download_as_image' \
-  -H 'Authorization: Bearer u-cXlil7g6F6MV9aBhJG2Gcpl5k0sAlhGhiW0055Q02ex0'
+* 请求：  curl -i -X GET 'https://open.feishu.cn/open-apis/board/v1/whiteboards/<whiteboard_id>/download_as_image' \
+  -H 'Authorization: Bearer <access_token>'
 * 二进制图片
 
 
 ## 21. 创建Mermaid
 * 请求参数
 ```
-curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9QKVxqAovc5q5snk1/blocks/XL8NdbMQuo9QKVxqAovc5q5snk1/children?document_revision_id=-1' \
+curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id>/blocks/<block_id>/children?document_revision_id=-1' \
 -H 'Content-Type: application/json' \
--H 'Authorization: Bearer t-g1049n0tIACUCTTMG3HQODPWHEW7SWTDR6VZ3KA3' \
+-H 'Authorization: Bearer <access_token>' \
 -d '{
 	"children": [
 		{
@@ -958,12 +958,12 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/XL8NdbMQuo9Q
           "component_type_id": "blk_631fefbbae02400430b8f9f4",
           "record": "{\"data\":\"graph TD\\n    A[Kotlin111源代码] -->|编译| B[Gradle编译过程]\\n    B --> C{CoroutineTracker<br/>插件}\\n    C -->|字节码插桩| D[注入追踪代码]\\n    C -->|配置解析| E[过滤规则]\\n    \\n    D --> F[运行时追踪]\\n    E --> F\\n    \\n    F --> G{追踪方式}\\n    G -->|方式1| H[拦截器追踪]\\n    G -->|方式2| I[线程追踪]\\n    \\n    H --> J[日志输出]\\n    I --> J\\n    \\n    J --> K[问题分析]\\n    K --> L[性能优化]\\n    \\n    style A fill:#d0e1f9,stroke:#4a90e2\\n    style C fill:#fbe5d6,stroke:#ed7d31\\n    style F fill:#e2f0d9,stroke:#70ad47\\n    style G fill:#fff2cc,stroke:#ffd700\\n    style K fill:#f4cccc,stroke:#cc0000\\n\",\"theme\":\"default\",\"view\":\"codeChart\"}"
         },
-        "block_id": "doxcncLxsriOMnMhpB3Rqq6FM5b",
+        "block_id": "<block_id>",
         "block_type": 40,
-        "parent_id": "XL8NdbMQuo9QKVxqAovc5q5snk1"
+        "parent_id": "<parent_block_id>"
       }
     ],
-    "client_token": "7912c58c-9a1e-4902-9305-690fd7b6122d",
+    "client_token": "<client_token>",
     "document_revision_id": 84
   },
   "msg": "success"
@@ -1046,13 +1046,13 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents/<document_id
     "data": {
         "children": [
             {
-                "block_id": "doxcnzMS8D4ADseW9FLeWNbgyTg",
+                "block_id": "<block_id>",
                 "block_type": 43,
                 "board": {
                     "align": 1,
-                    "token": "EVFqwnBiohdWmFbRzKdceUbsn0g"
+                    "token": "<whiteboard_id>"
                 },
-                "parent_id": "NUhrdlyUbobaQ7xtGWrcKeCWnih"
+                "parent_id": "<parent_block_id>"
             }
         ],
         "client_token": "bc25a4f0-9a24-4ade-9ca2-6c1db43fa61d",
@@ -1119,3 +1119,245 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/board/v1/whiteboards/<whiteboa
 * 支持的图表类型：
   - **PlantUML (syntax_type: 1)**: 时序图、活动图、类图、用例图、组件图、思维导图、流程图等
   - **Mermaid (syntax_type: 2)**: 流程图、时序图、类图、ER图、甘特图、状态图、组件图等
+
+## 23.获取知识空间列表
+* 请求：
+```
+curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces?page_size=20' \
+-H 'Authorization: Bearer <access_token>'
+```
+* 返回数据
+```
+{
+  "code": 0,
+  "data": {
+    "has_more": false,
+    "items": [
+      {
+        "description": "音乐文档",
+        "name": "android开发",
+        "open_sharing": "closed",
+        "space_id": "<space_id>",
+        "space_type": "team",
+        "visibility": "public"
+      },
+      {
+        "description": "",
+        "name": "",
+        "open_sharing": "closed",
+        "space_id": "<space_id>",
+        "space_type": "team",
+        "visibility": "public"
+      },
+      {
+        "description": "知识空间描述",
+        "name": "知识空间",
+        "open_sharing": "closed",
+        "space_id": "<space_id>",
+        "space_type": "team",
+        "visibility": "private"
+      }
+    ],
+    "page_token": "<page_token>"
+  },
+  "msg": "success"
+}
+```
+
+## 24.获取“我的知识库”
+* 请求
+```
+curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/my_library?lang=en' \
+-H 'Authorization: Bearer <access_token>'
+```
+* 返回
+```
+{
+  "code": 0,
+  "data": {
+    "space": {
+      "description": "",
+      "name": "My Document Library",
+      "open_sharing": "closed",
+      "space_id": "<space_id>",
+      "space_type": "my_library",
+      "visibility": "private"
+    }
+  },
+  "msg": "success"
+}
+```
+## 25. 获取知识空间子节点列表
+* 请求
+```
+curl -i -X GET 'https://open.feishu.cn/open-apis/wiki/v2/spaces/<space_id>/nodes?parent_node_token=<parent_node_token>' \
+-H 'Authorization: Bearer <access_token>'
+```
+* 结果
+```
+{
+  "code": 0,
+  "data": {
+    "has_more": false,
+    "items": [
+      {
+        "creator": "<user_id>",
+        "has_child": false,
+        "node_create_time": "1741869192",
+        "node_token": "<node_token>",
+        "node_type": "origin",
+        "obj_create_time": "1741869192",
+        "obj_edit_time": "1743480561",
+        "obj_token": "<obj_token>",
+        "obj_type": "docx",
+        "origin_node_token": "<node_token>",
+        "origin_space_id": "<space_id>",
+        "owner": "<user_id>",
+        "parent_node_token": "<parent_node_token>",
+        "space_id": "<space_id>",
+        "title": "UI"
+      },
+      {
+        "creator": "<user_id>",
+        "has_child": true,
+        "node_create_time": "1741869203",
+        "node_token": "<node_token>",
+        "node_type": "origin",
+        "obj_create_time": "1741869203",
+        "obj_edit_time": "1744719507",
+        "obj_token": "<obj_token>",
+        "obj_type": "docx",
+        "origin_node_token": "<node_token>",
+        "origin_space_id": "<space_id>",
+        "owner": "<user_id>",
+        "parent_node_token": "<parent_node_token>",
+        "space_id": "<space_id>",
+        "title": "工具类"
+      },
+      {
+        "creator": "<user_id>",
+        "has_child": false,
+        "node_create_time": "1766946018",
+        "node_token": "<node_token>",
+        "node_type": "origin",
+        "obj_create_time": "1766946018",
+        "obj_edit_time": "1766946050",
+        "obj_token": "<obj_token>",
+        "obj_type": "docx",
+        "origin_node_token": "<node_token>",
+        "origin_space_id": "<space_id>",
+        "owner": "<user_id>",
+        "parent_node_token": "<parent_node_token>",
+        "space_id": "<space_id>",
+        "title": "Feishu MCP 测试文档"
+      },
+      {
+        "creator": "<user_id>",
+        "has_child": false,
+        "node_create_time": "1767804757",
+        "node_token": "<node_token>",
+        "node_type": "origin",
+        "obj_create_time": "1767804757",
+        "obj_edit_time": "1767804819",
+        "obj_token": "<obj_token>",
+        "obj_type": "docx",
+        "origin_node_token": "<node_token>",
+        "origin_space_id": "<space_id>",
+        "owner": "<user_id>",
+        "parent_node_token": "<parent_node_token>",
+        "space_id": "<space_id>",
+        "title": "一篇新的文档"
+      }
+    ],
+    "page_token": ""
+  },
+  "msg": "success"
+}
+```
+
+## 26.创建知识空间节点
+* 请求
+```
+curl -i -X POST 'https://open.feishu.cn/open-apis/wiki/v2/spaces/<space_id>/nodes' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer <access_token>' \
+-d '{
+	"node_type": "origin",
+	"obj_type": "docx",
+	"parent_node_token": "<parent_node_token>",
+	"title": "哈哈哈哈te111st"
+}'
+```
+node_type 默认为origin，无需传入
+obj_type 默认为docx，无需传入
+* 返回
+```
+{
+  "code": 0,
+  "data": {
+    "node": {
+      "creator": "",
+      "has_child": false,
+      "node_create_time": "1768013397",
+      "node_token": "<node_token>",
+      "node_type": "origin",
+      "obj_create_time": "1768013397",
+      "obj_edit_time": "1768013397",
+      "obj_token": "<obj_token>",
+      "obj_type": "docx",
+      "origin_node_token": "<node_token>",
+      "origin_space_id": "<space_id>",
+      "owner": "<user_id>",
+      "parent_node_token": "<parent_node_token>",
+      "space_id": "<space_id>",
+      "title": "哈哈哈哈te111st"
+    }
+  },
+  "msg": "success"
+}
+```
+
+
+## 27.搜索知识库
+* 请求
+```
+curl -i -X POST 'https://open.feishu.cn/open-apis/wiki/v1/nodes/search?page_size=20' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer <access_token>' \
+-d '{
+	"query": "andorid"
+}'
+```
+* 返回
+```
+{
+  "code": 0,
+  "data": {
+    "has_more": true,
+    "items": [
+      {
+        "node_id": "<node_id>",
+        "obj_token": "<obj_token>",
+        "obj_type": 8,
+        "parent_id": "",
+        "sort_id": 1,
+        "space_id": "<space_id>",
+        "title": "Android四大组件",
+        "url": "https://<domain>.feishu.cn/wiki/<node_id>"
+      },
+      {
+        "node_id": "<node_id>",
+        "obj_token": "<obj_token>",
+        "obj_type": 8,
+        "parent_id": "",
+        "sort_id": 2,
+        "space_id": "<space_id>",
+        "title": "ContentProvider",
+        "url": "https://<domain>.feishu.cn/wiki/<node_id>"
+      }
+    ],
+    "page_token": "<page_token>"
+  },
+  "msg": "success"
+}
+```
