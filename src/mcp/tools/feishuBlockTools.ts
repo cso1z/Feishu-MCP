@@ -36,7 +36,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   // 添加更新块文本内容工具
   server.tool(
     'update_feishu_block_text',
-    'Updates the text content and styling of a specific block in a Feishu document. Can be used to modify content in existing text, code, or heading blocks while preserving the block type and other properties. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    'Updates the text content and styling of a specific block in a Feishu document. Can be used to modify content in existing text, code, or heading blocks while preserving the block type and other properties. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
     {
       documentId: DocumentIdSchema,
       blockId: BlockIdSchema,
@@ -70,7 +70,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   // 添加通用飞书块创建工具（支持文本、代码、标题）
   server.tool(
     'batch_create_feishu_blocks',
-    'PREFERRED: Efficiently creates multiple blocks (text, code, heading, list, image, mermaid, whiteboard) in a single API call. USE THIS TOOL when creating multiple consecutive blocks at the same position - reduces API calls by up to 90%. KEY FEATURES: (1) Handles any number of blocks by auto-batching large requests (>50 blocks), (2) Creates blocks at consecutive positions in a document, (3) Supports direct heading level format (e.g. "heading1", "heading2") or standard "heading" type with level in options. CORRECT FORMAT: mcp_feishu_batch_create_feishu_blocks({documentId:"doc123",parentBlockId:"para123",startIndex:0,blocks:[{blockType:"text",options:{...}},{blockType:"heading1",options:{heading:{content:"Title"}}}]}). For whiteboard blocks, use blockType:"whiteboard" with options:{whiteboard:{align:1}}. After creating a whiteboard block, you will receive a token in the response (board.token field) which can be used with fill_whiteboard_with_plantuml tool. The fill_whiteboard_with_plantuml tool supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. For separate positions, use individual block creation tools instead. For wiki links (https://xxx.feishu.cn/wiki/xxx), first convert with convert_feishu_wiki_to_document_id tool.',
+    'PREFERRED: Efficiently creates multiple blocks (text, code, heading, list, image, mermaid, whiteboard) in a single API call. USE THIS TOOL when creating multiple consecutive blocks at the same position - reduces API calls by up to 90%. KEY FEATURES: (1) Handles any number of blocks by auto-batching large requests (>50 blocks), (2) Creates blocks at consecutive positions in a document, (3) Supports direct heading level format (e.g. "heading1", "heading2") or standard "heading" type with level in options. CORRECT FORMAT: mcp_feishu_batch_create_feishu_blocks({documentId:"doc123",parentBlockId:"para123",startIndex:0,blocks:[{blockType:"text",options:{...}},{blockType:"heading1",options:{heading:{content:"Title"}}}]}). For whiteboard blocks, use blockType:"whiteboard" with options:{whiteboard:{align:1}}. After creating a whiteboard block, you will receive a token in the response (board.token field) which can be used with fill_whiteboard_with_plantuml tool. The fill_whiteboard_with_plantuml tool supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. For separate positions, use individual block creation tools instead. For wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
@@ -519,44 +519,44 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   // );
 
   // 添加飞书Wiki文档ID转换工具
-  server.tool(
-    'convert_feishu_wiki_to_document_id',
-    'Converts a Feishu Wiki document link to a compatible document ID. This conversion is required before using wiki links with any other Feishu document tools.',
-    {
-      wikiUrl: z.string().describe('Wiki URL or Token (required). Supports complete URL formats like https://xxx.feishu.cn/wiki/xxxxx or direct use of the Token portion'),
-    },
-    async ({ wikiUrl }) => {
-      try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
-          };
-        }
-
-        Logger.info(`开始转换Wiki文档链接，输入: ${wikiUrl}`);
-        const documentId = await feishuService.convertWikiToDocumentId(wikiUrl);
-        
-        Logger.info(`Wiki文档转换成功，可用的文档ID为: ${documentId}`);
-
-        return {
-          content: [
-            { type: 'text', text: `Converted Wiki link to Document ID: ${documentId}\n\nUse this Document ID with other Feishu document tools.` }
-          ],
-        };
-      } catch (error) {
-        Logger.error(`转换Wiki文档链接失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `转换Wiki文档链接失败: ${errorMessage}` }],
-        };
-      }
-    },
-  );
+  // server.tool(
+  //   'convert_feishu_wiki_to_document_id',
+  //   'Converts a Feishu Wiki document link to a compatible document ID. This conversion is required before using wiki links with any other Feishu document tools.',
+  //   {
+  //     wikiUrl: z.string().describe('Wiki URL or Token (required). Supports complete URL formats like https://xxx.feishu.cn/wiki/xxxxx or direct use of the Token portion'),
+  //   },
+  //   async ({ wikiUrl }) => {
+  //     try {
+  //       if (!feishuService) {
+  //         return {
+  //           content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
+  //         };
+  //       }
+  //
+  //       Logger.info(`开始转换Wiki文档链接，输入: ${wikiUrl}`);
+  //       const documentId = await feishuService.convertWikiToDocumentId(wikiUrl);
+  //
+  //       Logger.info(`Wiki文档转换成功，可用的文档ID为: ${documentId}`);
+  //
+  //       return {
+  //         content: [
+  //           { type: 'text', text: `Converted Wiki link to Document ID: ${documentId}\n\nUse this Document ID with other Feishu document tools.` }
+  //         ],
+  //       };
+  //     } catch (error) {
+  //       Logger.error(`转换Wiki文档链接失败:`, error);
+  //       const errorMessage = formatErrorMessage(error);
+  //       return {
+  //         content: [{ type: 'text', text: `转换Wiki文档链接失败: ${errorMessage}` }],
+  //       };
+  //     }
+  //   },
+  // );
 
   // 添加删除文档块工具
   server.tool(
     'delete_feishu_document_blocks',
-    'Deletes one or more consecutive blocks from a Feishu document. Use this tool to remove unwanted content, clean up document structure, or clear space before inserting new content. Supports batch deletion for efficiency. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    'Deletes one or more consecutive blocks from a Feishu document. Use this tool to remove unwanted content, clean up document structure, or clear space before inserting new content. Supports batch deletion for efficiency. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
@@ -746,7 +746,7 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
   // 添加创建飞书表格工具
   server.tool(
     'create_feishu_table',
-    'Creates a table block in a Feishu document with specified rows and columns. Each cell can contain different types of content blocks (text, lists, code, etc.). This tool creates the complete table structure including table cells and their content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    'Creates a table block in a Feishu document with specified rows and columns. Each cell can contain different types of content blocks (text, lists, code, etc.). This tool creates the complete table structure including table cells and their content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,

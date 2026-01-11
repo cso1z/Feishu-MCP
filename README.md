@@ -34,25 +34,25 @@
 
 ## 🛠️ 工具功能详情
 
-| 功能类别 | 工具名称                                 | 描述                | 使用场景          | 状态    |
-|---------|--------------------------------------|-------------------|---------------|-------|
-| **文档管理** | `create_feishu_document`             | 创建新的飞书文档          | 从零开始创建文档      | ✅ 已完成 |
-| | `get_feishu_document_info`           | 获取文档基本信息          | 验证文档存在性和权限    | ✅ 已完成 |
-| | `get_feishu_document_blocks`         | 获取文档块结构           | 了解文档层级结构      | ✅ 已完成 |
-| **内容编辑** | `batch_create_feishu_blocks`         | 批量创建多个块           | 高效创建连续内容      | ✅ 已完成 |
-| | `update_feishu_block_text`           | 更新块文本内容           | 修改现有内容        | ✅ 已完成 |
-| | `delete_feishu_document_blocks`      | 删除文档块             | 清理和重构文档内容     | ✅ 已完成 |
-| **文件夹管理** | `get_feishu_folder_files`            | 获取文件夹文件列表         | 浏览文件夹内容       | ✅ 已完成 |
-| | `create_feishu_folder`               | 创建新文件夹            | 组织文档结构        | ✅ 已完成 |
-| **搜索功能** | `search_feishu_documents`            | 搜索文档              | 查找特定内容        | ✅ 已完成 |
-| **工具功能** | `convert_feishu_wiki_to_document_id` | Wiki链接转换          | 将Wiki链接转为文档ID | ✅ 已完成 |
-| | `get_feishu_image_resource`          | 获取图片资源            | 下载文档中的图片      | ✅ 已完成 |
-| | `get_feishu_whiteboard_content`      | 获取画板内容 | 获取画板中的图形元素和结构(流程图、思维导图等) | ✅ 已完成 |
-| **高级功能** | `create_feishu_table`                | 创建和编辑表格           | 结构化数据展示       | ✅ 已完成 |
-| | 流程图插入                                | 支持流程图和思维导图        | 流程梳理和可视化      | ✅ 已完成 |
-| | 流程图插入(画板形式)                          | 支持流程图和思维导图        | 流程梳理和可视化      | ✅ 已完成   |
-| 图片插入  | `upload_and_bind_image_to_block`     | 支持插入本地和远程图片       | 修改文档内容        | ✅ 已完成 |
-| | 公式支持                                 | 支持数学公式            | 学术和技术文档       | ✅ 已完成 |
+| 功能类别 | 工具名称                                 | 描述          | 使用场景                     | 状态    |
+|---------|--------------------------------------|-------------|--------------------------|-------|
+| **文档管理** | `create_feishu_document`             | 创建新的飞书文档    | 从零开始创建文档                 | ✅ 已完成 |
+| | `get_feishu_document_info`           | 获取文档基本信息    | 验证文档存在性和权限               | ✅ 已完成 |
+| | `get_feishu_document_blocks`         | 获取文档块结构     | 了解文档层级结构                 | ✅ 已完成 |
+| **内容编辑** | `batch_create_feishu_blocks`         | 批量创建多个块     | 高效创建连续内容                 | ✅ 已完成 |
+| | `update_feishu_block_text`           | 更新块文本内容     | 修改现有内容                   | ✅ 已完成 |
+| | `delete_feishu_document_blocks`      | 删除文档块       | 清理和重构文档内容                | ✅ 已完成 |
+| **文件夹管理** | `get_feishu_folder_files`            | 获取文件夹文件列表   | 浏览文件夹内容                  | ✅ 已完成 |
+| | `create_feishu_folder`               | 创建新文件夹      | 组织文档结构                   | ✅ 已完成 |
+| **搜索功能** | `search_feishu_documents`            | 搜索文档        | 查找特定内容                   | ✅ 已完成 |
+| **工具功能** | `get_feishu_document_info` | 获取wiki文档信息  | 将Wiki链接转为文档ID、创建wiki子节点  | ✅ 已完成 |
+| | `get_feishu_image_resource`          | 获取图片资源      | 下载文档中的图片                 | ✅ 已完成 |
+| | `get_feishu_whiteboard_content`      | 获取画板内容      | 获取画板中的图形元素和结构(流程图、思维导图等) | ✅ 已完成 |
+| **高级功能** | `create_feishu_table`                | 创建和编辑表格     | 结构化数据展示                  | ✅ 已完成 |
+| | 流程图插入                                | 支持流程图和思维导图  | 流程梳理和可视化                 | ✅ 已完成 |
+| | 流程图插入(画板形式)                          | 支持流程图和思维导图  | 流程梳理和可视化                 | ✅ 已完成   |
+| 图片插入  | `upload_and_bind_image_to_block`     | 支持插入本地和远程图片 | 修改文档内容                   | ✅ 已完成 |
+| | 公式支持                                 | 支持数学公式      | 学术和技术文档                  | ✅ 已完成 |
 
 ### 🎨 支持的样式功能（基本支持md所有格式）
 
@@ -85,7 +85,7 @@
 - ~~**支持授权范围校验**：对应用授权进行验证，以确保其符合当前工具的要求。如未满足条件，将提供友好的指引，以便用户更顺畅地使用~~ 0.1.7 ✅
 - ~~**支持创建画板内容**：与Mermaid图表相比，画板能够展示更为丰富和多样化的内容，提供更为友好和愉悦的视觉体验~~ (飞书应用配置发生变更) 0.1.7 ✅
 - **提取环境变量中的 feishuAppId 和 feishuAppSecret**：将飞书配置从环境变量中分离出来，以便在诸如 cursor 等客户端中进行设置，从而支持一个服务共享给多个团队使用。
-- ~~**支持知识库和我的文档库**：实现知识库、我的文档库 节点遍历、节点创建、文件创建、搜索等功能~~ 0.1.8 ✅
+- ~~**支持知识库和我的文档库**：实现知识库、我的文档库 节点遍历、节点创建、文件创建、搜索等功能~~ (飞书应用配置发生变更) 0.1.8 ✅
 - **版本更新通知**：在发布新版本时，及时向用户提供相关提示与说明。
 - **stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题
 ---
@@ -166,7 +166,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
   "mcpServers": {
     "feishu-mcp": {
       "command": "npx",
-      "args": ["-y", "feishu-mcp", "--stdio"],
+      "args": ["-y", "feishu-@latest", "--stdio"],
       "env": {
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",
@@ -179,6 +179,9 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
   }
 }
 ```
+
+**⚠️ 重要提示** : `http://localhost:3333/sse?userKey=123456` 中userKey表示连接用户的标识，是非常重要的配置，请填写并尽可能随机
+
 ---
 
 ## 📝 使用贴士（重要）
@@ -197,6 +200,10 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 4. ### **使用飞书user认证**：
    user认证与tenant认证在增加权限时是有区分的，所以**在初次由tenant切换到user时需要注意配置的权限**；为了区分不同的用户需要在配置mcp server服务的url增加query参数：userKey，**该值是用户的唯一标识 所以最好在设置时越随机越好**
+
+5. ### **强烈建议使用user认证**：
+   tenant认证有诸多限制，比如文件访问权限、飞书openapi兼容(不支持搜索wiki文档)、文档创建编辑记录等方面都不如user认证。
+
 ---
 ## 🚨 故障排查
 

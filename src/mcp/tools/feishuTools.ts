@@ -1,10 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-// import { z } from 'zod';
 import { formatErrorMessage } from '../../utils/error.js';
 import { FeishuApiService } from '../../services/feishuApiService.js';
 import { Logger } from '../../utils/logger.js';
 import {
   DocumentIdSchema,
+  DocumentIdOrWikiIdSchema,
+  DocumentTypeSchema,
   // BlockIdSchema,
   SearchKeySchema,
   SearchTypeSchema,
@@ -105,14 +106,15 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     },
   );
 
-  // 添加获取飞书文档信息工具
+  // 添加获取飞书文档信息工具（支持普通文档和Wiki文档）
   server.tool(
     'get_feishu_document_info',
-    'Retrieves basic information about a Feishu document. Use this to verify a document exists, check access permissions, or get metadata like title, type, and creation information.',
+    'Retrieves basic information about a Feishu document or Wiki node. Supports both regular documents (via document ID/URL) and Wiki documents (via Wiki URL/token). Use this to verify a document exists, check access permissions, or get metadata like title, type, and creation information. For Wiki documents, returns complete node information including documentId (obj_token) for document editing operations, and space_id and node_token for creating child nodes. ',
     {
-      documentId: DocumentIdSchema,
+      documentId: DocumentIdOrWikiIdSchema,
+      documentType: DocumentTypeSchema,
     },
-    async ({ documentId }) => {
+    async ({ documentId, documentType }) => {
       try {
         if (!feishuService) {
           return {
@@ -120,9 +122,15 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
           };
         }
 
-        Logger.info(`开始获取飞书文档信息，文档ID: ${documentId}`);
-        const docInfo = await feishuService.getDocumentInfo(documentId);
-        Logger.info(`飞书文档信息获取成功，标题: ${docInfo.title}`);
+        Logger.info(`开始获取飞书文档信息，文档ID: ${documentId}, 类型: ${documentType || 'auto'}`);
+        const docInfo = await feishuService.getDocumentInfo(documentId, documentType);
+        
+        if (!docInfo) {
+          throw new Error('获取文档信息失败，未返回数据');
+        }
+
+        const title = docInfo.title || docInfo.document?.title || '未知标题';
+        Logger.info(`飞书文档信息获取成功，标题: ${title}, 类型: ${docInfo._type || 'document'}`);
 
         return {
           content: [{ type: 'text', text: JSON.stringify(docInfo, null, 2) }],
@@ -173,7 +181,7 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
   // 添加获取飞书文档块工具
   server.tool(
     'get_feishu_document_blocks',
-    'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
+    'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
     {
       documentId: DocumentIdSchema,
     },

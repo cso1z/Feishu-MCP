@@ -63,6 +63,7 @@
       "wiki:space:retrieve",
       "wiki:wiki",
       "wiki:wiki:readonly",
+      "search:docs:read",
       "offline_access"
     ]
   }
@@ -73,7 +74,7 @@
 #### 4. 等待管理员审批通过
 ![发布审批应用完成](image/complete_permissions.png)
 
-### 三、为应用添加访问文件的权限
+### 三、为应用添加访问文件的权限(tenant认证时处理，user认证时不需要)
 要添加应用为文档协作者，主要有以下两种方式：
 #### 方式一：直接添加应用为云文档的协作者(作用于单个文档)
 该方式要求操作者为云文档所有者、拥有文档管理权限的协作者或知识库管理员。操作者可通过云文档网页页面右上方「...」->「...更多」-> 「添加文档应用」入口添加。
@@ -103,6 +104,13 @@
 ![赋予应用文件夹权限](image/share_folder_to_group.png)
 
 ![赋予编辑权限](image/add_edit_permission.png)
+
+#### 6.知识库
+
+![知识库配置入口](image/wiki_config_enter.png)
+
+![配置知识库权限](image/wiki_config_detail.png)
+
 
 ### 四、添加redirect_uri回调地址:http://localhost:3333/callback (3333为mcp server默认端口)
 * 注意如果是部署在服务器上时对应的host和port是需要更换

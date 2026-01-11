@@ -1,7 +1,6 @@
 import { BaseApiService } from './baseService.js';
 import { Logger } from '../utils/logger.js';
 import { Config } from '../utils/config.js';
-import { CacheManager } from '../utils/cache.js';
 import { ParamUtils } from '../utils/paramUtils.js';
 import { BlockFactory, BlockType } from './blockFactory.js';
 import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
@@ -18,7 +17,6 @@ import path from 'path';
  */
 export class FeishuApiService extends BaseApiService {
   private static instance: FeishuApiService;
-  private readonly cacheManager: CacheManager;
   private readonly blockFactory: BlockFactory;
   private readonly config: Config;
   private readonly authService: AuthService;
@@ -28,7 +26,6 @@ export class FeishuApiService extends BaseApiService {
    */
   private constructor() {
     super();
-    this.cacheManager = CacheManager.getInstance();
     this.blockFactory = BlockFactory.getInstance();
     this.config = Config.getInstance();
     this.authService = new AuthService();
@@ -183,11 +180,14 @@ export class FeishuApiService extends BaseApiService {
       "wiki:wiki",
       "wiki:wiki:readonly"
     ];
-    
-    const userScopes = [
-      ...tenantScopes,
-      'offline_access'
+
+    // user认证特有授权
+    const userOnlyScopes = [
+      "search:docs:read",
+      'offline_access',
     ];
+    
+    const userScopes = [...tenantScopes, ...userOnlyScopes];
     
     return authType === 'tenant' ? tenantScopes : userScopes;
   }
@@ -282,7 +282,7 @@ export class FeishuApiService extends BaseApiService {
     // 生成应用级别的scope校验key（包含authType，因为tenant和user权限不同）
     const scopeKey = this.generateScopeKey(appId, appSecret, authType);
 
-    const scopeVersion = '1.0.0'; // 当前scope版本号，可以根据需要更新
+    const scopeVersion = '2.0.0'; // 当前scope版本号，可以根据需要更新
     
     // 检查是否需要校验
     if (!tokenCacheManager.shouldValidateScope(scopeKey, scopeVersion)) {
@@ -412,16 +412,60 @@ export class FeishuApiService extends BaseApiService {
   }
 
   /**
-   * 获取文档信息
-   * @param documentId 文档ID或URL
-   * @returns 文档信息
+   * 获取文档信息（支持普通文档和Wiki文档）
+   * @param documentId 文档ID或URL（支持Wiki链接）
+   * @param documentType 文档类型（可选），'document' 或 'wiki'，如果不指定则自动检测
+   * @returns 文档信息或Wiki节点信息
    */
-  public async getDocumentInfo(documentId: string): Promise<any> {
+  public async getDocumentInfo(documentId: string, documentType?: 'document' | 'wiki'): Promise<any> {
     try {
-      const normalizedDocId = ParamUtils.processDocumentId(documentId);
-      const endpoint = `/docx/v1/documents/${normalizedDocId}`;
-      const response = await this.get(endpoint);
-      return response;
+      let isWikiLink: boolean;
+      
+      // 如果明确指定了类型，使用指定的类型
+      if (documentType === 'wiki') {
+        isWikiLink = true;
+      } else if (documentType === 'document') {
+        isWikiLink = false;
+      } else {
+        // 自动检测：检查是否是Wiki链接（包含 /wiki/ 路径）
+        isWikiLink = documentId.includes('/wiki/');
+      }
+      
+      if (isWikiLink) {
+        // 处理Wiki文档
+        const wikiToken = ParamUtils.processWikiToken(documentId);
+        const endpoint = `/wiki/v2/spaces/get_node`;
+        const params = { token: wikiToken, obj_type: 'wiki' };
+        const response = await this.get(endpoint, params);
+
+        if (!response.node || !response.node.obj_token) {
+          throw new Error(`无法从Wiki节点获取文档ID: ${wikiToken}`);
+        }
+
+        const node = response.node;
+        const docId = node.obj_token;
+
+        // 构建返回对象，包含完整节点信息和 documentId 字段
+        const result = {
+          ...node,
+          documentId: docId, // 添加 documentId 字段作为 obj_token 的别名
+          _type: 'wiki', // 标识这是Wiki文档
+        };
+
+        Logger.debug(`获取Wiki文档信息: ${wikiToken} -> documentId: ${docId}, space_id: ${node.space_id}, node_token: ${node.node_token}`);
+        return result;
+      } else {
+        // 处理普通文档
+        const normalizedDocId = ParamUtils.processDocumentId(documentId);
+        const endpoint = `/docx/v1/documents/${normalizedDocId}`;
+        const response = await this.get(endpoint);
+        const result = {
+          ...response,
+          _type: 'document', // 标识这是普通文档
+        };
+        Logger.debug(`获取普通文档信息: ${normalizedDocId}`);
+        return result;
+      }
     } catch (error) {
       this.handleApiError(error, '获取文档信息失败');
     }
@@ -902,38 +946,28 @@ export class FeishuApiService extends BaseApiService {
    * @param wikiUrl Wiki链接或Token
    * @returns 文档ID
    */
-  public async convertWikiToDocumentId(wikiUrl: string): Promise<string> {
-    try {
-      const wikiToken = ParamUtils.processWikiToken(wikiUrl);
-
-      // 尝试从缓存获取
-      const cachedDocId = this.cacheManager.getWikiToDocId(wikiToken);
-      if (cachedDocId) {
-        Logger.debug(`使用缓存的Wiki转换结果: ${wikiToken} -> ${cachedDocId}`);
-        return cachedDocId;
-      }
-
-      // 获取Wiki节点信息
-      const endpoint = `/wiki/v2/spaces/get_node`;
-      const params = { token: wikiToken, obj_type: 'wiki' };
-      const response = await this.get(endpoint, params);
-
-      if (!response.node || !response.node.obj_token) {
-        throw new Error(`无法从Wiki节点获取文档ID: ${wikiToken}`);
-      }
-
-      const documentId = response.node.obj_token;
-
-      // 缓存结果
-      this.cacheManager.cacheWikiToDocId(wikiToken, documentId);
-
-      Logger.debug(`Wiki转换为文档ID: ${wikiToken} -> ${documentId}`);
-      return documentId;
-    } catch (error) {
-      this.handleApiError(error, 'Wiki转换为文档ID失败');
-      return ''; // 永远不会执行到这里
-    }
-  }
+  // public async convertWikiToDocumentId(wikiUrl: string): Promise<string> {
+  //   try {
+  //     const wikiToken = ParamUtils.processWikiToken(wikiUrl);
+  //
+  //     // 获取Wiki节点信息
+  //     const endpoint = `/wiki/v2/spaces/get_node`;
+  //     const params = { token: wikiToken, obj_type: 'wiki' };
+  //     const response = await this.get(endpoint, params);
+  //
+  //     if (!response.node || !response.node.obj_token) {
+  //       throw new Error(`无法从Wiki节点获取文档ID: ${wikiToken}`);
+  //     }
+  //
+  //     const documentId = response.node.obj_token;
+  //
+  //     Logger.debug(`Wiki转换为文档ID: ${wikiToken} -> ${documentId}`);
+  //     return documentId;
+  //   } catch (error) {
+  //     this.handleApiError(error, 'Wiki转换为文档ID失败');
+  //     return ''; // 永远不会执行到这里
+  //   }
+  // }
 
   /**
    * 获取BlockFactory实例
@@ -1606,6 +1640,12 @@ export class FeishuApiService extends BaseApiService {
     pageToken?: string
   ): Promise<any> {
     try {
+      // wiki搜索不支持tenant认证，如果是tenant模式则强制使用document搜索
+      if (this.config.feishu.authType === 'tenant' && (searchType === 'wiki' || searchType === 'both')) {
+        Logger.info(`租户认证模式下wiki搜索不支持，强制将searchType从 ${searchType} 修改为 document`);
+        searchType = 'document';
+      }
+
       const MAX_TOTAL_RESULTS = 100; // 总共最多200条（文档+wiki合计）
       const docOffset = offset ?? 0;
 
