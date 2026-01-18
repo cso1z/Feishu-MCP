@@ -7,7 +7,7 @@ import { registerFeishuFolderTools } from './tools/feishuFolderTools.js';
 
 const serverInfo = {
   name: "Feishu MCP Server",
-  version: "0.1.8",
+  version: "0.1.9",
 };
 
 const serverOptions = {

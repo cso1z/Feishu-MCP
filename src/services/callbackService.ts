@@ -3,6 +3,7 @@ import { AuthService } from './feishuAuthService.js';
 import { Config } from '../utils/config.js';
 import { renderFeishuAuthResultHtml } from '../utils/document.js';
 import { AuthUtils,TokenCacheManager } from '../utils/auth/index.js';
+import { Logger } from '../utils/logger.js';
 
 // 通用响应码
 const CODE = {
@@ -29,33 +30,33 @@ const config = Config.getInstance();
 export async function callback(req: Request, res: Response) {
   const code = req.query.code as string;
   const state = req.query.state as string;
-  console.log(`[callback] query:`, req.query);
+  Logger.debug(`[callback] query:`, req.query);
   
   if (!code) {
-    console.log('[callback] 缺少code参数');
+    Logger.warn('[callback] 缺少code参数');
     return sendFail(res, '缺少code参数', CODE.PARAM_ERROR);
   }
   
   if (!state) {
-    console.log('[callback] 缺少state参数');
+    Logger.warn('[callback] 缺少state参数');
     return sendFail(res, '缺少state参数', CODE.PARAM_ERROR);
   }
 
   // 解析state参数
   const stateData = AuthUtils.decodeState(state);
   if (!stateData) {
-    console.log('[callback] state参数解析失败');
+    Logger.warn('[callback] state参数解析失败');
     return sendFail(res, 'state参数格式错误', CODE.PARAM_ERROR);
   }
 
   const { appId, appSecret, clientKey, redirectUri } = stateData;
-  console.log(`[callback] 解析state成功:`, { appId, clientKey, redirectUri });
+  Logger.debug(`[callback] 解析state成功:`, { appId, clientKey, redirectUri });
 
   // 验证state中的appId和appSecret是否与配置匹配
   const configAppId = config.feishu.appId;
   const configAppSecret = config.feishu.appSecret;
   if (appId !== configAppId || appSecret !== configAppSecret) {
-    console.log('[callback] state中的appId或appSecret与配置不匹配');
+    Logger.warn('[callback] state中的appId或appSecret与配置不匹配');
     return sendFail(res, 'state参数验证失败', CODE.PARAM_ERROR);
   }
 
@@ -74,7 +75,7 @@ export async function callback(req: Request, res: Response) {
       code_verifier
     });
     const data = (tokenResp && typeof tokenResp === 'object') ? tokenResp : undefined;
-    console.log('[callback] feishu response:', data);
+    Logger.debug('[callback] feishu response:', data);
     
     if (!data || data.code !== 0 || !data.access_token) {
       return sendFail(res, `获取 access_token 失败，飞书返回: ${JSON.stringify(tokenResp)}`, CODE.CUSTOM);
@@ -96,7 +97,7 @@ export async function callback(req: Request, res: Response) {
       // 缓存token信息
       const refreshTtl = data.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
       tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl);
-      console.log(`[callback] token已缓存到clientKey: ${clientKey}`);
+      Logger.info(`[callback] token已缓存到clientKey: ${clientKey}`);
     }
     
     // 获取用户信息
@@ -104,12 +105,12 @@ export async function callback(req: Request, res: Response) {
     let userInfo = null;
     if (access_token) {
       userInfo = await authService.getUserInfo(access_token);
-      console.log('[callback] feishu userInfo:', userInfo);
+      Logger.debug('[callback] feishu userInfo:', userInfo);
     }
     
     return sendSuccess(res, { ...data, userInfo, clientKey });
   } catch (e) {
-    console.error('[callback] 请求飞书token或用户信息失败:', e);
+    Logger.error('[callback] 请求飞书token或用户信息失败:', e);
     return sendFail(res, `请求飞书token或用户信息失败: ${e}`, CODE.CUSTOM);
   }
 }

@@ -86,8 +86,8 @@
 - ~~**支持创建画板内容**：与Mermaid图表相比，画板能够展示更为丰富和多样化的内容，提供更为友好和愉悦的视觉体验~~ (飞书应用配置发生变更) 0.1.7 ✅
 - **提取环境变量中的 feishuAppId 和 feishuAppSecret**：将飞书配置从环境变量中分离出来，以便在诸如 cursor 等客户端中进行设置，从而支持一个服务共享给多个团队使用。
 - ~~**支持知识库和我的文档库**：实现知识库、我的文档库 节点遍历、节点创建、文件创建、搜索等功能~~ (飞书应用配置发生变更) 0.1.8 ✅
-- **版本更新通知**：在发布新版本时，及时向用户提供相关提示与说明。
-- **stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题
+- **版本更新通知**：在发布新版本时，及时向用户提供相关提示与说明。 
+- ~~**stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题~~ 0.1.9 ✅
 ---
 
 ## 🔧 飞书配置教程
@@ -166,7 +166,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
   "mcpServers": {
     "feishu-mcp": {
       "command": "npx",
-      "args": ["-y", "feishu-@latest", "--stdio"],
+      "args": ["-y", "feishu@latest", "--stdio"],
       "env": {
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",

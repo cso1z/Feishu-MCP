@@ -1,6 +1,6 @@
 {
   "name": "feishu-mcp",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Model Context Protocol server for Feishu integration",
   "type": "module",
   "main": "dist/index.js",
@@ -23,7 +23,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "inspect": "pnpx @modelcontextprotocol/inspector",
     "prepare": "pnpm run build",
-    "pub:release": "pnpm build && npm publish"
+    "pub:release": "pnpm build && npm publish",
+    "pub:test": "pnpm build && npm publish --tag test"
   },
   "engines": {
     "node": "^20.17.0"

@@ -45,6 +45,14 @@ export abstract class BaseApiService {
   protected abstract getAccessToken(userKey?: string): Promise<string>;
 
   /**
+   * 检查是否是 stdio 模式
+   * @returns 如果是 stdio 模式返回 true
+   */
+  private isStdioMode(): boolean {
+    return process.env.NODE_ENV === "cli" || process.argv.includes("--stdio");
+  }
+
+  /**
    * 处理API错误
    * @param error 错误对象
    * @param message 错误上下文消息
@@ -107,9 +115,21 @@ export abstract class BaseApiService {
     retry: boolean = false
   ): Promise<T> {
     // 获取用户上下文
-    const userContextManager = UserContextManager.getInstance();
-    const userKey = userContextManager.getUserKey();
-    const baseUrl = userContextManager.getBaseUrl();
+    let userKey: string;
+    let baseUrl: string;
+    
+    if (this.isStdioMode()) {
+      // stdio 模式下直接使用默认值
+      userKey = 'stdio';
+      const config = Config.getInstance();
+      baseUrl = `http://localhost:${config.server.port}`;
+    } else {
+      // HTTP 模式下从 UserContextManager 读取
+      const userContextManager = UserContextManager.getInstance();
+      userKey = userContextManager.getUserKey();
+      baseUrl = userContextManager.getBaseUrl();
+    }
+    
     const clientKey = AuthUtils.generateClientKey(userKey);
 
     Logger.debug(`[BaseService] Request context - userKey: ${userKey}, baseUrl: ${baseUrl}`);

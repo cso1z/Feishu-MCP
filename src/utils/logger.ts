@@ -47,6 +47,14 @@ export class Logger {
   };
 
   /**
+   * 检查是否处于 stdio 模式
+   * @returns 是否处于 stdio 模式
+   */
+  private static isStdioMode(): boolean {
+    return process.env.NODE_ENV === "cli" || process.argv.includes("--stdio");
+  }
+
+  /**
    * 配置日志管理器
    * @param config 日志配置项
    */
@@ -76,6 +84,10 @@ export class Logger {
    * @returns 是否可输出
    */
   private static canLog(level: LogLevel): boolean {
+    // 在 stdio 模式下，禁用所有日志输出（避免污染 MCP 协议）
+    if (this.isStdioMode()) {
+      return false;
+    }
     return this.config.enabled && level >= this.config.minLevel;
   }
 
@@ -134,7 +146,10 @@ export class Logger {
       // 以追加模式写入文件
       fs.appendFileSync(this.config.logFilePath, logString);
     } catch (error) {
-      console.error('写入日志文件失败:', error);
+      // 在 stdio 模式下不输出错误，避免污染 MCP 协议
+      if (!this.isStdioMode()) {
+        console.error('写入日志文件失败:', error);
+      }
     }
   }
 

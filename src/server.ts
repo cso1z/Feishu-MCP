@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { Server } from 'http';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
@@ -14,6 +15,7 @@ export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
   private userAuthManager: UserAuthManager;
   private userContextManager: UserContextManager;
+  private callbackServer: Server | null = null; // stdio 模式下的 callback 服务器实例
 
   constructor() {
     this.connectionManager = new SSEConnectionManager();
@@ -33,14 +35,42 @@ export class FeishuMcpServer {
     const server = new FeishuMcp();
     await server.connect(transport);
 
-    Logger.info = (...args: any[]) => {
-      server.server.sendLoggingMessage({ level: 'info', data: args });
-    };
-    Logger.error = (...args: any[]) => {
-      server.server.sendLoggingMessage({ level: 'error', data: args });
-    };
+    // 监听 transport 关闭事件，清理 callback 服务器
+    // 对于 stdio 模式，监听 stdin 关闭事件
+    if (process.stdin && typeof process.stdin.on === 'function') {
+      process.stdin.on('close', () => {
+        this.stopCallbackServer();
+      });
+      process.stdin.on('end', () => {
+        this.stopCallbackServer();
+      });
+    }
 
+    // 监听进程退出事件，确保清理资源
+    process.on('SIGINT', () => {
+      this.stopCallbackServer();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      this.stopCallbackServer();
+      process.exit(0);
+    });
+
+    // 注意：在 stdio 模式下，Logger 会自动禁用输出，避免污染 MCP 协议
+    // 如果需要日志，可以通过 MCP 协议的 logging 消息传递
     Logger.info('Server connected and ready to process requests');
+  }
+
+  /**
+   * 停止 callback 服务器
+   */
+  private stopCallbackServer(): void {
+    if (this.callbackServer) {
+      this.callbackServer.close(() => {
+        Logger.info('Callback server stopped');
+      });
+      this.callbackServer = null;
+    }
   }
 
   async startHttpServer(port: number): Promise<void> {
@@ -107,7 +137,7 @@ export class FeishuMcpServer {
         // Handle the request
         await transport.handleRequest(req, res, req.body)
       } catch (error) {
-        console.error('Error handling MCP request:', error)
+        Logger.error('Error handling MCP request:', error)
         if (!res.headersSent) {
           res.status(500).json({
             jsonrpc: '2.0',
@@ -134,7 +164,7 @@ export class FeishuMcpServer {
         const transport = transports[sessionId]
         await transport.handleRequest(req, res)
       } catch (error) {
-        console.error('Error handling GET request:', error)
+        Logger.error('Error handling GET request:', error)
         if (!res.headersSent) {
           res.status(500).send('Internal server error')
         }
@@ -158,7 +188,7 @@ export class FeishuMcpServer {
           delete transports[transport.sessionId]
         }
       } catch (error) {
-        console.error('Error handling DELETE request:', error)
+        Logger.error('Error handling DELETE request:', error)
         if (!res.headersSent) {
           res.status(500).send('Internal server error')
         }
@@ -245,6 +275,37 @@ export class FeishuMcpServer {
       Logger.info(`SSE endpoint available at http://localhost:${port}/sse`);
       Logger.info(`Message endpoint available at http://localhost:${port}/messages`);
       Logger.info(`StreamableHTTP endpoint available at http://localhost:${port}/mcp`);
+    });
+  }
+
+  /**
+   * 启动最小化的HTTP服务器（仅提供callback接口）
+   * 用于stdio模式下提供OAuth回调功能
+   * @param port 服务器端口
+   */
+  async startCallbackServer(port: number): Promise<void> {
+    const app = express();
+    // 只注册callback接口
+    app.get('/callback', callback);
+
+    return new Promise((resolve, reject) => {
+      const server = app.listen(port, '0.0.0.0', () => {
+        this.callbackServer = server;
+        Logger.info(`Callback server listening on port ${port}`);
+        Logger.info(`Callback endpoint available at http://localhost:${port}/callback`);
+        resolve();
+      });
+
+      server.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          // 端口被占用，说明其他进程已经启动了 callback 服务器
+          // 这是正常的，静默处理即可（多个 stdio 进程共享同一个 callback 服务器）
+          Logger.debug(`Port ${port} is already in use, callback server may already be running`);
+          resolve(); // 不抛出错误，因为 callback 服务器已经存在
+        } else {
+          reject(err);
+        }
+      });
     });
   }
 }

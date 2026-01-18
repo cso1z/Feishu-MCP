@@ -46,7 +46,7 @@ export class SSEConnectionManager {
   ): void {
     this.transports[sessionId] = transport;
     this.connections.set(sessionId, { res });
-    console.info(`[SSE Connection] Client connected: ${sessionId}`);
+    Logger.info(`[SSE Connection] Client connected: ${sessionId}`);
     req.on('close', () => {
       this.removeConnection(sessionId);
     });
@@ -67,14 +67,14 @@ export class SSEConnectionManager {
     }
     delete this.transports[sessionId];
     this.connections.delete(sessionId);
-    console.info(`[SSE Connection] Client disconnected: ${sessionId}`);
+    Logger.info(`[SSE Connection] Client disconnected: ${sessionId}`);
   }
 
   /**
    * 获取指定sessionId的传输实例
    */
   public getTransport(sessionId: string): SSEServerTransport | undefined {
-    console.info(`[SSE Connection] Getting transport for sessionId: ${sessionId}`);
+    Logger.debug(`[SSE Connection] Getting transport for sessionId: ${sessionId}`);
     return this.transports[sessionId];
   }
 
