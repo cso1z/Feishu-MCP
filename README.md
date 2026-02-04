@@ -88,6 +88,7 @@
 - ~~**支持知识库和我的文档库**：实现知识库、我的文档库 节点遍历、节点创建、文件创建、搜索等功能~~ (飞书应用配置发生变更) 0.1.8 ✅
 - **版本更新通知**：在发布新版本时，及时向用户提供相关提示与说明。 
 - ~~**stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题~~ 0.1.9 ✅
+- ~~**权限检查功能可配置化**：将权限检查功能作为可配置选项，支持通过环境变量 `FEISHU_SCOPE_VALIDATION` 或命令行参数 `--feishu-scope-validation` 控制，默认启用，满足不同用户的使用场景~~ 0.2.0 ✅
 ---
 
 ## 🔧 飞书配置教程
@@ -158,6 +159,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 | `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥                                                             | - |
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
+| `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 

@@ -5,9 +5,9 @@ import { registerFeishuTools } from './tools/feishuTools.js';
 import { registerFeishuBlockTools } from './tools/feishuBlockTools.js';
 import { registerFeishuFolderTools } from './tools/feishuFolderTools.js';
 
-const serverInfo = {
+export const serverInfo = {
   name: "Feishu MCP Server",
-  version: "0.1.9",
+  version: "0.2.0",
 };
 
 const serverOptions = {

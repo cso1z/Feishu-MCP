@@ -72,7 +72,12 @@ export class FeishuApiService extends BaseApiService {
     Logger.debug(`[FeishuApiService] 获取访问令牌，userKey: ${userKey}, clientKey: ${clientKey}, authType: ${authType}`);
     
     // 在使用token之前先校验scope（使用appId+appSecret获取临时tenant token来调用scope接口）
-    await this.validateScopeWithVersion(appId, appSecret, authType);
+    // 根据配置决定是否执行权限检查
+    if (this.config.feishu.enableScopeValidation) {
+      await this.validateScopeWithVersion(appId, appSecret, authType);
+    } else {
+      Logger.debug('权限检查已禁用，跳过scope校验');
+    }
     
     // 校验通过后，获取实际的token
     if (authType === 'tenant') {
@@ -216,7 +221,10 @@ export class FeishuApiService extends BaseApiService {
       `4. 选择权限管理-批量导入/导出权限\n` +
       `5. 复制以下权限配置并导入：\n\n` +
       `\`\`\`json\n${JSON.stringify(permissionsConfig, null, 2)}\n\`\`\`\n\n` +
-      `6. 选择**版本管理与发布** 点击创建版本，发布后通知管理员审核\n`;
+      `6. 选择**版本管理与发布** 点击创建版本，发布后通知管理员审核\n\n` +
+      `**提示**：如果您仅使用部分mcp功能，可以通过以下方式关闭权限检查以确保正常使用该mcp：\n` +
+      `- 设置环境变量：\`FEISHU_SCOPE_VALIDATION=false\`\n` +
+      `- 或使用命令行参数：\`--feishu-scope-validation=false\`\n`;
     
     Logger.error(errorMessage);
     throw new ScopeInsufficientError(missingScopes, errorMessage);
