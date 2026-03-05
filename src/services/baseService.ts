@@ -121,7 +121,7 @@ export abstract class BaseApiService {
     if (this.isStdioMode()) {
       // stdio 模式下直接使用默认值
       const config = Config.getInstance();
-      userKey = config.feishu.userKey;
+      userKey = config.feishu.userKey || 'stdio';
       baseUrl = `http://localhost:${config.server.port}`;
     } else {
       // HTTP 模式下从 UserContextManager 读取
