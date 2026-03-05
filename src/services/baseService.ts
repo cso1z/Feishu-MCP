@@ -412,7 +412,7 @@ export abstract class BaseApiService {
       // refresh_token已过期或不存在，直接清除缓存
       Logger.warn('用户模式：refresh_token已过期，清除用户token缓存');
       tokenCacheManager.removeUserToken(clientKey);
-      return this.handleAuthFailure(true,clientKey,baseUrl,userKey);
+      return this.handleAuthFailure(false, clientKey, baseUrl, userKey);
     }
   }
 

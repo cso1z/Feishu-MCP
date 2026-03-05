@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { Logger } from '../logger.js';
 
@@ -65,18 +66,43 @@ export class TokenCacheManager {
   private userTokenCacheFile: string;
   private tenantTokenCacheFile: string;
   private scopeVersionCacheFile: string;
+  private cacheDir: string;
 
   /**
    * 私有构造函数，用于单例模式
    */
   private constructor() {
     this.cache = new Map();
-    this.userTokenCacheFile = path.resolve(process.cwd(), 'user_token_cache.json');
-    this.tenantTokenCacheFile = path.resolve(process.cwd(), 'tenant_token_cache.json');
-    this.scopeVersionCacheFile = path.resolve(process.cwd(), 'scope_version_cache.json');
+    this.cacheDir = this.resolveCacheDir();
+    this.userTokenCacheFile = path.join(this.cacheDir, 'user_token_cache.json');
+    this.tenantTokenCacheFile = path.join(this.cacheDir, 'tenant_token_cache.json');
+    this.scopeVersionCacheFile = path.join(this.cacheDir, 'scope_version_cache.json');
+    Logger.info(`Token缓存目录: ${this.cacheDir}`);
     
     this.loadTokenCaches();
     this.startCacheCleanupTimer();
+  }
+
+  /**
+   * 解析并确保可写的缓存目录
+   */
+  private resolveCacheDir(): string {
+    const candidates = [
+      path.join(os.homedir(), '.cache', 'feishu-mcp'),
+      path.join(os.homedir(), '.feishu-mcp'),
+    ];
+
+    for (const dir of candidates) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        fs.accessSync(dir, fs.constants.R_OK | fs.constants.W_OK);
+        return dir;
+      } catch (error) {
+        Logger.warn(`缓存目录不可用，尝试下一个: ${dir}`, error);
+      }
+    }
+
+    throw new Error('无法找到可读写的缓存目录');
   }
 
   /**
