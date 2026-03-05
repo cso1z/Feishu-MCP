@@ -120,8 +120,8 @@ export abstract class BaseApiService {
     
     if (this.isStdioMode()) {
       // stdio 模式下直接使用默认值
-      userKey = 'stdio';
       const config = Config.getInstance();
+      userKey = config.feishu.userKey || 'stdio';
       baseUrl = `http://localhost:${config.server.port}`;
     } else {
       // HTTP 模式下从 UserContextManager 读取
@@ -412,7 +412,7 @@ export abstract class BaseApiService {
       // refresh_token已过期或不存在，直接清除缓存
       Logger.warn('用户模式：refresh_token已过期，清除用户token缓存');
       tokenCacheManager.removeUserToken(clientKey);
-      return this.handleAuthFailure(true,clientKey,baseUrl,userKey);
+      return this.handleAuthFailure(false, clientKey, baseUrl, userKey);
     }
   }
 

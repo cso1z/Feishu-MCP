@@ -31,6 +31,7 @@ export interface FeishuConfig {
   authType: 'tenant' | 'user';
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
+  userKey: string;
 }
 
 /**
@@ -151,6 +152,10 @@ export class Config {
         'feishu-scope-validation': {
           type: 'boolean',
           description: '是否启用权限检查，默认 true'
+        },
+        'user-key': {
+          type: 'string',
+          description: 'stdio 模式下的用户标识，默认 stdio'
         }
       })
       .help()
@@ -195,6 +200,7 @@ export class Config {
       authType: 'tenant', // 默认
       tokenEndpoint: `http://127.0.0.1:${serverConfig.port}/getToken`, // 默认动态端口
       enableScopeValidation: true, // 默认启用权限检查
+      userKey: 'stdio',
     };
     
     // 处理App ID
@@ -257,6 +263,17 @@ export class Config {
       this.configSources['feishu.enableScopeValidation'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.enableScopeValidation'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理 userKey（stdio 模式使用）
+    if (argv['user-key']) {
+      feishuConfig.userKey = argv['user-key'];
+      this.configSources['feishu.userKey'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_USER_KEY) {
+      feishuConfig.userKey = process.env.FEISHU_USER_KEY;
+      this.configSources['feishu.userKey'] = ConfigSource.ENV;
+    } else {
+      this.configSources['feishu.userKey'] = ConfigSource.DEFAULT;
     }
     
     return feishuConfig;
@@ -398,6 +415,7 @@ export class Config {
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
     Logger.info(`- 启用权限检查: ${this.feishu.enableScopeValidation} (来源: ${this.configSources['feishu.enableScopeValidation']})`);
+    Logger.info(`- User Key: ${this.feishu.userKey} (来源: ${this.configSources['feishu.userKey']})`);
 
     Logger.info('日志配置:');
     Logger.info(`- 日志级别: ${LogLevel[this.log.level]} (来源: ${this.configSources['log.level']})`);
