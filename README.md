@@ -106,7 +106,7 @@
 ### 方式一：使用 NPM 快速运行
 
 ```bash
-npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user>
+npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user> --user-key=<你的用户标识>
 ```
 
 ### 方式二：本地运行
@@ -125,6 +125,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    FEISHU_APP_SECRET=xxxxx
    PORT=3333
    FEISHU_AUTH_TYPE=tenant/user
+   FEISHU_USER_KEY=stdio
    ```
 
 4. **运行服务器**
@@ -160,6 +161,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
+| `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
@@ -172,7 +174,8 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
       "env": {
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",
-        "FEISHU_AUTH_TYPE": "<tenant/user>"
+        "FEISHU_AUTH_TYPE": "<tenant/user>",
+        "FEISHU_USER_KEY": "<你的用户标识>"
       }
     },
     "feishu_local": {
