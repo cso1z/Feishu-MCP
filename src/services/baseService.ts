@@ -224,7 +224,8 @@ export abstract class BaseApiService {
         99991677,     // user token expire
         99991669,     // invalid user refresh token
         99991664,     // invalid app token
-        99991665      // invalid tenant code
+        99991665,     // invalid tenant code
+        99991679      // Unauthorized - missing required scope, need re-authorization
       ]);
       // 处理认证相关错误（401, 403等 或 明确的 token 错误码）
       if (error instanceof AxiosError && error.response && tokenError.has(Number(error.response.data?.code))) {
@@ -426,7 +427,7 @@ export abstract class BaseApiService {
     const { appId, appSecret } = Config.getInstance().feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
     const redirect_uri = `${baseUrl}/callback`;
-    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read board:whiteboard:node:create contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
+    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read board:whiteboard:node:create calendar:calendar contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create task:task:write wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
     return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
