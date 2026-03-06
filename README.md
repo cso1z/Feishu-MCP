@@ -168,7 +168,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
   "mcpServers": {
     "feishu-mcp": {
       "command": "npx",
-      "args": ["-y", "feishu@latest", "--stdio"],
+      "args": ["-y", "feishu-mcp@latest", "--stdio"],
       "env": {
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",
