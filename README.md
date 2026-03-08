@@ -89,6 +89,7 @@
 - **版本更新通知**：在发布新版本时，及时向用户提供相关提示与说明。 
 - ~~**stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题~~ 0.1.9 ✅
 - ~~**权限检查功能可配置化**：将权限检查功能作为可配置选项，支持通过环境变量 `FEISHU_SCOPE_VALIDATION` 或命令行参数 `--feishu-scope-validation` 控制，默认启用，满足不同用户的使用场景~~ 0.2.0 ✅
+- ~~**优化缓存目录:把token等缓存保存到系统级的配置目录~~ 0.2.2 ✅ 感谢 [Molunerfinn](https://github.com/Molunerfinn)、[leeeezx](https://github.com/leeeezx)、[Master-cai](https://github.com/Master-cai) 三位朋友的建议及代码贡献
 ---
 
 ## 🔧 飞书配置教程
@@ -106,7 +107,7 @@
 ### 方式一：使用 NPM 快速运行
 
 ```bash
-npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user> --user-key=<你的用户标识>
+npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user>
 ```
 
 ### 方式二：本地运行
@@ -125,7 +126,6 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    FEISHU_APP_SECRET=xxxxx
    PORT=3333
    FEISHU_AUTH_TYPE=tenant/user
-   FEISHU_USER_KEY=stdio
    ```
 
 4. **运行服务器**

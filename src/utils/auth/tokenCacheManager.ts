@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Logger } from '../logger.js';
+import { migrateLegacyTokenCacheIfNeeded } from './legacyCacheMigration.js';
 
 /**
  * 用户Token信息接口
@@ -78,7 +79,12 @@ export class TokenCacheManager {
     this.tenantTokenCacheFile = path.join(this.cacheDir, 'tenant_token_cache.json');
     this.scopeVersionCacheFile = path.join(this.cacheDir, 'scope_version_cache.json');
     Logger.info(`Token缓存目录: ${this.cacheDir}`);
-    
+
+    migrateLegacyTokenCacheIfNeeded(this.cacheDir, [
+      this.userTokenCacheFile,
+      this.tenantTokenCacheFile,
+      this.scopeVersionCacheFile,
+    ]);
     this.loadTokenCaches();
     this.startCacheCleanupTimer();
   }
