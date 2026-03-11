@@ -62,11 +62,6 @@ export const EndIndexSchema = z.number().describe(
   'To delete a single block at position 2, use startIndex=2, endIndex=3.'
 );
 
-// 文本对齐方式参数定义
-export const AlignSchema = z.number().optional().default(1).describe(
-  'Text alignment: 1 for left (default), 2 for center, 3 for right.'
-);
-
 // 文本对齐方式参数定义（带验证）
 export const AlignSchemaWithValidation = z.number().optional().default(1).refine(
   val => val === 1 || val === 2 || val === 3,

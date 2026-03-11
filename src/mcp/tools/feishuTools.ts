@@ -6,7 +6,6 @@ import {
   DocumentIdSchema,
   DocumentIdOrWikiIdSchema,
   DocumentTypeSchema,
-  // BlockIdSchema,
   SearchKeySchema,
   SearchTypeSchema,
   PageTokenSchema,
@@ -145,39 +144,6 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
     },
   );
 
-  // 添加获取飞书文档内容工具
-  // server.tool(
-  //   'get_feishu_document_content',
-  //   'Retrieves the plain text content of a Feishu document. Ideal for content analysis, processing, or when you need to extract text without formatting. The content maintains the document structure but without styling. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
-  //   {
-  //     documentId: DocumentIdSchema,
-  //     lang: z.number().optional().default(0).describe('Language code (optional). Default is 0 (Chinese). Use 1 for English if available.'),
-  //   },
-  //   async ({ documentId, lang }) => {
-  //     try {
-  //       if (!feishuService) {
-  //         return {
-  //           content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
-  //         };
-  //       }
-  //
-  //       Logger.info(`开始获取飞书文档内容，文档ID: ${documentId}，语言: ${lang}`);
-  //       const content = await feishuService.getDocumentContent(documentId, lang);
-  //       Logger.info(`飞书文档内容获取成功，内容长度: ${content.length}字符`);
-  //
-  //       return {
-  //         content: [{ type: 'text', text: content }],
-  //       };
-  //     } catch (error) {
-  //       Logger.error(`获取飞书文档内容失败:`, error);
-  //       const errorMessage = formatErrorMessage(error);
-  //       return {
-  //         content: [{ type: 'text', text: `获取飞书文档内容失败: ${errorMessage}` }],
-  //       };
-  //     }
-  //   },
-  // );
-
   // 添加获取飞书文档块工具
   server.tool(
     'get_feishu_document_blocks',
@@ -249,39 +215,6 @@ export function registerFeishuTools(server: McpServer, feishuService: FeishuApiS
       }
     },
   );
-
-  // 添加获取块内容工具
-  // server.tool(
-  //   'get_feishu_block_content',
-  //   'Retrieves the detailed content and structure of a specific block in a Feishu document. Useful for inspecting block properties, formatting, and content, especially before making updates or for debugging purposes. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx) you must first use convert_feishu_wiki_to_document_id tool to obtain a compatible document ID.',
-  //   {
-  //     documentId: DocumentIdSchema,
-  //     blockId: BlockIdSchema,
-  //   },
-  //   async ({ documentId, blockId }) => {
-  //     try {
-  //       if (!feishuService) {
-  //         return {
-  //           content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
-  //         };
-  //       }
-  //
-  //       Logger.info(`开始获取飞书块内容，文档ID: ${documentId}，块ID: ${blockId}`);
-  //       const blockContent = await feishuService.getBlockContent(documentId, blockId);
-  //       Logger.info(`飞书块内容获取成功，块类型: ${blockContent.block_type}`);
-  //
-  //       return {
-  //         content: [{ type: 'text', text: JSON.stringify(blockContent, null, 2) }],
-  //       };
-  //     } catch (error) {
-  //       Logger.error(`获取飞书块内容失败:`, error);
-  //       const errorMessage = formatErrorMessage(error);
-  //       return {
-  //         content: [{ type: 'text', text: `获取飞书块内容失败: ${errorMessage}` }],
-  //       };
-  //     }
-  //   },
-  // );
 
   // 添加搜索文档工具（支持文档和知识库搜索）
   server.tool(

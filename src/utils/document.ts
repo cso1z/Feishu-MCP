@@ -8,7 +8,7 @@
  * @param input 文档URL或ID
  * @returns 提取的文档ID或null
  */
-export function extractDocumentId(input: string): string | null {
+function extractDocumentId(input: string): string | null {
   // 移除首尾空白
   input = input.trim();
   
@@ -32,7 +32,7 @@ export function extractDocumentId(input: string): string | null {
  * @param input Wiki URL或Token
  * @returns 提取的Wiki Token或null
  */
-export function extractWikiToken(input: string): string | null {
+function extractWikiToken(input: string): string | null {
   // 移除首尾空白
   input = input.trim();
 

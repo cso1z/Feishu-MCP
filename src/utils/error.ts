@@ -193,18 +193,6 @@ export function formatErrorMessage(error: any, context?: string): string {
 }
 
 /**
- * 包装错误为标准格式
- * 
- * @param message 错误消息前缀
- * @param originalError 原始错误
- * @returns 包装后的错误对象
- */
-export function wrapError(message: string, originalError: any): Error {
-  const errorMessage = formatErrorMessage(originalError);
-  return new Error(`${message}: ${errorMessage}`);
-}
-
-/**
  * 授权异常类
  * 用于处理需要用户授权的情况
  */

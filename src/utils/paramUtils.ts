@@ -16,18 +16,6 @@ export class ParamValidationError extends Error {
 }
 
 /**
- * 通用参数配置接口
- */
-export interface CommonParams {
-  documentId?: string;
-  blockId?: string;
-  parentBlockId?: string;
-  index?: number;
-  startIndex?: number;
-  [key: string]: any;
-}
-
-/**
  * 参数处理工具类
  * 提供参数验证、转换和处理功能
  */
@@ -226,43 +214,5 @@ export class ParamUtils {
       }
       throw new ParamValidationError('whiteboardId', formatErrorMessage(error));
     }
-  }
-  
-  /**
-   * 批量处理通用参数
-   * 验证并规范化常用参数集
-   * 
-   * @param params 通用参数对象
-   * @returns 处理后的参数对象
-   */
-  public static processCommonParams(params: CommonParams): CommonParams {
-    const result: CommonParams = { ...params };
-    
-    // 处理文档ID
-    if (params.documentId) {
-      result.documentId = ParamUtils.processDocumentId(params.documentId);
-    }
-    
-    // 处理块ID
-    if (params.blockId) {
-      result.blockId = ParamUtils.processBlockId(params.blockId);
-    }
-    
-    // 处理父块ID
-    if (params.parentBlockId) {
-      result.parentBlockId = ParamUtils.processParentBlockId(params.parentBlockId);
-    }
-    
-    // 处理索引
-    if (params.index !== undefined) {
-      result.index = ParamUtils.processIndex(params.index);
-    }
-    
-    // 处理起始索引
-    if (params.startIndex !== undefined) {
-      result.startIndex = ParamUtils.processIndex(params.startIndex);
-    }
-    
-    return result;
   }
 } 
