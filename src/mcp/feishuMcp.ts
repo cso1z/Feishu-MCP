@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { FeishuApiService } from '../services/feishuApiService.js';
 import { Logger } from '../utils/logger.js';
-import { registerFeishuTools } from './tools/feishuTools.js';
-import { registerFeishuBlockTools } from './tools/feishuBlockTools.js';
-import { registerFeishuFolderTools } from './tools/feishuFolderTools.js';
+import { registerDocumentTools } from './tools/documentTools.js';
+import { registerBlockTools } from './tools/blockTools.js';
+import { registerFolderTools } from './tools/folderTools.js';
 
 export const serverInfo = {
   name: "Feishu MCP Server",
@@ -62,8 +62,8 @@ export class FeishuMcp extends McpServer {
     }
     
     // 注册所有工具
-    registerFeishuTools(this, this.feishuService);
-    registerFeishuBlockTools(this, this.feishuService);
-    registerFeishuFolderTools(this, this.feishuService);
+    registerDocumentTools(this, this.feishuService);
+    registerBlockTools(this, this.feishuService);
+    registerFolderTools(this, this.feishuService);
   }
 } 

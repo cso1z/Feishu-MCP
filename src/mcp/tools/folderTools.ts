@@ -14,7 +14,7 @@ import {
  * @param server MCP服务器实例
  * @param feishuService 飞书API服务实例
  */
-export function registerFeishuFolderTools(server: McpServer, feishuService: FeishuApiService | null): void {
+export function registerFolderTools(server: McpServer, feishuService: FeishuApiService | null): void {
 
     // 添加获取根文件夹信息工具
     server.tool(

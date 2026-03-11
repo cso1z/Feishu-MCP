@@ -17,7 +17,8 @@ import {
   MediaExtraSchema,
   ImagesArraySchema,
   TableCreateSchema,
-  WhiteboardFillArraySchema
+  WhiteboardFillArraySchema,
+  WhiteboardIdSchema
 } from '../../types/feishuSchema.js';
 
 /**
@@ -25,7 +26,8 @@ import {
  * @param server MCP服务器实例
  * @param feishuService 飞书API服务实例
  */
-export function registerFeishuBlockTools(server: McpServer, feishuService: FeishuApiService | null): void {
+export function registerBlockTools(server: McpServer, feishuService: FeishuApiService | null): void {
+
   // 添加更新块文本内容工具
   server.tool(
     'update_feishu_block_text',
@@ -510,6 +512,61 @@ export function registerFeishuBlockTools(server: McpServer, feishuService: Feish
         const errorMessage = formatErrorMessage(error);
         return {
           content: [{ type: 'text', text: `创建飞书表格失败: ${errorMessage}` }],
+        };
+      }
+    },
+  );
+
+  // 添加获取画板内容工具
+  server.tool(
+    'get_feishu_whiteboard_content',
+    'Retrieves the content and structure of a Feishu whiteboard. Use this to analyze whiteboard content, extract information, or understand the structure of collaborative diagrams. The whiteboard ID can be obtained from the board.token field when getting document blocks with block_type: 43.',
+    {
+      whiteboardId: WhiteboardIdSchema,
+    },
+    async ({ whiteboardId }) => {
+      try {
+        if (!feishuService) {
+          return {
+            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
+          };
+        }
+
+        Logger.info(`开始获取飞书画板内容，画板ID: ${whiteboardId}`);
+        const whiteboardContent = await feishuService.getWhiteboardContent(whiteboardId);
+        const nodeCount = whiteboardContent.nodes?.length || 0;
+        Logger.info(`飞书画板内容获取成功，节点数量: ${nodeCount}`);
+
+        // 检查节点数量是否超过100
+        if (nodeCount > 200) {
+          Logger.info(`画板节点数量过多 (${nodeCount} > 200)，返回缩略图`);
+
+          try {
+            const thumbnailBuffer = await feishuService.getWhiteboardThumbnail(whiteboardId);
+            const thumbnailBase64 = thumbnailBuffer.toString('base64');
+
+            return {
+              content: [
+                {
+                  type: 'image',
+                  data: thumbnailBase64,
+                  mimeType: 'image/png'
+                }
+              ],
+            };
+          } catch (thumbnailError) {
+            Logger.warn(`获取画板缩略图失败，返回基本信息: ${thumbnailError}`);
+          }
+        }
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(whiteboardContent, null, 2) }],
+        };
+      } catch (error) {
+        Logger.error(`获取飞书画板内容失败:`, error);
+        const errorMessage = formatErrorMessage(error);
+        return {
+          content: [{ type: 'text', text: `获取飞书画板内容失败: ${errorMessage}` }],
         };
       }
     },
