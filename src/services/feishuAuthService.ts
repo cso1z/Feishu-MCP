@@ -124,6 +124,57 @@ export class AuthService {
   }
 
   /**
+   * 获取租户访问令牌
+   * 从缓存中获取或请求新的租户token
+   * @param appId 应用ID
+   * @param appSecret 应用密钥
+   * @param clientKey 客户端缓存键
+   * @returns 租户访问令牌
+   */
+  public async getTenantAccessToken(appId: string, appSecret: string, clientKey: string): Promise<string> {
+    const tokenCacheManager = TokenCacheManager.getInstance();
+
+    const cachedToken = tokenCacheManager.getTenantToken(clientKey);
+    if (cachedToken) {
+      Logger.debug('使用缓存的租户访问令牌');
+      return cachedToken;
+    }
+
+    Logger.info('缓存中没有租户token，请求新的租户访问令牌');
+    try {
+      const requestData = { app_id: appId, app_secret: appSecret };
+      const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
+      const headers = { 'Content-Type': 'application/json' };
+
+      Logger.debug('请求租户访问令牌:', url, requestData);
+      const response = await axios.post(url, requestData, { headers });
+      const data = response.data;
+
+      if (data.code !== 0) {
+        throw new Error(`获取租户访问令牌失败：${data.msg || '未知错误'} (错误码: ${data.code})`);
+      }
+
+      if (!data.tenant_access_token) {
+        throw new Error('获取租户访问令牌失败：响应中没有token');
+      }
+
+      const expire_at = Math.floor(Date.now() / 1000) + (data.expire || 0);
+      const tokenInfo = {
+        app_access_token: data.tenant_access_token,
+        expires_at: expire_at
+      };
+
+      tokenCacheManager.cacheTenantToken(clientKey, tokenInfo, data.expire);
+      Logger.info('租户访问令牌获取并缓存成功');
+
+      return data.tenant_access_token;
+    } catch (error) {
+      Logger.error('获取租户访问令牌失败:', error);
+      throw new Error('获取租户访问令牌失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  /**
    * 获取用户访问令牌
    * 检查token状态，如果有效则返回缓存的token，如果过期则尝试刷新
    * @param clientKey 客户端缓存键

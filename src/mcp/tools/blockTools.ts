@@ -413,7 +413,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         for (const { blockId, imagePathOrUrl, fileName } of images) {
           Logger.info(`开始上传图片并绑定到块，文档ID: ${documentId}，块ID: ${blockId}，图片源: ${imagePathOrUrl}`);
           try {
-            const { base64: imageBase64, fileName: detectedFileName } = await (feishuService as any).getImageBase64FromPathOrUrl(imagePathOrUrl);
+            const { base64: imageBase64, fileName: detectedFileName } = await feishuService.getImageBase64FromPathOrUrl(imagePathOrUrl);
             const finalFileName = fileName || detectedFileName;
             Logger.info('第1步：上传图片素材');
             const uploadResult = await feishuService.uploadImageMedia(

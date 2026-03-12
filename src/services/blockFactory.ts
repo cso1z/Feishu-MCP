@@ -401,6 +401,173 @@ export class BlockFactory {
   }
 
   /**
+   * 根据 blockType 字符串和 options 对象创建块内容
+   * 将 MCP 工具传入的高级选项转换为 BlockFactory.createBlock 所需格式
+   */
+  public createBlockContentFromOptions(blockType: string, options: any): any {
+    try {
+      // 处理特殊的 heading 格式，如 heading1, heading2 等
+      if (typeof blockType === 'string' && blockType.startsWith('heading')) {
+        const headingMatch = blockType.match(/^heading([1-9])$/);
+        if (headingMatch) {
+          const level = parseInt(headingMatch[1], 10);
+          if (level >= 1 && level <= 9) {
+            if (!options || Object.keys(options).length === 0) {
+              options = { heading: { level, content: '', align: 1 } };
+            } else if (!('heading' in options)) {
+              options = { heading: { level, content: '', align: 1 } };
+            } else if (options.heading && !('level' in options.heading)) {
+              options.heading.level = level;
+            }
+            blockType = BlockType.HEADING;
+            Logger.info(`转换特殊标题格式: heading${level} -> standard heading with level=${level}`);
+          }
+        }
+      }
+
+      const blockTypeEnum = blockType as BlockType;
+      const blockConfig: { type: BlockType; options: any } = {
+        type: blockTypeEnum,
+        options: {}
+      };
+
+      switch (blockTypeEnum) {
+        case BlockType.TEXT:
+          if ('text' in options && options.text) {
+            const textOptions = options.text;
+            const textStyles = textOptions.textStyles || [];
+            const processedTextStyles = textStyles.map((item: any) => {
+              if (item.equation !== undefined) {
+                return { equation: item.equation, style: BlockFactory.applyDefaultTextStyle(item.style) };
+              }
+              return { text: item.text || '', style: BlockFactory.applyDefaultTextStyle(item.style) };
+            });
+            blockConfig.options = { textContents: processedTextStyles, align: textOptions.align || 1 };
+          }
+          break;
+
+        case BlockType.CODE:
+          if ('code' in options && options.code) {
+            const codeOptions = options.code;
+            blockConfig.options = {
+              code: codeOptions.code || '',
+              language: codeOptions.language === 0 ? 0 : (codeOptions.language || 0),
+              wrap: codeOptions.wrap || false
+            };
+          }
+          break;
+
+        case BlockType.HEADING:
+          if ('heading' in options && options.heading) {
+            const headingOptions = options.heading;
+            blockConfig.options = {
+              text: headingOptions.content || '',
+              level: headingOptions.level || 1,
+              align: [1, 2, 3].includes(headingOptions.align) ? headingOptions.align : 1
+            };
+          }
+          break;
+
+        case BlockType.LIST:
+          if ('list' in options && options.list) {
+            const listOptions = options.list;
+            blockConfig.options = {
+              text: listOptions.content || '',
+              isOrdered: listOptions.isOrdered || false,
+              align: [1, 2, 3].includes(listOptions.align) ? listOptions.align : 1
+            };
+          }
+          break;
+
+        case BlockType.IMAGE:
+          if ('image' in options && options.image) {
+            const imageOptions = options.image;
+            blockConfig.options = { width: imageOptions.width || 100, height: imageOptions.height || 100 };
+          } else {
+            blockConfig.options = { width: 100, height: 100 };
+          }
+          break;
+
+        case BlockType.MERMAID:
+          if ('mermaid' in options && options.mermaid) {
+            blockConfig.options = { code: options.mermaid.code };
+          }
+          break;
+
+        case BlockType.WHITEBOARD:
+          if ('whiteboard' in options && options.whiteboard) {
+            const whiteboardOptions = options.whiteboard;
+            blockConfig.options = {
+              align: [1, 2, 3].includes(whiteboardOptions.align) ? whiteboardOptions.align : 1
+            };
+          } else {
+            blockConfig.options = { align: 1 };
+          }
+          break;
+
+        default:
+          Logger.warn(`未知的块类型: ${blockType}，尝试作为标准类型处理`);
+          if ('text' in options) {
+            blockConfig.type = BlockType.TEXT;
+            const textOptions = options.text;
+            const textStyles = textOptions.textStyles || [];
+            const processedTextStyles = textStyles.map((item: any) => {
+              if (item.equation !== undefined) {
+                return { equation: item.equation, style: BlockFactory.applyDefaultTextStyle(item.style) };
+              }
+              return { text: item.text || '', style: BlockFactory.applyDefaultTextStyle(item.style) };
+            });
+            blockConfig.options = { textContents: processedTextStyles, align: textOptions.align || 1 };
+          } else if ('code' in options) {
+            blockConfig.type = BlockType.CODE;
+            const codeOptions = options.code;
+            blockConfig.options = {
+              code: codeOptions.code || '',
+              language: codeOptions.language === 0 ? 0 : (codeOptions.language || 0),
+              wrap: codeOptions.wrap || false
+            };
+          } else if ('heading' in options) {
+            blockConfig.type = BlockType.HEADING;
+            const headingOptions = options.heading;
+            blockConfig.options = {
+              text: headingOptions.content || '',
+              level: headingOptions.level || 1,
+              align: [1, 2, 3].includes(headingOptions.align) ? headingOptions.align : 1
+            };
+          } else if ('list' in options) {
+            blockConfig.type = BlockType.LIST;
+            const listOptions = options.list;
+            blockConfig.options = {
+              text: listOptions.content || '',
+              isOrdered: listOptions.isOrdered || false,
+              align: [1, 2, 3].includes(listOptions.align) ? listOptions.align : 1
+            };
+          } else if ('image' in options) {
+            blockConfig.type = BlockType.IMAGE;
+            const imageOptions = options.image;
+            blockConfig.options = { width: imageOptions.width || 100, height: imageOptions.height || 100 };
+          } else if ('mermaid' in options) {
+            blockConfig.type = BlockType.MERMAID;
+            blockConfig.options = { code: options.mermaid.code };
+          } else if ('whiteboard' in options) {
+            blockConfig.type = BlockType.WHITEBOARD;
+            const whiteboardConfig = options.whiteboard;
+            blockConfig.options = {
+              align: [1, 2, 3].includes(whiteboardConfig.align) ? whiteboardConfig.align : 1
+            };
+          }
+          break;
+      }
+
+      Logger.debug(`创建块内容: 类型=${blockConfig.type}, 选项=${JSON.stringify(blockConfig.options)}`);
+      return this.createBlock(blockConfig.type, blockConfig.options);
+    } catch (error) {
+      Logger.error(`创建块内容对象失败: ${error}`);
+      return null;
+    }
+  }
+
+  /**
    * 创建表格块
    * @param options 表格块选项
    * @returns 表格块内容对象
