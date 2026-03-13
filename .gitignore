@@ -35,3 +35,9 @@ coverage
 # OS
 .DS_Store
 Thumbs.db
+
+prd
+cache
+scripts
+.cursor
+.npmrc
