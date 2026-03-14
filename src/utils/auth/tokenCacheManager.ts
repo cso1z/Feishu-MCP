@@ -187,8 +187,14 @@ export class TokenCacheManager {
    */
   public getUserTokenInfo(key: string): UserTokenInfo | null {
     const cacheKey = `user_access_token:${key}`;
-    const cacheItem = this.cache.get(cacheKey);
-    
+    let cacheItem = this.cache.get(cacheKey);
+
+    // 内存未命中时，尝试从文件重新加载（应对多进程 stdio 场景：callback 在进程 A，API 调用在进程 B）
+    if (!cacheItem && fs.existsSync(this.userTokenCacheFile)) {
+      this.loadUserTokenCache();
+      cacheItem = this.cache.get(cacheKey);
+    }
+
     if (!cacheItem) {
       Logger.debug(`用户token信息未找到: ${key}`);
       return null;
