@@ -90,7 +90,7 @@
 - ~~**stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题~~ 0.1.9 ✅
 - ~~**权限检查功能可配置化**：将权限检查功能作为可配置选项，支持通过环境变量 `FEISHU_SCOPE_VALIDATION` 或命令行参数 `--feishu-scope-validation` 控制，默认启用，满足不同用户的使用场景~~ 0.2.0 ✅
 - ~~**优化缓存目录:把token等缓存保存到系统级的配置目录~~ 0.2.2 ✅ 感谢 [Molunerfinn](https://github.com/Molunerfinn)、[leeeezx](https://github.com/leeeezx)、[Master-cai](https://github.com/Master-cai) 三位朋友的建议及代码贡献
-- **优化mcpTool相关代码**：重新构建代码结构，以便为未来添加更多功能奠定基础 0.2.3 
+- ~~**优化mcpTool相关代码**：重新构建代码结构，以便为未来添加更多功能奠定基础~~ 0.2.3✅
 ---
 
 ## 🔧 飞书配置教程
