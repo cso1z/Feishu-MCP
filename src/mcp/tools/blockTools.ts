@@ -18,15 +18,22 @@ import {
   ImagesArraySchema,
   TableCreateSchema,
   WhiteboardFillArraySchema,
-  WhiteboardIdSchema
+  WhiteboardIdSchema,
 } from '../../types/feishuSchema.js';
+import {
+  WHITEBOARD_NODE_THUMBNAIL_THRESHOLD,
+  BATCH_SIZE,
+  errorResponse,
+  prepareBlockContents,
+  extractSpecialBlocks,
+  buildSpecialBlockHints,
+  extractFeishuApiError,
+} from './toolHelpers.js';
 
 /**
  * 注册飞书块相关的MCP工具
- * @param server MCP服务器实例
- * @param feishuService 飞书API服务实例
  */
-export function registerBlockTools(server: McpServer, feishuService: FeishuApiService | null): void {
+export function registerBlockTools(server: McpServer, feishuService: FeishuApiService): void {
 
   // 添加更新块文本内容工具
   server.tool(
@@ -39,25 +46,13 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ documentId, blockId, textElements }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
-          };
-        }
-
         Logger.info(`开始更新飞书块文本内容，文档ID: ${documentId}，块ID: ${blockId}`);
         const result = await feishuService.updateBlockTextContent(documentId, blockId, textElements);
         Logger.info(`飞书块文本内容更新成功`);
-
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (error) {
         Logger.error(`更新飞书块文本内容失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `更新飞书块文本内容失败: ${errorMessage}` }],
-        };
+        return errorResponse(`更新飞书块文本内容失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -74,246 +69,69 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ documentId, parentBlockId, index = 0, blocks }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Feishu service is not initialized. Please check the configuration',
-              },
-            ],
-          };
-        }
-
-        // 类型检查：确保blocks是数组而不是字符串
+        // 防御性检查：AI 客户端有时会错误地将数组序列化为字符串传入
         if (typeof blocks === 'string') {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'ERROR: The "blocks" parameter was passed as a string instead of an array. Please provide a proper JSON array without quotes. Example: {blocks:[{blockType:"text",options:{...}}]} instead of {blocks:"[{...}]"}',
-              },
-            ],
-          };
+          return errorResponse(
+            '错误：blocks 参数传入了字符串而不是数组，请直接传入 JSON 数组。\n' +
+            '正确：blocks:[{blockType:"text",options:{...}}]\n' +
+            '错误：blocks:"[{blockType:\\"text\\"...}]"',
+          );
         }
 
-        // 如果块数量不超过50，直接调用一次API
-        if (blocks.length <= 50) {
-          Logger.info(
-            `开始批量创建飞书块，文档ID: ${documentId}，父块ID: ${parentBlockId}，块数量: ${blocks.length}，起始插入位置: ${index}`);
+        const totalBatches = Math.ceil(blocks.length / BATCH_SIZE);
+        const results: any[] = [];
+        let currentStartIndex = index;
+        let createdBlocksCount = 0;
 
-          // 准备要创建的块内容数组
-          const blockContents = [];
+        Logger.info(`开始批量创建飞书块，文档ID: ${documentId}，父块ID: ${parentBlockId}，块数量: ${blocks.length}，分批数: ${totalBatches}`);
 
-          // 处理每个块配置
-          for (const blockConfig of blocks) {
-            const { blockType, options = {} } = blockConfig;
-            
-            // 创建块内容
-            try {
-              const blockContent = feishuService.createBlockContent(blockType, options);
+        for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
+          const currentBatch = blocks.slice(batchNum * BATCH_SIZE, (batchNum + 1) * BATCH_SIZE);
+          Logger.info(`处理第 ${batchNum + 1}/${totalBatches} 批，起始位置: ${currentStartIndex}，块数量: ${currentBatch.length}`);
 
-              if (blockContent) {
-                blockContents.push(blockContent);
-                Logger.info(`已准备${blockType}块，内容: ${JSON.stringify(blockContent).substring(0, 100)}...`);
-              } else {
-                Logger.warn(`创建${blockType}块失败，跳过此块`);
-              }
-            } catch (error) {
-              Logger.error(`处理块类型${blockType}时出错: ${error}`);
-              return {
-                content: [{ 
-                  type: 'text', 
-                  text: `处理块类型"${blockType}"时出错: ${error}\n请检查该块类型的配置是否正确。`
-                }],
-              };
-            }
-          }
+          const prepared = prepareBlockContents(currentBatch, feishuService);
+          if (!prepared.ok) return prepared.error;
 
-          // 批量创建所有块
-          const result = await feishuService.createDocumentBlocks(documentId, parentBlockId, blockContents, index);
-          Logger.info(`飞书块批量创建成功，共创建 ${blockContents.length} 个块`);
-
-          // 检查是否有图片块（block_type=27）
-          const imageBlocks = result.children?.filter((child: any) => child.block_type === 27) || [];
-          const hasImageBlocks = imageBlocks.length > 0;
-
-          // 检查是否有画板块（block_type=43）
-          const whiteboardBlocks = result.children?.filter((child: any) => child.block_type === 43) || [];
-          const hasWhiteboardBlocks = whiteboardBlocks.length > 0;
-
-          const responseData = {
-            ...result,
-            nextIndex: index + blockContents.length,
-            totalBlocksCreated: blockContents.length,
-            ...(hasImageBlocks && {
-              imageBlocksInfo: {
-                count: imageBlocks.length,
-                blockIds: imageBlocks.map((block: any) => block.block_id),
-                reminder: "检测到图片块已创建！请使用 upload_and_bind_image_to_block 工具上传图片并绑定到对应的块ID。"
-              }
-            }),
-            ...(hasWhiteboardBlocks && {
-              whiteboardBlocksInfo: {
-                count: whiteboardBlocks.length,
-                blocks: whiteboardBlocks.map((block: any) => ({
-                  blockId: block.block_id,
-                  token: block.board?.token,
-                  align: block.board?.align
-                })),
-                reminder: "检测到画板块已创建！请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: 1) 和 Mermaid (syntax_type: 2) 两种格式。"
-              }
-            })
-          };
-
-          return {
-            content: [{ type: 'text', text: JSON.stringify(responseData, null, 2) }],
-          };
-        } else {
-          // 如果块数量超过50，需要分批处理
-          Logger.info(
-            `块数量(${blocks.length})超过50，将分批创建`);
-
-          const batchSize = 50; // 每批最大50个
-          const totalBatches = Math.ceil(blocks.length / batchSize);
-          const results = [];
-          let currentStartIndex = index;
-          let createdBlocksCount = 0;
-          let allBatchesSuccess = true;
-
-          // 分批创建块
-          for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
-            const batchStart = batchNum * batchSize;
-            const batchEnd = Math.min((batchNum + 1) * batchSize, blocks.length);
-            const currentBatch = blocks.slice(batchStart, batchEnd);
-            
-            Logger.info(
-              `处理第 ${batchNum + 1}/${totalBatches} 批，起始位置: ${currentStartIndex}，块数量: ${currentBatch.length}`);
-            
-            try {
-              // 准备当前批次的块内容
-              const batchBlockContents = [];
-              for (const blockConfig of currentBatch) {
-                const { blockType, options = {} } = blockConfig;
-                try {
-                  const blockContent = feishuService.createBlockContent(blockType, options);
-                  if (blockContent) {
-                    batchBlockContents.push(blockContent);
-                  } else {
-                    Logger.warn(`创建${blockType}块失败，跳过此块`);
-                  }
-                } catch (error) {
-                  Logger.error(`处理块类型${blockType}时出错: ${error}`);
-                  return {
-                    content: [{ 
-                      type: 'text', 
-                      text: `处理块类型"${blockType}"时出错: ${error}\n请检查该块类型的配置是否正确。`
-                    }],
-                  };
-                }
-              }
-
-              // 批量创建当前批次的块
-              const batchResult = await feishuService.createDocumentBlocks(
-                documentId, 
-                parentBlockId, 
-                batchBlockContents, 
-                currentStartIndex
-              );
-
-              results.push(batchResult);
-              
-              // 计算下一批的起始位置（当前位置+已创建块数量）
-              // 注意：每批成功创建后，需要将起始索引更新为当前索引 + 已创建块数量
-              createdBlocksCount += batchBlockContents.length;
-              currentStartIndex = index + createdBlocksCount;
-              
-              Logger.info(
-                `第 ${batchNum + 1}/${totalBatches} 批创建成功，当前已创建 ${createdBlocksCount} 个块`);
-            } catch (error) {
-              Logger.error(`第 ${batchNum + 1}/${totalBatches} 批创建失败:`, error);
-              allBatchesSuccess = false;
-              
-              // 如果有批次失败，返回详细错误信息
-              const errorMessage = formatErrorMessage(error);
-              return {
-                content: [
-                  { 
-                    type: 'text', 
-                    text: `批量创建飞书块部分失败：第 ${batchNum + 1}/${totalBatches} 批处理时出错。\n\n` +
-                          `已成功创建 ${createdBlocksCount} 个块，但还有 ${blocks.length - createdBlocksCount} 个块未能创建。\n\n` +
-                          `错误信息: ${errorMessage}\n\n` +
-                          `建议使用 get_feishu_document_blocks 工具获取文档最新状态，确认已创建的内容，然后从索引位置 ${currentStartIndex} 继续创建剩余块。`
-                  }
-                ],
-              };
-            }
-          }
-
-          if (allBatchesSuccess) {
-            Logger.info(`所有批次创建成功，共创建 ${createdBlocksCount} 个块`);
-            
-            // 检查所有批次中是否有图片块（block_type=27）
-            const allImageBlocks: any[] = [];
-            results.forEach(batchResult => {
-              const imageBlocks = batchResult.children?.filter((child: any) => child.block_type === 27) || [];
-              allImageBlocks.push(...imageBlocks);
-            });
-            const hasImageBlocks = allImageBlocks.length > 0;
-
-            // 检查所有批次中是否有画板块（block_type=43）
-            const allWhiteboardBlocks: any[] = [];
-            results.forEach(batchResult => {
-              const whiteboardBlocks = batchResult.children?.filter((child: any) => child.block_type === 43) || [];
-              allWhiteboardBlocks.push(...whiteboardBlocks);
-            });
-            const hasWhiteboardBlocks = allWhiteboardBlocks.length > 0;
-
-            let responseText = `所有飞书块创建成功，共分 ${totalBatches} 批创建了 ${createdBlocksCount} 个块。\n\n` +
-                               `最后一批结果: ${JSON.stringify(results[results.length - 1], null, 2)}\n\n` +
-                               `下一个索引位置: ${currentStartIndex}，总创建块数: ${createdBlocksCount}`;
-            
-            if (hasImageBlocks) {
-              responseText += `\n\n⚠️ 检测到 ${allImageBlocks.length} 个图片块已创建！\n` +
-                             `图片块IDs: ${allImageBlocks.map(block => block.block_id).join(', ')}\n` +
-                             `请使用 upload_and_bind_image_to_block 工具上传图片并绑定到对应的块ID。`;
-            }
-            
-            if (hasWhiteboardBlocks) {
-              responseText += `\n\n⚠️ 检测到 ${allWhiteboardBlocks.length} 个画板块已创建！\n` +
-                             `画板块信息:\n${allWhiteboardBlocks.map((block: any) => 
-                               `  - blockId: ${block.block_id}, token: ${block.board?.token || 'N/A'}\n`
-                             ).join('')}` +
-                             `请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: 1) 和 Mermaid (syntax_type: 2) 两种格式。`;
-            }
-            
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: responseText
-                }
-              ],
-            };
+          try {
+            const batchResult = await feishuService.createDocumentBlocks(
+              documentId, parentBlockId, prepared.contents, currentStartIndex,
+            );
+            results.push(batchResult);
+            createdBlocksCount += prepared.contents.length;
+            currentStartIndex = index + createdBlocksCount;
+            Logger.info(`第 ${batchNum + 1}/${totalBatches} 批创建成功，当前已创建 ${createdBlocksCount} 个块`);
+          } catch (batchError) {
+            Logger.error(`第 ${batchNum + 1}/${totalBatches} 批创建失败:`, batchError);
+            return errorResponse(
+              `批量创建飞书块部分失败：第 ${batchNum + 1}/${totalBatches} 批处理时出错。\n\n` +
+              `已成功创建 ${createdBlocksCount} 个块，还有 ${blocks.length - createdBlocksCount} 个块未能创建。\n\n` +
+              `错误信息: ${formatErrorMessage(batchError)}\n\n` +
+              `建议使用 get_feishu_document_blocks 工具获取文档最新状态，确认已创建的内容，然后从索引位置 ${currentStartIndex} 继续创建剩余块。`,
+            );
           }
         }
-        
-        // 这个return语句是为了避免TypeScript错误，实际上代码永远不会执行到这里
+
+        Logger.info(`所有批次创建成功，共创建 ${createdBlocksCount} 个块`);
+        const allChildren = results.flatMap(r => r.children ?? []);
+        const { imageBlocks, whiteboardBlocks } = extractSpecialBlocks(allChildren);
         return {
-          content: [{ type: 'text', text: '操作完成' }],
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              totalBatches,
+              totalBlocksCreated: createdBlocksCount,
+              nextIndex: currentStartIndex,
+              ...results[results.length - 1],
+              ...buildSpecialBlockHints(imageBlocks, whiteboardBlocks),
+            }, null, 2),
+          }],
         };
       } catch (error) {
         Logger.error(`批量创建飞书块失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [
-            { 
-              type: 'text', 
-              text: `批量创建飞书块失败: ${errorMessage}\n\n` +
-                    `建议使用 get_feishu_document_blocks 工具获取文档当前状态，确认是否有部分内容已创建成功。`
-            }
-          ],
-        };
+        return errorResponse(
+          `批量创建飞书块失败: ${formatErrorMessage(error)}\n\n` +
+          `建议使用 get_feishu_document_blocks 工具获取文档当前状态，确认是否有部分内容已创建成功。`,
+        );
       }
     },
   );
@@ -330,25 +148,13 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ documentId, parentBlockId, startIndex, endIndex }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
-          };
-        }
-
         Logger.info(`开始删除飞书文档块，文档ID: ${documentId}，父块ID: ${parentBlockId}，索引范围: ${startIndex}-${endIndex}`);
         const result = await feishuService.deleteDocumentBlocks(documentId, parentBlockId, startIndex, endIndex);
         Logger.info(`飞书文档块删除成功，文档修订ID: ${result.document_revision_id}`);
-
-        return {
-          content: [{ type: 'text', text: `Successfully deleted blocks from index ${startIndex} to ${endIndex - 1}` }],
-        };
+        return { content: [{ type: 'text', text: `块删除成功，索引范围: ${startIndex} 至 ${endIndex - 1}` }] };
       } catch (error) {
         Logger.error(`删除飞书文档块失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `Failed to delete document blocks: ${errorMessage}` }],
-        };
+        return errorResponse(`删除飞书文档块失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -363,12 +169,6 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ mediaId, extra = '' }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
-          };
-        }
-
         Logger.info(`开始获取飞书图片资源，媒体ID: ${mediaId}`);
         const imageBuffer = await feishuService.getImageResource(mediaId, extra);
         Logger.info(`飞书图片资源获取成功，大小: ${imageBuffer.length} 字节`);
@@ -376,20 +176,10 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         // 将图片数据转为Base64编码，以便在MCP协议中传输
         const base64Image = imageBuffer.toString('base64');
         const mimeType = detectMimeType(imageBuffer);
-
-        return {
-          content: [{ 
-            type: 'image', 
-            mimeType: mimeType,
-            data: base64Image 
-          }],
-        };
+        return { content: [{ type: 'image', mimeType, data: base64Image }] };
       } catch (error) {
         Logger.error(`获取飞书图片资源失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `Failed to get image resource: ${errorMessage}` }],
-        };
+        return errorResponse(`获取飞书图片资源失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -400,62 +190,44 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     'Uploads images from local paths or URLs and binds them to existing empty image blocks. This tool is used after creating image blocks with batch_create_feishu_blocks tool. It handles uploading the image media and setting the image content to the specified block IDs. Supports local file paths and HTTP/HTTPS URLs. Each image upload and binding is processed independently, and all results are returned in order.',
     {
       documentId: DocumentIdSchema,
-      images:ImagesArraySchema,
+      images: ImagesArraySchema,
     },
     async ({ documentId, images }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
-          };
-        }
         const results = [];
         for (const { blockId, imagePathOrUrl, fileName } of images) {
           Logger.info(`开始上传图片并绑定到块，文档ID: ${documentId}，块ID: ${blockId}，图片源: ${imagePathOrUrl}`);
           try {
             const { base64: imageBase64, fileName: detectedFileName } = await feishuService.getImageBase64FromPathOrUrl(imagePathOrUrl);
             const finalFileName = fileName || detectedFileName;
+
             Logger.info('第1步：上传图片素材');
-            const uploadResult = await feishuService.uploadImageMedia(
-              imageBase64,
-              finalFileName,
-              blockId,
-            );
+            const uploadResult = await feishuService.uploadImageMedia(imageBase64, finalFileName, blockId);
             if (!uploadResult?.file_token) {
               throw new Error('上传图片素材失败：无法获取file_token');
             }
             Logger.info(`图片素材上传成功，file_token: ${uploadResult.file_token}`);
+
             Logger.info('第2步：设置图片块内容');
-            const setContentResult = await feishuService.setImageBlockContent(
-              documentId,
-              blockId,
-              uploadResult.file_token,
-            );
+            const setContentResult = await feishuService.setImageBlockContent(documentId, blockId, uploadResult.file_token);
             Logger.info('图片上传并绑定完成');
+
             results.push({
               blockId,
               fileToken: uploadResult.file_token,
               uploadResult,
               setContentResult,
-              documentRevisionId: setContentResult.document_revision_id
+              documentRevisionId: setContentResult.document_revision_id,
             });
           } catch (err) {
             Logger.error(`上传图片并绑定到块失败:`, err);
-            results.push({
-              blockId,
-              error: err instanceof Error ? err.message : String(err)
-            });
+            results.push({ blockId, error: err instanceof Error ? err.message : String(err) });
           }
         }
-        return {
-          content: [{ type: 'text', text: `批量图片上传绑定结果：\n${JSON.stringify(results, null, 2)}` }],
-        };
+        return { content: [{ type: 'text', text: `批量图片上传绑定结果：\n${JSON.stringify(results, null, 2)}` }] };
       } catch (error) {
         Logger.error(`批量上传图片并绑定到块失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `批量上传图片并绑定到块失败: ${errorMessage}` }],
-        };
+        return errorResponse(`批量上传图片并绑定到块失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -472,47 +244,22 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ documentId, parentBlockId, index = 0, tableConfig }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
-          };
-        }
-
         Logger.info(`开始创建飞书表格，文档ID: ${documentId}，父块ID: ${parentBlockId}，表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}，插入位置: ${index}`);
+        const result = await feishuService.createTableBlock(documentId, parentBlockId, tableConfig, index);
 
-        const result = await feishuService.createTableBlock(
-          documentId, 
-          parentBlockId, 
-          tableConfig, 
-          index
-        );
-
-        // 构建返回信息
         let resultText = `表格创建成功！\n\n表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}\n`;
-        
-        // 如果有图片token，显示图片信息
         if (result.imageTokens && result.imageTokens.length > 0) {
           resultText += `\n\n📸 发现 ${result.imageTokens.length} 个图片:\n`;
-          result.imageTokens.forEach((imageToken: any, index: number) => {
-            resultText += `${index + 1}. 坐标(${imageToken.row}, ${imageToken.column}) - blockId: ${imageToken.blockId}\n`;
+          result.imageTokens.forEach((imageToken: any, idx: number) => {
+            resultText += `${idx + 1}. 坐标(${imageToken.row}, ${imageToken.column}) - blockId: ${imageToken.blockId}\n`;
           });
-          resultText +="你需要使用upload_and_bind_image_to_block工具绑定图片"
+          resultText += '你需要使用 upload_and_bind_image_to_block 工具绑定图片';
         }
-
         resultText += `\n\n完整结果:\n${JSON.stringify(result, null, 2)}`;
-
-        return {
-          content: [{
-            type: 'text',
-            text: resultText
-          }],
-        };
+        return { content: [{ type: 'text', text: resultText }] };
       } catch (error) {
         Logger.error(`创建飞书表格失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `创建飞书表格失败: ${errorMessage}` }],
-        };
+        return errorResponse(`创建飞书表格失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -526,48 +273,27 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ whiteboardId }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: 'Feishu service is not initialized. Please check the configuration' }],
-          };
-        }
-
         Logger.info(`开始获取飞书画板内容，画板ID: ${whiteboardId}`);
         const whiteboardContent = await feishuService.getWhiteboardContent(whiteboardId);
-        const nodeCount = whiteboardContent.nodes?.length || 0;
+        const nodeCount = whiteboardContent.nodes?.length ?? 0;
         Logger.info(`飞书画板内容获取成功，节点数量: ${nodeCount}`);
 
-        // 检查节点数量是否超过100
-        if (nodeCount > 200) {
-          Logger.info(`画板节点数量过多 (${nodeCount} > 200)，返回缩略图`);
-
+        if (nodeCount > WHITEBOARD_NODE_THUMBNAIL_THRESHOLD) {
+          Logger.info(`画板节点数量过多 (${nodeCount} > ${WHITEBOARD_NODE_THUMBNAIL_THRESHOLD})，返回缩略图`);
           try {
             const thumbnailBuffer = await feishuService.getWhiteboardThumbnail(whiteboardId);
-            const thumbnailBase64 = thumbnailBuffer.toString('base64');
-
             return {
-              content: [
-                {
-                  type: 'image',
-                  data: thumbnailBase64,
-                  mimeType: 'image/png'
-                }
-              ],
+              content: [{ type: 'image', data: thumbnailBuffer.toString('base64'), mimeType: 'image/png' }],
             };
           } catch (thumbnailError) {
             Logger.warn(`获取画板缩略图失败，返回基本信息: ${thumbnailError}`);
           }
         }
 
-        return {
-          content: [{ type: 'text', text: JSON.stringify(whiteboardContent, null, 2) }],
-        };
+        return { content: [{ type: 'text', text: JSON.stringify(whiteboardContent, null, 2) }] };
       } catch (error) {
         Logger.error(`获取飞书画板内容失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `获取飞书画板内容失败: ${errorMessage}` }],
-        };
+        return errorResponse(`获取飞书画板内容失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -581,107 +307,48 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     },
     async ({ whiteboards }) => {
       try {
-        if (!feishuService) {
-          return {
-            content: [{ type: 'text', text: '飞书服务未初始化，请检查配置' }],
-          };
-        }
-
-        if (!whiteboards || whiteboards.length === 0) {
-          return {
-            content: [{ type: 'text', text: '错误：画板数组不能为空' }],
-          };
+        if (whiteboards.length === 0) {
+          return errorResponse('错误：画板数组不能为空');
         }
 
         Logger.info(`开始批量填充画板内容，共 ${whiteboards.length} 个画板`);
-        
         const results = [];
         let successCount = 0;
         let failCount = 0;
 
-        // 逐个处理每个画板
-        for (let i = 0; i < whiteboards.length; i++) {
-          const item = whiteboards[i];
-          const { whiteboardId, code, syntax_type } = item;
+        for (const [i, { whiteboardId, code, syntax_type }] of whiteboards.entries()) {
           const syntaxTypeName = syntax_type === 1 ? 'PlantUML' : 'Mermaid';
-          
           Logger.info(`处理第 ${i + 1}/${whiteboards.length} 个画板，画板ID: ${whiteboardId}，语法类型: ${syntaxTypeName}`);
-          
+
           try {
-            const result = await feishuService.createDiagramNode(
-              whiteboardId,
-              code,
-              syntax_type
-            );
-            
+            const result = await feishuService.createDiagramNode(whiteboardId, code, syntax_type);
             Logger.info(`画板填充成功，画板ID: ${whiteboardId}`);
             successCount++;
-            
-            results.push({
-              whiteboardId: whiteboardId,
-              syntaxType: syntaxTypeName,
-              status: 'success',
-              nodeId: result.node_id,
-              result: result
-            });
-          } catch (error: any) {
-            Logger.error(`画板填充失败，画板ID: ${whiteboardId}`, error);
+            results.push({ whiteboardId, syntaxType: syntaxTypeName, status: 'success', nodeId: result.node_id, result });
+          } catch (err: unknown) {
+            Logger.error(`画板填充失败，画板ID: ${whiteboardId}`, err);
             failCount++;
-            
-            // 提取详细的错误信息
-            let errorMessage = formatErrorMessage(error);
-            let errorCode: number | undefined;
-            let logId: string | undefined;
-            
-            if (error?.apiError) {
-              const apiError = error.apiError;
-              if (apiError.code !== undefined && apiError.msg) {
-                errorCode = apiError.code;
-                errorMessage = apiError.msg;
-                if (apiError.log_id) {
-                  logId = apiError.log_id;
-                }
-              }
-            } else if (error?.err) {
-              errorMessage = error.err;
-            } else if (error?.message) {
-              errorMessage = error.message;
-            }
-            
+            const { message, code: errorCode, logId } = extractFeishuApiError(err);
             results.push({
-              whiteboardId: whiteboardId,
+              whiteboardId,
               syntaxType: syntaxTypeName,
               status: 'failed',
-              error: {
-                message: errorMessage,
-                code: errorCode,
-                logId: logId,
-                details: error
-              }
+              error: { message, code: errorCode, logId, details: err },
             });
           }
         }
 
-        // 构建返回结果
-        const summary = {
-          total: whiteboards.length,
-          success: successCount,
-          failed: failCount,
-          results: results
-        };
-
         Logger.info(`批量填充画板完成，成功: ${successCount}，失败: ${failCount}`);
-
         return {
-          content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ total: whiteboards.length, success: successCount, failed: failCount, results }, null, 2),
+          }],
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         Logger.error(`批量填充画板内容失败:`, error);
-        const errorMessage = formatErrorMessage(error);
-        return {
-          content: [{ type: 'text', text: `批量填充画板内容失败: ${errorMessage}\n\n错误详情: ${JSON.stringify(error, null, 2)}` }],
-        };
+        return errorResponse(`批量填充画板内容失败: ${formatErrorMessage(error)}\n\n错误详情: ${JSON.stringify(error, null, 2)}`);
       }
     },
   );
-} 
+}

@@ -25,18 +25,17 @@ export class FeishuMcp extends McpServer {
    * 构造函数
    */
   constructor() {
-    super(serverInfo,serverOptions);
+    super(serverInfo, serverOptions);
     
     // 初始化飞书服务
     this.initFeishuService();
     
-    // 注册所有工具
-    if (this.feishuService) {
-      this.registerAllTools();
-    } else {
+    // 注册所有工具（initFeishuService 失败时 feishuService 为 null，此处提前终止）
+    if (!this.feishuService) {
       Logger.error('无法注册飞书工具: 飞书服务初始化失败');
       throw new Error('飞书服务初始化失败');
     }
+    this.registerAllTools(this.feishuService);
   }
 
   /**
@@ -56,14 +55,9 @@ export class FeishuMcp extends McpServer {
   /**
    * 注册所有飞书MCP工具
    */
-  private registerAllTools(): void {
-    if (!this.feishuService) {
-      return;
-    }
-    
-    // 注册所有工具
-    registerDocumentTools(this, this.feishuService);
-    registerBlockTools(this, this.feishuService);
-    registerFolderTools(this, this.feishuService);
+  private registerAllTools(service: FeishuApiService): void {
+    registerDocumentTools(this, service);
+    registerBlockTools(this, service);
+    registerFolderTools(this, service);
   }
 } 

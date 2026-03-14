@@ -210,7 +210,7 @@ export const BlockConfigSchema = z.object({
     z.object({ image: ImageBlockSchema }).describe("Image block options. Used when blockType is 'image'. Creates empty image blocks."),
     z.object({ mermaid: MermaidBlockSchema}).describe("Mermaid block options.  Used when blockType is 'mermaid'."),
     z.object({ whiteboard: WhiteboardBlockSchema }).describe("Whiteboard block options. Used when blockType is 'whiteboard'. Creates empty whiteboard blocks that return a token for filling content."),
-    z.record(z.any()).describe("Fallback for any other block options")
+    z.record(z.string(), z.unknown()).describe("Fallback for other block types not explicitly listed above")
   ]).describe('Options for the specific block type. Provide the corresponding options object based on blockType.'),
 });
 
