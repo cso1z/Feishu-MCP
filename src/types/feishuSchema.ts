@@ -19,47 +19,34 @@ export const DocumentIdOrWikiIdSchema = z.string().describe(
 
 // 父块ID参数定义
 export const ParentBlockIdSchema = z.string().describe(
-  'Parent block ID (required). Target block ID where content will be added, without any URL prefix. ' +
-  'For page-level (root level) insertion, extract and use only the document ID portion (not the full URL) as parentBlockId. ' +
-  'Obtain existing block IDs using the get_feishu_document_blocks tool.'
+  'Parent block ID (required). The block ID whose direct children will be operated on, without any URL prefix. ' +
+  'For root-level operations, use the document ID as parentBlockId.'
 );
 
 // 块ID参数定义
 export const BlockIdSchema = z.string().describe(
-  'Block ID (required). The ID of the specific block to get content from. You can obtain block IDs using the get_feishu_document_blocks tool.'
+  'Block ID (required). The ID of the target block.'
 );
 
 // 插入位置索引参数定义
-export const IndexSchema = z.number().describe(
-  'Insertion position index (required). This index is relative to the children array of the specified parentBlockId block (not the whole document).\n' +
-  'If parentBlockId is the document root (i.e., the document ID), index refers to the position among the document content blocks (excluding the title block itself).\n' +
-  '0 means to insert as the first content block after the title.\n' +
-  'If children is empty or missing, use 0 to insert the first content block.\n' +
-  'For nested blocks, index is relative to the parent block\'s children.\n' +
-  '**index must satisfy 0 ≤ index ≤ parentBlock.children.length, otherwise the API will return an error.**\n'+
-  'Note: The title block itself is not part of the children array and cannot be operated on with index.' +
-  'Specifies where the block should be inserted. Use 0 to insert at the beginning. ' +
-  'Use get_feishu_document_blocks tool to understand document structure if unsure. ' +
-  'For consecutive insertions, calculate next index as previous index + 1.'
+export const IndexSchema = z.number().int().min(0).describe(
+  'Insertion position within the direct children of `parentBlockId` (0-based, title block excluded).\n' +
+  '0 = before the first content block; max = children.length (append after last block).\n' +
+  'Example: document has 3 blocks → valid values are 0, 1, 2, 3.'
 );
 
-// 起始插入位置索引参数定义
-export const StartIndexSchema = z.number().describe(
-  'Starting insertion position index (required). This index is relative to the children array of the specified parentBlockId block.\n' +
-  'For the document root, this means the content blocks after the title. For other blocks, it means the sub-blocks under that block.\n' +
-  'The index does not include the title block itself.' +
-  'Specifies where the first block should be inserted or deleted. Use 0 to insert at the beginning. ' +
-  'Use get_feishu_document_blocks tool to understand document structure if unsure.'
+// 起始位置索引参数定义
+export const StartIndexSchema = z.number().int().min(0).describe(
+  'Start of the target range within the direct children of `parentBlockId` (0-based, title block excluded).\n' +
+  '0 = first content block; max = children.length - 1.\n' +
+  'Example: to target blocks at positions 2, 3, 4 → startIndex=2.'
 );
 
 // 结束位置索引参数定义
-export const EndIndexSchema = z.number().describe(
-  'Ending position index (required). This index is relative to the children array of the specified parentBlockId block.\n' +
-  'For the document root, this means the content blocks after the title. For other blocks, it means the sub-blocks under that block.\n' +
-  'The index does not include the title block itself.' +
-  'Specifies the end of the range for deletion (exclusive). ' +
-  'For example, to delete blocks 2, 3, and 4, use startIndex=2, endIndex=5. ' +
-  'To delete a single block at position 2, use startIndex=2, endIndex=3.'
+export const EndIndexSchema = z.number().int().min(1).describe(
+  'End of the target range (exclusive) within the direct children of `parentBlockId` (title block excluded).\n' +
+  'Must satisfy endIndex > startIndex.\n' +
+  'Example: to delete blocks at positions 2, 3, 4 → startIndex=2, endIndex=5; single block at 2 → startIndex=2, endIndex=3.'
 );
 
 // 文本对齐方式参数定义（带验证）
@@ -79,10 +66,10 @@ export const TextStylePropertiesSchema = {
   inline_code: z.boolean().optional().describe('Whether to format as inline code. Default is false, equivalent to `code` in Markdown.'),
   text_color: z.number().optional().refine(val => !val || (val >= 0 && val <= 7), {
     message: "Text color must be between 0 and 7 inclusive"
-  }).describe('Text color value. Default is 0 (black). Available values are only: 1 (gray), 2 (brown), 3 (orange), 4 (yellow), 5 (green), 6 (blue), 7 (purple). Values outside this range will cause an error.'),
+  }).describe('Text color (optional): 0=black (default), 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple.'),
   background_color: z.number().optional().refine(val => !val || (val >= 1 && val <= 7), {
     message: "Background color must be between 1 and 7 inclusive"
-  }).describe('Background color value. Available values are only: 1 (gray), 2 (brown), 3 (orange), 4 (yellow), 5 (green), 6 (blue), 7 (purple). Values outside this range will cause an error.')
+  }).describe('Background color (optional): 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple.')
 };
 
 // 文本样式对象定义
@@ -141,7 +128,7 @@ export const CodeBlockSchema = z.object({
 // 标题块内容定义 - 用于批量创建块工具
 export const HeadingBlockSchema = z.object({
   level: z.number().min(1).max(9).describe('Heading level from 1 to 9, where 1 is the largest (h1) and 9 is the smallest (h9).'),
-  content: z.string().describe('Heading text content. The actual text of the heading.'),
+  content: z.string().describe('Heading text content.'),
   align: AlignSchemaWithValidation,
 });
 
@@ -153,12 +140,10 @@ export const ListBlockSchema = z.object({
 });
 
 // 块类型枚举 - 用于批量创建块工具
-export const BlockTypeEnum = z.string().describe(
-  "Block type (required). Supports: 'text', 'code', 'heading', 'list', 'image','mermaid','whiteboard',as well as 'heading1' through 'heading9'. " +
-  "For headings, we recommend using 'heading' with level property, but 'heading1'-'heading9' are also supported. " +
-  "For images, use 'image' to create empty image blocks that can be filled later. " +
-  "For whiteboards, use 'whiteboard' to create empty whiteboard blocks that return a token for filling content. " +
-  "For text blocks, you can include both regular text and equation elements in the same block."
+export const BlockTypeEnum = z.enum([
+  'text', 'code', 'heading', 'list', 'image', 'mermaid', 'whiteboard',
+]).describe(
+  "Block type. 'image' and 'whiteboard' create empty blocks to be filled after creation."
 );
 
 // 图片宽度参数定义
@@ -179,10 +164,8 @@ export const ImageBlockSchema = z.object({
 
 // Mermaid代码参数定义
 export const MermaidCodeSchema = z.string().describe(
-  'Mermaid code (required). The complete Mermaid chart code, e.g. \'graph TD; A-->B;\'. ' +
-  'IMPORTANT: When node text contains special characters like parentheses (), brackets [], or arrows -->, ' +
-  'wrap the entire text in double quotes to prevent parsing errors. ' +
-  'Example: A["finish()/返回键"] instead of A[finish()/返回键].'
+  'Mermaid chart code (required). Node labels containing special characters ((), [], -->) must be wrapped in double quotes.\n' +
+  'Example: A["finish()/返回键"] --> B'
 );
 
 export const MermaidBlockSchema = z.object({
@@ -209,9 +192,8 @@ export const BlockConfigSchema = z.object({
     z.object({ list: ListBlockSchema }).describe("List block options. Used when blockType is 'list'."),
     z.object({ image: ImageBlockSchema }).describe("Image block options. Used when blockType is 'image'. Creates empty image blocks."),
     z.object({ mermaid: MermaidBlockSchema}).describe("Mermaid block options.  Used when blockType is 'mermaid'."),
-    z.object({ whiteboard: WhiteboardBlockSchema }).describe("Whiteboard block options. Used when blockType is 'whiteboard'. Creates empty whiteboard blocks that return a token for filling content."),
-    z.record(z.string(), z.unknown()).describe("Fallback for other block types not explicitly listed above")
-  ]).describe('Options for the specific block type. Provide the corresponding options object based on blockType.'),
+    z.object({ whiteboard: WhiteboardBlockSchema }).describe("Whiteboard block options. Used when blockType is 'whiteboard'. Creates an empty whiteboard; response includes board.token — pass it as whiteboardId to fill_whiteboard_with_plantuml."),
+  ]).describe('Options for the block type. Key must match blockType (e.g., blockType:"text" → options:{text:{...}}).'),
 });
 
 // 表格列数参数定义
@@ -244,26 +226,23 @@ export const TableCreateSchema = z.object({
   cells: z.array(TableCellContentSchema).optional().describe(
     'Array of cell configurations (optional). Each cell specifies its position (row, column) and content block configuration. ' +
     'If not provided, empty text blocks will be created for all cells. ' +
-    'IMPORTANT: Multiple cells can have the same coordinates (row, column) - when this happens, ' +
-    'the content blocks will be added sequentially to the same cell, allowing you to create rich content ' +
-    'with multiple blocks (text, code, images, etc.) within a single cell. ' +
-    'Example: [{coordinate:{row:0,column:0}, content:{blockType:"text", options:{text:{textStyles:[{text:"Header"}]}}}, ' +
+    'Multiple entries with the same coordinates add content blocks sequentially to that cell. ' +
+    'Example: [{coordinate:{row:0,column:0}, content:{blockType:"text", options:{text:{textStyles:[{text:"Header"}]}}}}, ' +
     '{coordinate:{row:0,column:0}, content:{blockType:"code", options:{code:{code:"console.log(\'hello\')", language:30}}}}] ' +
-    'will add both a text block and a code block to cell (0,0).'
+    'adds both a text block and a code block to cell (0,0).'
   )
 });
 
 // 媒体ID参数定义
 export const MediaIdSchema = z.string().describe(
-  'Media ID (required). The unique identifier for a media resource (image, file, etc.) in Feishu. ' +
-  'Usually obtained from image blocks or file references in documents. ' +
-  'Format is typically like "boxcnrHpsg1QDqXAAAyachabcef".'
+  'Image media token (required). Obtain from one of:\n' +
+  '1. An image block returned by get_feishu_document_blocks: block.image.token (block_type=27)\n' +
+  '2. Response of upload_and_bind_image_to_block: fileToken field'
 );
 
 // 额外参数定义 - 用于媒体资源下载
 export const MediaExtraSchema = z.string().optional().describe(
-  'Extra parameters for media download (optional). ' +
-  'These parameters are passed directly to the Feishu API and can modify how the media is returned.'
+  'Extra query parameter for the Feishu media download API (optional). Required only for encrypted images; omit for standard image blocks.'
 );
 
 // 文件夹Token参数定义（必传）
@@ -275,7 +254,7 @@ export const FolderTokenSchema = z.string().describe(
 // 文件夹Token参数定义（可选，用于文档创建、获取文件列表等场景）
 export const FolderTokenOptionalSchema = z.string().optional().describe(
   'Folder token (optional, for Feishu Drive folder mode). The unique identifier for a folder in Feishu Drive. ' +
-  'Format is an alphanumeric string like "FWK2fMleClICfodlHHWc4Mygnhb". '
+  'Format is an alphanumeric string like "FWK2fMleClICfodlHHWc4Mygnhb".'
 );
 
 // 文件夹名称参数定义
@@ -285,25 +264,25 @@ export const FolderNameSchema = z.string().describe(
 
 // 知识空间ID参数定义
 export const SpaceIdSchema = z.string().describe(
-  'Space ID (optional, required for wiki space mode). The unique identifier for a wiki space in Feishu. ' +
+  'Space ID. Required when using wikiContext mode. The unique identifier for a wiki space in Feishu. ' +
   'Can be obtained from get_feishu_root_folder_info (wiki_spaces array or my_library.space_id). ' +
   'Format is typically like "74812***88644".'
 );
 
 // 父节点Token参数定义
 export const ParentNodeTokenSchema = z.string().optional().describe(
-  'Parent node token (optional, used with spaceId). The token of the parent node in a wiki space. ' +
-  'If not provided or empty, will retrieve nodes from the root of the wiki space. ' +
+  'Parent node token (optional). The token of the parent node in a wiki space. ' +
+  'If not provided, retrieves nodes from the root of the wiki space. ' +
   'Format is typically like "PdDWwIHD6****MhcIOY7npg".'
 );
 
 // 知识库节点上下文参数定义（包装 spaceId 和 parentNodeToken）
 export const WikiSpaceNodeContextSchema = z.object({
-  spaceId: SpaceIdSchema.optional(),
+  spaceId: SpaceIdSchema,
   parentNodeToken: ParentNodeTokenSchema,
 }).optional().describe(
-  'Wiki space node context object. Contains spaceId (required when using this object) and optional parentNodeToken. ' +
-  'Used for wiki space operations instead of folderToken.'
+  'Wiki space node context object (optional). Provide this instead of folderToken to operate in wiki space mode. ' +
+  'spaceId is required; parentNodeToken is optional (omit to target the wiki root).'
 );
 
 // 搜索关键字参数定义
@@ -328,10 +307,9 @@ export const OffsetSchema = z.number().optional().describe(
 
 // 图片路径或URL参数定义
 export const ImagePathOrUrlSchema = z.string().describe(
-  'Image path or URL (required). Supports the following formats:\n' +
-  '1. Local file absolute path: e.g., "C:\\path\\to\\image.jpg"\n' +
-  '2. HTTP/HTTPS URL: e.g., "https://example.com/image.png"\n' +
-  'The tool will automatically detect the format and handle accordingly.'
+  'Image path or URL (required).\n' +
+  '1. Local absolute path: e.g., "C:\\path\\to\\image.jpg"\n' +
+  '2. HTTP/HTTPS URL: e.g., "https://example.com/image.png"'
 );
 
 // 图片文件名参数定义
@@ -352,9 +330,7 @@ export const ImagesArraySchema = z.array(z.object({
 
 // 画板ID参数定义
 export const WhiteboardIdSchema = z.string().describe(
-  'Whiteboard ID (required). This is the token value from the board.token field when getting document blocks.\n' +
-  'When you find a block with block_type: 43, the whiteboard ID is located in board.token field.\n' +
-  'Example: "EPJKwvY5ghe3pVbKj9RcT2msnBX"'
+  'Whiteboard token (required). Found in board.token of a block with block_type=43.\nExample: "EPJKwvY5ghe3pVbKj9RcT2msnBX"'
 );
 
 // 画板代码参数定义（支持 PlantUML 和 Mermaid）
@@ -366,10 +342,8 @@ export const WhiteboardCodeSchema = z.string().describe(
 );
 
 // 语法类型参数定义
-export const SyntaxTypeSchema = z.number().describe(
-  'Syntax type (required). Specifies the diagram syntax format.\n' +
-  '1: PlantUML syntax\n' +
-  '2: Mermaid syntax'
+export const SyntaxTypeSchema = z.enum(['plantuml', 'mermaid']).describe(
+  'Diagram syntax type (required): "plantuml" or "mermaid".'
 );
 
 // 画板内容配置定义（包含画板ID和内容配置）
@@ -377,17 +351,12 @@ export const WhiteboardContentSchema = z.object({
   whiteboardId: WhiteboardIdSchema,
   code: WhiteboardCodeSchema,
   syntax_type: SyntaxTypeSchema,
-}).describe(
-  'Whiteboard content configuration. Contains the whiteboard ID, diagram code and syntax type.\n' +
-  'whiteboardId: The token value from board.token field when creating whiteboard block (required)\n' +
-  'code: The diagram code (PlantUML or Mermaid format) (required)\n' +
-  'syntax_type: 1 for PlantUML, 2 for Mermaid (required)'
-);
+}).describe('Whiteboard fill item: target whiteboard ID, diagram code, and syntax type.');
 
 // 批量填充画板数组定义
 export const WhiteboardFillArraySchema = z.array(WhiteboardContentSchema).describe(
-  'Array of whiteboard fill items (required). Each item must include whiteboardId, code and syntax_type.\n' +
-  'Example: [{whiteboardId:"token1", code:"@startuml...", syntax_type:1}, {whiteboardId:"token2", code:"graph TD...", syntax_type:2}]'
+  'Array of whiteboard fill items (required).\n' +
+  'Example: [{whiteboardId:"token1", code:"@startuml\\nAlice -> Bob: Hi\\n@enduml", syntax_type:"plantuml"}, {whiteboardId:"token2", code:"graph TD\\nA-->B", syntax_type:"mermaid"}]'
 );
 
 // 文档标题参数定义

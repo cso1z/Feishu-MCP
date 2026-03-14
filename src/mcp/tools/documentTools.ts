@@ -15,6 +15,7 @@ import {
   WikiSpaceNodeContextSchema,
 } from '../../types/feishuSchema.js';
 import {
+  WIKI_NOTE,
   errorResponse,
   validateFolderOrWikiContext,
   extractSpecialBlocks,
@@ -99,7 +100,7 @@ export function registerDocumentTools(server: McpServer, feishuService: FeishuAp
   // 添加获取飞书文档块工具
   server.tool(
     'get_feishu_document_blocks',
-    'Retrieves the block structure information of a Feishu document. Essential to use before inserting content to understand document structure and determine correct insertion positions. Returns a detailed hierarchy of blocks with their IDs, types, and content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
+    'Retrieves the block hierarchy of a Feishu document, including block IDs, types, and content. ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
     },

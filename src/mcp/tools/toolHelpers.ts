@@ -7,6 +7,11 @@ import { BlockConfigSchema } from '../../types/feishuSchema.js';
 export const WHITEBOARD_NODE_THUMBNAIL_THRESHOLD = 200;
 export const BATCH_SIZE = 50;
 
+/** wiki 链接转换提示，在所有需要 documentId 的编辑类工具中复用 */
+export const WIKI_NOTE =
+  'For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), ' +
+  'use get_feishu_document_info first to obtain the documentId, then use that ID for editing operations.';
+
 const BLOCK_TYPE_IMAGE = 27;
 const BLOCK_TYPE_WHITEBOARD = 43;
 
@@ -130,7 +135,7 @@ export function buildSpecialBlockHints(
         token: b.board?.token,
         align: b.board?.align,
       })),
-      reminder: '检测到画板块已创建！请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: 1) 和 Mermaid (syntax_type: 2) 两种格式。',
+      reminder: '检测到画板块已创建！请使用 fill_whiteboard_with_plantuml 工具填充画板内容，使用返回的 token 作为 whiteboardId 参数。支持 PlantUML (syntax_type: "plantuml") 和 Mermaid (syntax_type: "mermaid") 两种格式。',
     };
   }
 

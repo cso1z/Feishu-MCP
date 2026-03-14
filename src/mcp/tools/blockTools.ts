@@ -23,6 +23,7 @@ import {
 import {
   WHITEBOARD_NODE_THUMBNAIL_THRESHOLD,
   BATCH_SIZE,
+  WIKI_NOTE,
   errorResponse,
   prepareBlockContents,
   extractSpecialBlocks,
@@ -38,7 +39,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加更新块文本内容工具
   server.tool(
     'update_feishu_block_text',
-    'Updates the text content and styling of a specific block in a Feishu document. Can be used to modify content in existing text, code, or heading blocks while preserving the block type and other properties. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
+    'Updates the text content and styling of an existing text, heading, or code block. Only updates text elements; does not modify block-type-specific properties (e.g., language or wrap for code blocks). ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
       blockId: BlockIdSchema,
@@ -49,7 +50,8 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         Logger.info(`开始更新飞书块文本内容，文档ID: ${documentId}，块ID: ${blockId}`);
         const result = await feishuService.updateBlockTextContent(documentId, blockId, textElements);
         Logger.info(`飞书块文本内容更新成功`);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        const { client_token: _ct, ...cleanResult } = result as any;
+        return { content: [{ type: 'text', text: JSON.stringify(cleanResult, null, 2) }] };
       } catch (error) {
         Logger.error(`更新飞书块文本内容失败:`, error);
         return errorResponse(`更新飞书块文本内容失败: ${formatErrorMessage(error)}`);
@@ -60,12 +62,15 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加通用飞书块创建工具（支持文本、代码、标题）
   server.tool(
     'batch_create_feishu_blocks',
-    'PREFERRED: Efficiently creates multiple blocks (text, code, heading, list, image, mermaid, whiteboard) in a single API call. USE THIS TOOL when creating multiple consecutive blocks at the same position - reduces API calls by up to 90%. KEY FEATURES: (1) Handles any number of blocks by auto-batching large requests (>50 blocks), (2) Creates blocks at consecutive positions in a document, (3) Supports direct heading level format (e.g. "heading1", "heading2") or standard "heading" type with level in options. CORRECT FORMAT: mcp_feishu_batch_create_feishu_blocks({documentId:"doc123",parentBlockId:"para123",startIndex:0,blocks:[{blockType:"text",options:{...}},{blockType:"heading1",options:{heading:{content:"Title"}}}]}). For whiteboard blocks, use blockType:"whiteboard" with options:{whiteboard:{align:1}}. After creating a whiteboard block, you will receive a token in the response (board.token field) which can be used with fill_whiteboard_with_plantuml tool. The fill_whiteboard_with_plantuml tool supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. For separate positions, use individual block creation tools instead. For wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
+    'Creates one or more blocks at a specified position within a Feishu document. Supports text, code, heading, list, image, mermaid, and whiteboard block types. Accepts any number of blocks. ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
       index: IndexSchema,
-      blocks: z.array(BlockConfigSchema).describe('Array of block configurations. CRITICAL: Must be a JSON array object, NOT a string. CORRECT: blocks:[{...}] - WITHOUT quotes around array. INCORRECT: blocks:"[{...}]". Example: [{blockType:"text",options:{text:{textStyles:[{text:"Hello",style:{bold:true}}]}}},{blockType:"heading1",options:{heading:{content:"My Title"}}}]. Auto-batches requests when exceeding 50 blocks.'),
+      blocks: z.array(BlockConfigSchema).describe(
+        'Array of block configurations to create. Pass as a JSON array, not a serialized string.\n' +
+        'Example: [{blockType:"text",options:{text:{textStyles:[{text:"Hello",style:{bold:true}}]}}},{blockType:"heading",options:{heading:{level:1,content:"My Title"}}}]'
+      ),
     },
     async ({ documentId, parentBlockId, index = 0, blocks }) => {
       try {
@@ -121,7 +126,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
               totalBatches,
               totalBlocksCreated: createdBlocksCount,
               nextIndex: currentStartIndex,
-              ...results[results.length - 1],
+              document_revision_id: results[results.length - 1]?.document_revision_id,
               ...buildSpecialBlockHints(imageBlocks, whiteboardBlocks),
             }, null, 2),
           }],
@@ -139,7 +144,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加删除文档块工具
   server.tool(
     'delete_feishu_document_blocks',
-    'Deletes one or more consecutive blocks from a Feishu document. Use this tool to remove unwanted content, clean up document structure, or clear space before inserting new content. Supports batch deletion for efficiency. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
+    'Deletes a consecutive range of blocks from a Feishu document identified by startIndex (inclusive) and endIndex (exclusive). ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
@@ -151,7 +156,15 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         Logger.info(`开始删除飞书文档块，文档ID: ${documentId}，父块ID: ${parentBlockId}，索引范围: ${startIndex}-${endIndex}`);
         const result = await feishuService.deleteDocumentBlocks(documentId, parentBlockId, startIndex, endIndex);
         Logger.info(`飞书文档块删除成功，文档修订ID: ${result.document_revision_id}`);
-        return { content: [{ type: 'text', text: `块删除成功，索引范围: ${startIndex} 至 ${endIndex - 1}` }] };
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              deletedRange: { startIndex, endIndex },
+              document_revision_id: result.document_revision_id,
+            }, null, 2),
+          }],
+        };
       } catch (error) {
         Logger.error(`删除飞书文档块失败:`, error);
         return errorResponse(`删除飞书文档块失败: ${formatErrorMessage(error)}`);
@@ -162,7 +175,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加获取图片资源工具
   server.tool(
     'get_feishu_image_resource',
-    'Downloads an image resource from Feishu by its media ID. Use this to retrieve images referenced in document blocks or other Feishu resources. Returns the binary image data that can be saved or processed further. For example, extract the media_id from an image block in a document, then use this tool to download the actual image.',
+    'Downloads an image resource from Feishu by its media ID and returns binary image data. To get the mediaId, extract block.image.token from an image block (block_type=27) returned by get_feishu_document_blocks.',
     {
       mediaId: MediaIdSchema,
       extra: MediaExtraSchema,
@@ -212,19 +225,19 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
             const setContentResult = await feishuService.setImageBlockContent(documentId, blockId, uploadResult.file_token);
             Logger.info('图片上传并绑定完成');
 
+            const { client_token: _ct, ...blockResult } = (setContentResult as any)?.block ?? {};
             results.push({
               blockId,
               fileToken: uploadResult.file_token,
-              uploadResult,
-              setContentResult,
-              documentRevisionId: setContentResult.document_revision_id,
+              block: blockResult,
+              document_revision_id: setContentResult.document_revision_id,
             });
           } catch (err) {
             Logger.error(`上传图片并绑定到块失败:`, err);
             results.push({ blockId, error: err instanceof Error ? err.message : String(err) });
           }
         }
-        return { content: [{ type: 'text', text: `批量图片上传绑定结果：\n${JSON.stringify(results, null, 2)}` }] };
+        return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
       } catch (error) {
         Logger.error(`批量上传图片并绑定到块失败:`, error);
         return errorResponse(`批量上传图片并绑定到块失败: ${formatErrorMessage(error)}`);
@@ -235,7 +248,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加创建飞书表格工具
   server.tool(
     'create_feishu_table',
-    'Creates a table block in a Feishu document with specified rows and columns. Each cell can contain different types of content blocks (text, lists, code, etc.). This tool creates the complete table structure including table cells and their content. Note: For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info to get document information, then use the returned documentId for editing operations.',
+    'Creates a table block with specified rows and columns in a Feishu document. Each cell can contain text, list, code, or other block types. ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
@@ -247,16 +260,27 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         Logger.info(`开始创建飞书表格，文档ID: ${documentId}，父块ID: ${parentBlockId}，表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}，插入位置: ${index}`);
         const result = await feishuService.createTableBlock(documentId, parentBlockId, tableConfig, index);
 
-        let resultText = `表格创建成功！\n\n表格大小: ${tableConfig.rowSize}x${tableConfig.columnSize}\n`;
-        if (result.imageTokens && result.imageTokens.length > 0) {
-          resultText += `\n\n📸 发现 ${result.imageTokens.length} 个图片:\n`;
-          result.imageTokens.forEach((imageToken: any, idx: number) => {
-            resultText += `${idx + 1}. 坐标(${imageToken.row}, ${imageToken.column}) - blockId: ${imageToken.blockId}\n`;
-          });
-          resultText += '你需要使用 upload_and_bind_image_to_block 工具绑定图片';
+        // 从 block_id_relations 中提取坐标 → cellBlockId 的映射（排除子块和表格本身）
+        const relations: Array<{ block_id: string; temporary_block_id: string }> = result.block_id_relations ?? [];
+        const cellMap: Array<{ row: number; column: number; cellBlockId: string }> = [];
+        const tableBlockId = relations.find((r: any) => /^table_\d/.test(r.temporary_block_id))?.block_id;
+        for (const rel of relations) {
+          const m = rel.temporary_block_id.match(/^table_cell(\d+)_(\d+)$/);
+          if (m) cellMap.push({ row: Number(m[1]), column: Number(m[2]), cellBlockId: rel.block_id });
         }
-        resultText += `\n\n完整结果:\n${JSON.stringify(result, null, 2)}`;
-        return { content: [{ type: 'text', text: resultText }] };
+
+        const response: Record<string, unknown> = {
+          document_revision_id: result.document_revision_id,
+          tableBlockId,
+          cells: cellMap,
+        };
+        if (result.imageTokens?.length > 0) {
+          response.imageBlocks = result.imageTokens.map((t: any) => ({
+            row: t.row, column: t.column, blockId: t.blockId,
+          }));
+          response.imageReminder = 'Use upload_and_bind_image_to_block to bind images to the listed blockIds.';
+        }
+        return { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] };
       } catch (error) {
         Logger.error(`创建飞书表格失败:`, error);
         return errorResponse(`创建飞书表格失败: ${formatErrorMessage(error)}`);
@@ -301,7 +325,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
   // 添加批量填充画板工具（支持 PlantUML 和 Mermaid）
   server.tool(
     'fill_whiteboard_with_plantuml',
-    'Batch fills multiple whiteboard blocks with diagram content (PlantUML or Mermaid). Use this tool after creating whiteboard blocks with batch_create_feishu_blocks tool. Each item in the array should contain whiteboardId (the token from board.token field), code and syntax_type. Supports both PlantUML (syntax_type: 1) and Mermaid (syntax_type: 2) formats. Returns detailed results including which whiteboards were filled successfully and which failed, along with failure reasons. The same whiteboard can be filled multiple times.',
+    'Fills whiteboard blocks with PlantUML or Mermaid diagram code. Accepts any number of whiteboards. Returns per-item success/failure details.',
     {
       whiteboards: WhiteboardFillArraySchema,
     },
@@ -317,11 +341,12 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
         let failCount = 0;
 
         for (const [i, { whiteboardId, code, syntax_type }] of whiteboards.entries()) {
-          const syntaxTypeName = syntax_type === 1 ? 'PlantUML' : 'Mermaid';
+          const syntaxTypeNumber = syntax_type === 'plantuml' ? 1 : 2;
+          const syntaxTypeName = syntax_type === 'plantuml' ? 'PlantUML' : 'Mermaid';
           Logger.info(`处理第 ${i + 1}/${whiteboards.length} 个画板，画板ID: ${whiteboardId}，语法类型: ${syntaxTypeName}`);
 
           try {
-            const result = await feishuService.createDiagramNode(whiteboardId, code, syntax_type);
+            const result = await feishuService.createDiagramNode(whiteboardId, code, syntaxTypeNumber);
             Logger.info(`画板填充成功，画板ID: ${whiteboardId}`);
             successCount++;
             results.push({ whiteboardId, syntaxType: syntaxTypeName, status: 'success', nodeId: result.node_id, result });
