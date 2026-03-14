@@ -7,11 +7,10 @@ import { detectMimeType } from '../../utils/document.js';
 import {
   DocumentIdSchema,
   ParentBlockIdSchema,
-  BlockIdSchema,
   IndexSchema,
   StartIndexSchema,
   EndIndexSchema,
-  TextElementsArraySchema,
+  BlockTextUpdatesArraySchema,
   BlockConfigSchema,
   MediaIdSchema,
   MediaExtraSchema,
@@ -36,25 +35,32 @@ import {
  */
 export function registerBlockTools(server: McpServer, feishuService: FeishuApiService): void {
 
-  // 添加更新块文本内容工具
+  // 批量更新块文本内容工具
   server.tool(
-    'update_feishu_block_text',
-    'Updates the text content and styling of an existing text, heading, or code block. Only updates text elements; does not modify block-type-specific properties (e.g., language or wrap for code blocks). ' + WIKI_NOTE,
+    'batch_update_feishu_block_text',
+    'Updates text content and styling of multiple document blocks. ' + WIKI_NOTE,
     {
       documentId: DocumentIdSchema,
-      blockId: BlockIdSchema,
-      textElements: TextElementsArraySchema,
+      updates: BlockTextUpdatesArraySchema,
     },
-    async ({ documentId, blockId, textElements }) => {
+    async ({ documentId, updates }) => {
       try {
-        Logger.info(`开始更新飞书块文本内容，文档ID: ${documentId}，块ID: ${blockId}`);
-        const result = await feishuService.updateBlockTextContent(documentId, blockId, textElements);
-        Logger.info(`飞书块文本内容更新成功`);
-        const { client_token: _ct, ...cleanResult } = result as any;
-        return { content: [{ type: 'text', text: JSON.stringify(cleanResult, null, 2) }] };
+        Logger.info(`开始批量更新飞书块文本，文档ID: ${documentId}，块数量: ${updates.length}`);
+        const result = await feishuService.batchUpdateBlocksTextContent(documentId, updates);
+        Logger.info(`飞书块文本批量更新成功，共更新 ${updates.length} 个块`);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              updatedCount: updates.length,
+              blockIds: updates.map(u => u.blockId),
+              document_revision_id: (result as any)?.document_revision_id,
+            }, null, 2),
+          }],
+        };
       } catch (error) {
-        Logger.error(`更新飞书块文本内容失败:`, error);
-        return errorResponse(`更新飞书块文本内容失败: ${formatErrorMessage(error)}`);
+        Logger.error(`批量更新飞书块文本内容失败:`, error);
+        return errorResponse(`批量更新飞书块文本内容失败: ${formatErrorMessage(error)}`);
       }
     },
   );
@@ -108,10 +114,9 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
           } catch (batchError) {
             Logger.error(`第 ${batchNum + 1}/${totalBatches} 批创建失败:`, batchError);
             return errorResponse(
-              `批量创建飞书块部分失败：第 ${batchNum + 1}/${totalBatches} 批处理时出错。\n\n` +
-              `已成功创建 ${createdBlocksCount} 个块，还有 ${blocks.length - createdBlocksCount} 个块未能创建。\n\n` +
+              `批量创建飞书块失败：已成功创建 ${createdBlocksCount} 个块，还有 ${blocks.length - createdBlocksCount} 个块未能创建。\n\n` +
               `错误信息: ${formatErrorMessage(batchError)}\n\n` +
-              `建议使用 get_feishu_document_blocks 工具获取文档最新状态，确认已创建的内容，然后从索引位置 ${currentStartIndex} 继续创建剩余块。`,
+              `如需继续，请使用 get_feishu_document_blocks 确认当前状态后，从索引位置 ${currentStartIndex} 继续创建剩余块。`,
             );
           }
         }
@@ -123,7 +128,6 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
           content: [{
             type: 'text',
             text: JSON.stringify({
-              totalBatches,
               totalBlocksCreated: createdBlocksCount,
               nextIndex: currentStartIndex,
               document_revision_id: results[results.length - 1]?.document_revision_id,
@@ -234,7 +238,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
             });
           } catch (err) {
             Logger.error(`上传图片并绑定到块失败:`, err);
-            results.push({ blockId, error: err instanceof Error ? err.message : String(err) });
+            results.push({ blockId, error: formatErrorMessage(err) });
           }
         }
         return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
@@ -349,7 +353,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
             const result = await feishuService.createDiagramNode(whiteboardId, code, syntaxTypeNumber);
             Logger.info(`画板填充成功，画板ID: ${whiteboardId}`);
             successCount++;
-            results.push({ whiteboardId, syntaxType: syntaxTypeName, status: 'success', nodeId: result.node_id, result });
+            results.push({ whiteboardId, syntaxType: syntaxTypeName, status: 'success', nodeId: result.node_id });
           } catch (err: unknown) {
             Logger.error(`画板填充失败，画板ID: ${whiteboardId}`, err);
             failCount++;
@@ -358,7 +362,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
               whiteboardId,
               syntaxType: syntaxTypeName,
               status: 'failed',
-              error: { message, code: errorCode, logId, details: err },
+              error: { message, code: errorCode, logId },
             });
           }
         }

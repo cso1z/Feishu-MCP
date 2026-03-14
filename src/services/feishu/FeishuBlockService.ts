@@ -54,6 +54,34 @@ export class FeishuBlockService extends FeishuBaseApiService {
   }
 
   /**
+   * 批量更新多个块的文本内容（一次 API 调用）
+   * @param documentId 文档 ID 或 URL
+   * @param updates 更新项数组，每项包含 blockId 和 textElements
+   * @returns 更新结果
+   */
+  public async batchUpdateBlocksTextContent(
+    documentId: string,
+    updates: Array<{ blockId: string; textElements: Array<{ text?: string; equation?: string; style?: any }> }>
+  ): Promise<any> {
+    const docId = ParamUtils.processDocumentId(documentId);
+    const endpoint = `/docx/v1/documents/${docId}/blocks/batch_update?document_revision_id=-1`;
+
+    const requests = updates.map(({ blockId, textElements }) => ({
+      block_id: blockId,
+      update_text_elements: {
+        elements: textElements.map(item =>
+          item.equation !== undefined
+            ? { equation: { content: item.equation, text_element_style: BlockFactory.applyDefaultTextStyle(item.style) } }
+            : { text_run: { content: item.text || '', text_element_style: BlockFactory.applyDefaultTextStyle(item.style) } }
+        ),
+      },
+    }));
+
+    Logger.debug(`批量更新块文本请求数据: ${JSON.stringify({ requests }, null, 2)}`);
+    return await this.patch(endpoint, { requests });
+  }
+
+  /**
    * 在指定父块下创建单个子块
    * @param documentId 文档 ID 或 URL
    * @param parentBlockId 父块 ID，子块将插入到该块的子节点列表中

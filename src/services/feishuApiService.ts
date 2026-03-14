@@ -110,6 +110,17 @@ export class FeishuApiService {
   }
 
   /**
+   * 批量更新多个块的文本内容（一次 API 调用）
+   * @see FeishuBlockService.batchUpdateBlocksTextContent
+   */
+  public async batchUpdateBlocksTextContent(
+    documentId: string,
+    updates: Array<{ blockId: string; textElements: Array<{ text?: string; equation?: string; style?: any }> }>
+  ): Promise<any> {
+    return this.blockService.batchUpdateBlocksTextContent(documentId, updates);
+  }
+
+  /**
    * 在指定父块下批量创建多个子块
    * @see FeishuBlockService.createDocumentBlocks
    */

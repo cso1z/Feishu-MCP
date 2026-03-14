@@ -74,7 +74,7 @@ export const TextStylePropertiesSchema = {
 
 // 文本样式对象定义
 export const TextStyleSchema = z.object(TextStylePropertiesSchema).optional().describe(
-  'Text style settings. Explicitly set style properties instead of relying on Markdown syntax conversion.'
+  'Text style settings (optional). Omit entirely for unstyled text; only set properties that differ from the default (false).'
 );
 
 // 文本内容单元定义 - 支持普通文本和公式元素
@@ -92,6 +92,18 @@ export const TextElementSchema = z.union([
 // 文本内容数组定义
 export const TextElementsArraySchema = z.array(TextElementSchema).describe(
   'Array of text content objects. A block can contain multiple text segments with different styles. Example: [{text:"Hello",style:{bold:true}},{text:" World",style:{italic:true}}]'
+);
+
+// 单块文本更新项定义
+export const BlockTextUpdateItemSchema = z.object({
+  blockId: z.string().describe('Block ID (required). The ID of the block to update.'),
+  textElements: TextElementsArraySchema,
+}).describe('A single block text update item: target blockId and its new text content.');
+
+// 批量更新块文本数组定义
+export const BlockTextUpdatesArraySchema = z.array(BlockTextUpdateItemSchema).min(1).describe(
+  'Array of block text update items (required, at least 1). ' +
+  'Example: [{blockId:"xxx",textElements:[{text:"Hello",style:{bold:true}}]},{blockId:"yyy",textElements:[{text:"World"}]}]'
 );
 
 // 代码块语言参数定义
