@@ -28,7 +28,7 @@ export abstract class FeishuBaseApiService extends BaseApiService {
     Logger.debug(`[FeishuBaseApiService] 获取访问令牌，authType: ${authType}, clientKey: ${clientKey}`);
 
     if (enableScopeValidation) {
-      await this.scopeValidator.validateScopeWithVersion(appId, appSecret, authType);
+      await this.scopeValidator.validateScopeWithVersion(appId, appSecret, authType, clientKey);
     } else {
       Logger.debug('权限检查已禁用，跳过scope校验');
     }

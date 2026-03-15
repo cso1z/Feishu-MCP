@@ -9,8 +9,11 @@
 #### 1. 点击我们第一步创建的应用
 ![进入应用详情](image/entry_application_detail.png)
 #### 2. 导入权限
-![导入权限](image/Import_permissions.png)   
-全下如下
+![导入权限](image/Import_permissions.png)
+
+> **按需导入**：需要哪些模块功能就导入哪个权限。仅用文档则导入文档模块，需要任务管理则导入任务模块，需要用户查询则导入成员模块。使用多个模块时，将各模块的 `tenant` 和 `user` 数组分别合并后导入。
+
+**文档模块**（tenant / user 均需）
 ```
 {
   "scopes": {
@@ -69,6 +72,39 @@
   }
 }
 ```
+
+**任务模块**（仅 user 认证时需，用于任务管理）
+```
+{
+  "scopes": {
+    "tenant": [
+      "task:task:write"
+    ],
+    "user": [
+      "task:task:write"
+    ]
+  }
+}
+```
+
+**成员模块**（仅 user 认证时需，用于用户查询）
+```
+{
+  "scopes": {
+    "tenant": [
+      "contact:contact.base:readonly",
+      "contact:user.base:readonly",
+    ],
+    "user": [
+      "contact:contact.base:readonly",
+      "contact:user.base:readonly",
+      "contact:user:search",
+      "contact:user.employee_id:readonly"
+    ]
+  }
+}
+```
+
 #### 3. 发布审批应用（注：**可用范围选择全部**）
 ![发布审批应用](image/release.png)
 #### 4. 等待管理员审批通过

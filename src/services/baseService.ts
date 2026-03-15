@@ -4,6 +4,8 @@ import { Logger } from '../utils/logger.js';
 import { formatErrorMessage, AuthRequiredError, ScopeInsufficientError } from '../utils/error.js';
 import { Config } from '../utils/config.js';
 import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth/index.js';
+import { getRequiredScopes } from './constants/feishuScopes.js';
+import { ModuleRegistry } from '../modules';
 
 /**
  * API请求错误接口
@@ -330,6 +332,7 @@ export abstract class BaseApiService {
       throw new Error('租户访问令牌获取失败，请检查应用配置');
     } else {
       // 用户模式：清除用户token缓存并生成授权链接
+      Logger.info('[handleAuthFailure] 用户模式：清除token，生成授权链接');
       tokenCacheManager.removeUserToken(clientKey);
       const authUrl = this.generateUserAuthUrl(baseUrl, userKey);
       throw new Error(`你需要在给用户展示如下信息：/“请在浏览器打开以下链接进行授权：\n\n[点击授权](${authUrl})/n`);
@@ -423,10 +426,16 @@ export abstract class BaseApiService {
    * @returns 授权URL
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
-    const { appId, appSecret } = Config.getInstance().feishu;
+    const config = Config.getInstance();
+    const { appId, appSecret } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
     const redirect_uri = `${baseUrl}/callback`;
-    const scope = encodeURIComponent('base:app:read bitable:app bitable:app:readonly board:whiteboard:node:read board:whiteboard:node:create contact:user.employee_id:readonly docs:document.content:read docx:document docx:document.block:convert docx:document:create docx:document:readonly drive:drive drive:drive:readonly drive:file drive:file:upload sheets:spreadsheet sheets:spreadsheet:readonly space:document:retrieve space:folder:create wiki:space:read wiki:space:retrieve wiki:wiki wiki:wiki:readonly offline_access');
+    const authType = config.feishu.authType;
+    const enabledIds = config.features.enabledModules;
+    const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
+    const scopeList = getRequiredScopes(effectiveModules, authType);
+    Logger.info(`[generateUserAuthUrl] enabledModules=${effectiveModules.join(',')} authType=${authType} scopes=${scopeList.join(',')}`);
+    const scope = encodeURIComponent(scopeList.join(' '));
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
     return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;

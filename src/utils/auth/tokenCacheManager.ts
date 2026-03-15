@@ -272,7 +272,7 @@ export class TokenCacheManager {
     const result = this.cache.delete(cacheKey);
 
     if (result) {
-      this.saveUserTokenCache();
+      this.saveTenantTokenCache();
       Logger.debug(`租户token删除成功: ${key}`);
     }
 

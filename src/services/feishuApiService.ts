@@ -1,10 +1,21 @@
 import { AuthService } from './feishuAuthService.js';
-import { BlockFactory } from './blockFactory.js';
-import { FeishuDocumentService } from './feishu/FeishuDocumentService.js';
-import { FeishuBlockService } from './feishu/FeishuBlockService.js';
-import { FeishuFoldService } from './feishu/FeishuFoldService.js';
-import { FeishuSearchService } from './feishu/FeishuSearchService.js';
-import { FeishuWhiteboardService } from './feishu/FeishuWhiteboardService.js';
+import { BlockFactory } from '../modules/document/services/blockFactory';
+import { FeishuDocumentService } from '../modules/document/services/FeishuDocumentService';
+import { FeishuBlockService } from '../modules/document/services/FeishuBlockService';
+import { FeishuFoldService } from '../modules/document/services/FeishuFoldService';
+import { FeishuSearchService } from '../modules/document/services/FeishuSearchService';
+import { FeishuWhiteboardService } from '../modules/document/services/FeishuWhiteboardService';
+import {
+  FeishuTaskService,
+  type CreateTaskParams,
+  type RootNestedCreateItem,
+  type CreatedTaskResult,
+  type UpdateTaskParams,
+  type TaskMember,
+  type TaskMemberRemoveItem,
+} from '../modules/task/services/FeishuTaskService.js';
+import { FeishuCalendarService } from '../modules/calendar/services/FeishuCalendarService.js';
+import { FeishuMemberService } from '../modules/member/services/FeishuMemberService.js';
 
 /**
  * 飞书 API 服务门面（Facade）
@@ -19,6 +30,9 @@ import { FeishuWhiteboardService } from './feishu/FeishuWhiteboardService.js';
  * - 文件夹/知识空间操作  → {@link FeishuFoldService}
  * - 搜索                 → {@link FeishuSearchService}
  * - 画板                 → {@link FeishuWhiteboardService}
+ * - 任务                 → {@link FeishuTaskService}
+ * - 日历                 → {@link FeishuCalendarService}
+ * - 成员/通讯录          → {@link FeishuMemberService}
  */
 export class FeishuApiService {
   private static instance: FeishuApiService;
@@ -28,7 +42,10 @@ export class FeishuApiService {
     private readonly blockService: FeishuBlockService,
     private readonly foldService: FeishuFoldService,
     private readonly searchService: FeishuSearchService,
-    private readonly whiteboardService: FeishuWhiteboardService
+    private readonly whiteboardService: FeishuWhiteboardService,
+    private readonly taskService: FeishuTaskService,
+    private readonly calendarService: FeishuCalendarService,
+    private readonly memberService: FeishuMemberService,
   ) {}
 
   /** 组装所有领域服务并返回 FeishuApiService 新实例 */
@@ -40,13 +57,19 @@ export class FeishuApiService {
     const foldService = new FeishuFoldService(authService);
     const searchService = new FeishuSearchService(authService);
     const whiteboardService = new FeishuWhiteboardService(authService);
+    const taskService = new FeishuTaskService(authService);
+    const calendarService = new FeishuCalendarService(authService);
+    const memberService = new FeishuMemberService(authService);
 
     return new FeishuApiService(
       documentService,
       blockService,
       foldService,
       searchService,
-      whiteboardService
+      whiteboardService,
+      taskService,
+      calendarService,
+      memberService,
     );
   }
 
@@ -334,5 +357,93 @@ export class FeishuApiService {
    */
   public async createDiagramNode(whiteboardId: string, code: string, syntaxType: number): Promise<any> {
     return this.whiteboardService.createDiagramNode(whiteboardId, code, syntaxType);
+  }
+
+  // ─── 任务服务委托 ─────────────────────────────────────────────────
+
+  /** @see FeishuTaskService.createTask */
+  public async createTask(params: CreateTaskParams): Promise<any> {
+    return this.taskService.createTask(params);
+  }
+
+  /** @see FeishuTaskService.createTasksNested. Supports multi-level subTasks. */
+  public async createTasksNested(
+    rootItems: RootNestedCreateItem[],
+    options?: { maxDepth?: number },
+  ): Promise<{ results: CreatedTaskResult[]; errors: { path: string; error: string }[] }> {
+    return this.taskService.createTasksNested(rootItems, options);
+  }
+
+  /** @see FeishuTaskService.updateTask */
+  public async updateTask(taskGuid: string, params: UpdateTaskParams): Promise<any> {
+    return this.taskService.updateTask(taskGuid, params);
+  }
+
+  /** @see FeishuTaskService.addTaskMembers */
+  public async addTaskMembers(taskGuid: string, members: TaskMember[]): Promise<any> {
+    return this.taskService.addTaskMembers(taskGuid, members);
+  }
+
+  /** @see FeishuTaskService.removeTaskMembers */
+  public async removeTaskMembers(taskGuid: string, members: TaskMemberRemoveItem[]): Promise<any> {
+    return this.taskService.removeTaskMembers(taskGuid, members);
+  }
+
+  /** @see FeishuTaskService.addTaskReminder. Task must have due; only one reminder per task. */
+  public async addTaskReminder(taskGuid: string, relativeFireMinute: number): Promise<any> {
+    return this.taskService.addTaskReminder(taskGuid, relativeFireMinute);
+  }
+
+  /** @see FeishuTaskService.removeTaskReminders */
+  public async removeTaskReminders(taskGuid: string, reminderIds: string[]): Promise<any> {
+    return this.taskService.removeTaskReminders(taskGuid, reminderIds);
+  }
+
+  /** @see FeishuTaskService.listTasksTwoPages. Lists "my_tasks" (我负责的), 2 pages (up to 100 items), slimmed fields. Requires user token. */
+  public async listTasks(pageToken?: string, completed?: boolean): Promise<{ items: any[]; page_token?: string; has_more: boolean }> {
+    return this.taskService.listTasksTwoPages(pageToken, completed);
+  }
+
+  /** @see FeishuTaskService.deleteTask */
+  public async deleteTask(taskGuid: string): Promise<void> {
+    return this.taskService.deleteTask(taskGuid);
+  }
+
+  /** 批量删除任务。逐条调用 deleteTask，返回已删除的 guid 与每项错误。 */
+  public async deleteTasks(taskGuids: string[]): Promise<{ deleted: string[]; errors: { taskGuid: string; error: string }[] }> {
+    const deleted: string[] = [];
+    const errors: { taskGuid: string; error: string }[] = [];
+    for (const guid of taskGuids) {
+      try {
+        await this.taskService.deleteTask(guid);
+        deleted.push(guid);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push({ taskGuid: guid, error: msg });
+      }
+    }
+    return { deleted, errors };
+  }
+
+  // ─── 日历服务委托 ─────────────────────────────────────────────────
+
+  /** @see FeishuCalendarService - 供 calendarTools 等调用 */
+  public getCalendarService(): FeishuCalendarService {
+    return this.calendarService;
+  }
+
+  // ─── 成员搜索服务委托 ──────────────────────────────────────────────
+
+  /** @see FeishuMemberService.searchUsers */
+  public async searchUsers(query: string, pageToken?: string): Promise<any> {
+    return this.memberService.searchUsers(query, pageToken);
+  }
+
+  /** @see FeishuMemberService.batchGetUsers */
+  public async getUsersBatch(
+    userIds: string[],
+    userIdType: 'open_id' | 'union_id' | 'user_id' = 'open_id',
+  ): Promise<{ items: any[] }> {
+    return this.memberService.batchGetUsers(userIds, userIdType);
   }
 }

@@ -4,17 +4,21 @@
 [![npm version](https://img.shields.io/npm/v/feishu-mcp?color=blue&label=npm)](https://www.npmjs.com/package/feishu-mcp)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-为 [Cursor](https://cursor.sh/)、[Windsurf](https://codeium.com/windsurf)、[Cline](https://cline.bot/) 和其他 AI 驱动的编码工具提供访问、编辑和结构化处理飞书文档的能力，基于 [Model Context Protocol](https://modelcontextprotocol.io/introduction) 服务器实现。
+为 [Cursor](https://cursor.sh/)、[Windsurf](https://codeium.com/windsurf)、[Cline](https://cline.bot/) 和其他 AI 驱动的编码工具提供访问、编辑和结构化处理飞书文档的能力，**并支持飞书任务管理和用户信息查询**，基于 [Model Context Protocol](https://modelcontextprotocol.io/introduction) 服务器实现。
 
-本项目让 AI 编码工具能够直接获取和理解飞书文档的结构化内容，显著提升文档处理的智能化和效率。
+本项目让 AI 编码工具能够：
+- **文档处理**：直接获取、理解、创建和编辑飞书文档，显著提升文档处理的智能化和效率
+- **任务管理**：列取、创建、更新、删除飞书任务，支持子任务和成员管理（需 user 认证）
+- **用户信息**：按名称搜索或按 ID 批量获取飞书用户，便于任务分配和文档协作（需 user 认证）
 
 **完整覆盖飞书文档的真实使用流程，助你高效利用文档资源：**
 1. **文件夹目录获取**：快速获取和浏览飞书文档文件夹下的所有文档，便于整体管理和查找。
 2. **内容获取与理解**：支持结构化、分块、富文本等多维度内容读取，AI 能精准理解文档上下文。
 3. **智能创建与编辑**：可自动创建新文档、批量生成和编辑内容，满足多样化写作需求。
 4. **高效检索与搜索**：内置关键字搜索，帮助你在大量文档中迅速找到目标信息。
+5. **任务管理与用户查询**：支持飞书任务 CRUD 及用户信息搜索，便于在文档中关联任务和人员。
 
-本项目让你在飞书文档的日常使用流程中实现智能获取、编辑和搜索，提升内容处理效率和体验。
+本项目让你在飞书文档的日常使用流程中实现智能获取、编辑和搜索，并扩展任务与用户管理能力，提升内容处理效率和体验。
 
 ### 🎬 使用演示视频
 
@@ -53,6 +57,12 @@
 | | 流程图插入(画板形式)                          | 支持流程图和思维导图  | 流程梳理和可视化                 | ✅ 已完成   |
 | 图片插入  | `upload_and_bind_image_to_block`     | 支持插入本地和远程图片 | 修改文档内容                   | ✅ 已完成 |
 | | 公式支持                                 | 支持数学公式      | 学术和技术文档                  | ✅ 已完成 |
+| | | | | |
+| **任务管理** | `list_feishu_tasks`                  | 列取我负责的任务     | 查看待办/已完成任务               | ✅ 已完成 |
+| | `create_feishu_task`                  | 批量创建任务（含子任务） | 新建任务、拆分子任务              | ✅ 已完成 |
+| | `update_feishu_task`                  | 更新任务         | 修改内容、成员、提醒               | ✅ 已完成 |
+| | `delete_feishu_task`                  | 批量删除任务       | 清理任务                       | ✅ 已完成 |
+| **用户信息** | `get_feishu_users`                   | 按名称搜索或按 ID 批量获取用户 | 查找成员、任务分配               | ✅ 已完成 |
 
 ### 🎨 支持的样式功能（基本支持md所有格式）
 
@@ -90,7 +100,9 @@
 - ~~**stdio模式user认证问题**：修复stdio模式下飞书user认证失败问题~~ 0.1.9 ✅
 - ~~**权限检查功能可配置化**：将权限检查功能作为可配置选项，支持通过环境变量 `FEISHU_SCOPE_VALIDATION` 或命令行参数 `--feishu-scope-validation` 控制，默认启用，满足不同用户的使用场景~~ 0.2.0 ✅
 - ~~**优化缓存目录:把token等缓存保存到系统级的配置目录~~ 0.2.2 ✅ 感谢 [Molunerfinn](https://github.com/Molunerfinn)、[leeeezx](https://github.com/leeeezx)、[Master-cai](https://github.com/Master-cai) 三位朋友的建议及代码贡献
-- ~~**优化mcpTool相关代码**：重新构建代码结构，以便为未来添加更多功能奠定基础~~ 0.2.3✅
+- ~~**优化mcpTool相关代码**：重新构建代码结构，以便为未来添加更多功能奠定基础~~ 0.2.3 ✅
+- ~~**支持任务管理**：列取、创建、更新、删除飞书任务，支持子任务和成员管理~~ 0.2.4 ✅
+- ~~**支持用户信息查询**：按名称搜索或按 ID 批量获取用户，便于任务分配和文档协作~~ 0.2.4 ✅
 ---
 
 ## 🔧 飞书配置教程
@@ -108,7 +120,7 @@
 ### 方式一：使用 NPM 快速运行
 
 ```bash
-npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user>
+npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret=<你的飞书应用密钥> --feishu-auth-type=<tenant/user> --enabled-modules=<document,task>
 ```
 
 ### 方式二：本地运行
@@ -127,6 +139,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    FEISHU_APP_SECRET=xxxxx
    PORT=3333
    FEISHU_AUTH_TYPE=tenant/user
+   FEISHU_ENABLED_MODULES=document,task
    ```
 
 4. **运行服务器**
@@ -162,7 +175,18 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
+| `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
 | `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |
+
+### 功能模块说明
+
+| 模块 | 说明 | 认证要求 |
+|------|------|----------|
+| `document` | 文档、文件夹、搜索等 | tenant / user |
+| `task` | 任务 CRUD | 仅 user |
+| `calendar` | 日历（开发中） | 仅 user |
+| `member` | 用户信息查询 | 仅 user |
+| `all` | 启用全部模块 | user 时全部加载 |
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
@@ -176,6 +200,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
         "FEISHU_APP_ID": "<你的飞书应用ID>",
         "FEISHU_APP_SECRET": "<你的飞书应用密钥>",
         "FEISHU_AUTH_TYPE": "<tenant/user>",
+        "FEISHU_ENABLED_MODULES": "document,task",
         "FEISHU_USER_KEY": "<你的用户标识>"
       }
     },
@@ -209,6 +234,9 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 5. ### **强烈建议使用user认证**：
    tenant认证有诸多限制，比如文件访问权限、飞书openapi兼容(不支持搜索wiki文档)、文档创建编辑记录等方面都不如user认证。
+
+6. ### **任务与用户信息功能**：
+   想用 AI 帮你管理飞书任务（列出待办、创建任务、分配负责人）或查找同事信息？需要两步：① 使用 **user 认证**（tenant 模式下不提供这些能力）；② 在配置中设置 `FEISHU_ENABLED_MODULES=document,task`。启用 task 后，用户查询功能会自动可用，无需额外配置。
 
 ---
 ## 🚨 故障排查

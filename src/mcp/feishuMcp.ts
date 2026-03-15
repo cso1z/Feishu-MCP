@@ -1,13 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { FeishuApiService } from '../services/feishuApiService.js';
 import { Logger } from '../utils/logger.js';
-import { registerDocumentTools } from './tools/documentTools.js';
-import { registerBlockTools } from './tools/blockTools.js';
-import { registerFolderTools } from './tools/folderTools.js';
+import { Config } from '../utils/config.js';
+import { ModuleRegistry } from '../modules/ModuleRegistry.js';
 
 export const serverInfo = {
   name: "Feishu MCP Server",
-  version: "0.2.3",
+  version: "0.2.4",
 };
 
 const serverOptions = {
@@ -16,34 +15,25 @@ const serverOptions = {
 
 /**
  * 飞书MCP服务类
- * 继承自McpServer，提供飞书工具注册和初始化功能
+ * 继承自McpServer，根据 FEISHU_ENABLED_MODULES 配置动态注册工具
  */
 export class FeishuMcp extends McpServer {
   private feishuService: FeishuApiService | null = null;
 
-  /**
-   * 构造函数
-   */
   constructor() {
     super(serverInfo, serverOptions);
-    
-    // 初始化飞书服务
+
     this.initFeishuService();
-    
-    // 注册所有工具（initFeishuService 失败时 feishuService 为 null，此处提前终止）
+
     if (!this.feishuService) {
       Logger.error('无法注册飞书工具: 飞书服务初始化失败');
       throw new Error('飞书服务初始化失败');
     }
-    this.registerAllTools(this.feishuService);
+    this.registerModuleTools(this.feishuService);
   }
 
-  /**
-   * 初始化飞书API服务
-   */
   private initFeishuService(): void {
     try {
-      // 使用单例模式获取飞书服务实例
       this.feishuService = FeishuApiService.getInstance();
       Logger.info('飞书服务初始化成功');
     } catch (error) {
@@ -53,11 +43,31 @@ export class FeishuMcp extends McpServer {
   }
 
   /**
-   * 注册所有飞书MCP工具
+   * 根据已启用模块动态注册 MCP 工具
+   * task、calendar、member 仅 user 认证时加载
    */
-  private registerAllTools(service: FeishuApiService): void {
-    registerDocumentTools(this, service);
-    registerBlockTools(this, service);
-    registerFolderTools(this, service);
+  private registerModuleTools(service: FeishuApiService): void {
+    const config = Config.getInstance();
+    const enabledIds = config.features.enabledModules;
+    const authType = config.feishu.authType;
+    const enabledModules = ModuleRegistry.getEnabledModules(enabledIds, authType);
+
+    if (authType === 'tenant' && (enabledIds.includes('task') || enabledIds.includes('calendar') || enabledIds.includes('all'))) {
+      Logger.info('task、calendar、member 模块需 user 认证，当前为 tenant 模式，已跳过');
+    }
+
+    if (enabledModules.length === 0) {
+      Logger.warn(`未找到有效的功能模块，请检查 FEISHU_ENABLED_MODULES 配置（当前值: ${enabledIds.join(', ')}）`);
+      Logger.warn(`可用模块: ${ModuleRegistry.getAllModuleIds().join(', ')}`);
+      return;
+    }
+
+    const toolCounts: string[] = [];
+    for (const mod of enabledModules) {
+      mod.registerTools(this, service);
+      toolCounts.push(`${mod.name}(${mod.id})`);
+    }
+
+    Logger.info(`已加载 ${enabledModules.length} 个功能模块: ${toolCounts.join(', ')}`);
   }
-} 
+}

@@ -3,6 +3,7 @@ import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 import { Logger, LogLevel } from './logger.js';
 import { serverInfo } from '../mcp/feishuMcp.js';
+import { ModuleRegistry } from '../modules/ModuleRegistry.js';
 
 /**
  * 配置来源枚举
@@ -54,6 +55,14 @@ export interface CacheConfig {
 }
 
 /**
+ * 功能模块配置接口
+ */
+export interface FeaturesConfig {
+  /** 已启用的模块 ID 列表，如 ['document', 'task']，特殊值 'all' 表示全部启用 */
+  enabledModules: string[];
+}
+
+/**
  * 应用配置管理类
  * 统一管理所有配置，支持环境变量、命令行参数和默认值
  */
@@ -64,6 +73,7 @@ export class Config {
   public readonly feishu: FeishuConfig;
   public readonly log: LogConfig;
   public readonly cache: CacheConfig;
+  public readonly features: FeaturesConfig;
   
   public readonly configSources: {
     [key: string]: ConfigSource;
@@ -93,6 +103,9 @@ export class Config {
     
     // 配置缓存
     this.cache = this.initCacheConfig(argv);
+
+    // 配置功能模块
+    this.features = this.initFeaturesConfig(argv);
   }
   
   /**
@@ -156,6 +169,10 @@ export class Config {
         'user-key': {
           type: 'string',
           description: 'stdio 模式下的用户标识，默认 stdio'
+        },
+        'enabled-modules': {
+          type: 'string',
+          description: '启用的功能模块列表（逗号分隔），可选值: document,task,calendar 或 all，默认 document'
         }
       })
       .help()
@@ -376,6 +393,27 @@ export class Config {
   }
   
   /**
+   * 初始化功能模块配置
+   * @param argv 命令行参数
+   * @returns 功能模块配置
+   */
+  private initFeaturesConfig(argv: any): FeaturesConfig {
+    const featuresConfig: FeaturesConfig = {
+      enabledModules: ['document'],
+    };
+
+    const rawValue = argv['enabled-modules'] ?? process.env.FEISHU_ENABLED_MODULES;
+    if (rawValue) {
+      featuresConfig.enabledModules = String(rawValue)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    return featuresConfig;
+  }
+
+  /**
    * 从字符串获取日志级别
    * @param levelStr 日志级别字符串
    * @returns 日志级别枚举值
@@ -397,8 +435,11 @@ export class Config {
    * @param isStdioMode 是否在stdio模式下
    */
   public printConfig(isStdioMode: boolean = false): void {
+    // 模块配置信息始终输出（含认证类型导致的跳过提醒）
+    this.printModuleConfig();
+
     if (isStdioMode) return;
-    
+
     Logger.info(`应用版本: ${serverInfo.version}`);
     Logger.info('当前配置:');
     
@@ -426,6 +467,25 @@ export class Config {
     Logger.info(`- 启用缓存: ${this.cache.enabled} (来源: ${this.configSources['cache.enabled']})`);
     Logger.info(`- 缓存TTL: ${this.cache.ttl}秒 (来源: ${this.configSources['cache.ttl']})`);
     Logger.info(`- 最大缓存条目: ${this.cache.maxSize} (来源: ${this.configSources['cache.maxSize']})`);
+  }
+
+  /**
+   * 输出模块配置及认证限制提醒（stdio 模式下也会输出）
+   */
+  private printModuleConfig(): void {
+    const authType = this.feishu.authType;
+    const effectiveModules = ModuleRegistry.getEnabledModules(this.features.enabledModules, authType);
+
+    Logger.info(`[模块] 配置: ${this.features.enabledModules.join(', ') || 'document'} → 实际加载: ${effectiveModules.map(m => m.id).join(', ') || '(无)'}`);
+
+    if (authType === 'tenant') {
+      const userOnlyRequested = this.features.enabledModules.some(
+        id => ['task', 'calendar', 'member', 'all'].includes(id)
+      );
+      if (userOnlyRequested) {
+        Logger.warn('[模块] task、calendar、member 需 user 认证，当前为 tenant 模式已跳过。设置 FEISHU_AUTH_TYPE=user 以启用。');
+      }
+    }
   }
   
   /**

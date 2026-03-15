@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { formatErrorMessage } from '../../utils/error.js';
-import { FeishuApiService } from '../../services/feishuApiService.js';
-import { Logger } from '../../utils/logger.js';
-import { detectMimeType } from '../../utils/document.js';
+import { formatErrorMessage } from '../../../utils/error';
+import { FeishuApiService } from '../../../services/feishuApiService';
+import { Logger } from '../../../utils/logger';
+import { detectMimeType } from '../../../utils/document';
 import {
   DocumentIdSchema,
   ParentBlockIdSchema,
@@ -18,7 +18,7 @@ import {
   TableCreateSchema,
   WhiteboardFillArraySchema,
   WhiteboardIdSchema,
-} from '../../types/feishuSchema.js';
+} from '../../../types/documentSchema';
 import {
   WHITEBOARD_NODE_THUMBNAIL_THRESHOLD,
   BATCH_SIZE,
@@ -28,7 +28,7 @@ import {
   extractSpecialBlocks,
   buildSpecialBlockHints,
   extractFeishuApiError,
-} from './toolHelpers.js';
+} from './toolHelpers';
 
 /**
  * 注册飞书块相关的MCP工具

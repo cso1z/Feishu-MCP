@@ -1,7 +1,7 @@
-import { Logger } from '../../utils/logger.js';
-import { ParamUtils } from '../../utils/paramUtils.js';
-import { AuthService } from '../feishuAuthService.js';
-import { FeishuBaseApiService } from './FeishuBaseApiService.js';
+import { Logger } from '../../../utils/logger';
+import { ParamUtils } from '../../../utils/paramUtils';
+import { AuthService } from '../../../services/feishuAuthService';
+import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService';
 
 /**
  * 飞书文档服务
