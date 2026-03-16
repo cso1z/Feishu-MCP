@@ -3,6 +3,7 @@ import { formatErrorMessage } from '../../../utils/error.js';
 import { FeishuApiService } from '../../../services/feishuApiService.js';
 import { Logger } from '../../../utils/logger.js';
 import { errorResponse } from '../../document/tools/toolHelpers.js';
+import { getUsers } from '../toolApi/index.js';
 import {
   UserSearchQueriesSchema,
   GetFeishuUsersUserIdsParamSchema,
@@ -22,43 +23,14 @@ export function registerMemberTools(server: McpServer, feishuService: FeishuApiS
     },
     async ({ queries, userIdsParam }) => {
       try {
-        const byQuery = queries != null && queries.length > 0;
-        const byId = userIdsParam != null && userIdsParam.length > 0;
-        if (!byQuery && !byId) {
-          return errorResponse('Provide exactly one of: queries (search by name) or userIdsParam (get by ID list).');
-        }
-        if (byQuery) {
-          const results: Array<{ query: string; users: any[]; pageToken?: string }> = [];
-          for (const { query, pageToken } of queries) {
-            const q = query.trim();
-            Logger.info(`get_feishu_users(by query): ${q}`);
-            const result = await feishuService.searchUsers(q, pageToken);
-            const users = Array.isArray(result) ? result : result?.users ?? result?.data?.users ?? [];
-            const nextToken = result?.page_token ?? result?.pageToken;
-            results.push({ query: q, users, ...(nextToken && { pageToken: nextToken }) });
-          }
-          return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
-        }
-        if (byId) {
-          const byType = new Map<string, string[]>();
-          for (const { id, idType } of userIdsParam) {
-            const t = idType ?? 'open_id';
-            if (!byType.has(t)) byType.set(t, []);
-            byType.get(t)!.push(id);
-          }
-          const allItems: any[] = [];
-          for (const [idType, ids] of byType) {
-            const res = await feishuService.getUsersBatch(ids, idType as 'open_id' | 'union_id' | 'user_id');
-            allItems.push(...(res.items ?? []));
-          }
-          Logger.info(`get_feishu_users(by id): ${userIdsParam.length} items, ${byType.size} type(s)`);
-          return { content: [{ type: 'text', text: JSON.stringify({ items: allItems }, null, 2) }] };
-        }
-        return errorResponse('Unexpected state.');
+        const params = queries != null && queries.length > 0 ? { queries } : { userIdsParam: userIdsParam! };
+        const result = await getUsers(params, feishuService);
+        const text = Array.isArray(result) ? JSON.stringify(result, null, 2) : JSON.stringify(result, null, 2);
+        return { content: [{ type: 'text', text }] };
       } catch (error) {
         Logger.error('get_feishu_users 失败:', error);
         return errorResponse(`get_feishu_users 失败: ${formatErrorMessage(error)}`);
       }
-    },
+    }
   );
 }
