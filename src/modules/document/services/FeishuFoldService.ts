@@ -1,6 +1,6 @@
-import { Logger } from '../../../utils/logger';
-import { AuthService } from '../../../services/feishuAuthService';
-import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService';
+import { Logger } from '../../../utils/logger.js';
+import { AuthService } from '../../../services/feishuAuthService.js';
+import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService.js';
 
 /**
  * 飞书文件夹与知识空间服务

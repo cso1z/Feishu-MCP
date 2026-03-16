@@ -1,10 +1,10 @@
 import { AuthService } from './feishuAuthService.js';
-import { BlockFactory } from '../modules/document/services/blockFactory';
-import { FeishuDocumentService } from '../modules/document/services/FeishuDocumentService';
-import { FeishuBlockService } from '../modules/document/services/FeishuBlockService';
-import { FeishuFoldService } from '../modules/document/services/FeishuFoldService';
-import { FeishuSearchService } from '../modules/document/services/FeishuSearchService';
-import { FeishuWhiteboardService } from '../modules/document/services/FeishuWhiteboardService';
+import { BlockFactory } from '../modules/document/services/blockFactory.js';
+import { FeishuDocumentService } from '../modules/document/services/FeishuDocumentService.js';
+import { FeishuBlockService } from '../modules/document/services/FeishuBlockService.js';
+import { FeishuFoldService } from '../modules/document/services/FeishuFoldService.js';
+import { FeishuSearchService } from '../modules/document/services/FeishuSearchService.js';
+import { FeishuWhiteboardService } from '../modules/document/services/FeishuWhiteboardService.js';
 import {
   FeishuTaskService,
   type CreateTaskParams,

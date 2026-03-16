@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { FeishuApiService } from '../../../services/feishuApiService';
+import { FeishuApiService } from '../../../services/feishuApiService.js';
 
 
 /**

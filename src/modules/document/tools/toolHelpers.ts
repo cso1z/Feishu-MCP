@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { formatErrorMessage } from '../../../utils/error';
-import { FeishuApiService } from '../../../services/feishuApiService';
-import { Logger } from '../../../utils/logger';
-import { BlockConfigSchema } from '../../../types/documentSchema';
+import { formatErrorMessage } from '../../../utils/error.js';
+import { FeishuApiService } from '../../../services/feishuApiService.js';
+import { Logger } from '../../../utils/logger.js';
+import { BlockConfigSchema } from '../../../types/documentSchema.js';
 
 export const WHITEBOARD_NODE_THUMBNAIL_THRESHOLD = 200;
 export const BATCH_SIZE = 50;

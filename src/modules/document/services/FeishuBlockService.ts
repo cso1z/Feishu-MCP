@@ -2,11 +2,11 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
-import { Logger } from '../../../utils/logger';
-import { ParamUtils } from '../../../utils/paramUtils';
-import { AuthService } from '../../../services/feishuAuthService';
-import { BlockFactory } from './blockFactory';
-import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService';
+import { Logger } from '../../../utils/logger.js';
+import { ParamUtils } from '../../../utils/paramUtils.js';
+import { AuthService } from '../../../services/feishuAuthService.js';
+import { BlockFactory } from './blockFactory.js';
+import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService.js';
 
 /**
  * 飞书块服务

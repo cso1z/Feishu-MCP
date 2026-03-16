@@ -1,7 +1,7 @@
-import { Logger } from '../../../utils/logger';
-import { ParamUtils } from '../../../utils/paramUtils';
-import { AuthService } from '../../../services/feishuAuthService';
-import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService';
+import { Logger } from '../../../utils/logger.js';
+import { ParamUtils } from '../../../utils/paramUtils.js';
+import { AuthService } from '../../../services/feishuAuthService.js';
+import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService.js';
 
 /**
  * 飞书画板（Whiteboard）服务

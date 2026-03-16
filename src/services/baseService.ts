@@ -5,7 +5,7 @@ import { formatErrorMessage, AuthRequiredError, ScopeInsufficientError } from '.
 import { Config } from '../utils/config.js';
 import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth/index.js';
 import { getRequiredScopes } from './constants/feishuScopes.js';
-import { ModuleRegistry } from '../modules';
+import { ModuleRegistry } from '../modules/index.js';
 
 /**
  * API请求错误接口
