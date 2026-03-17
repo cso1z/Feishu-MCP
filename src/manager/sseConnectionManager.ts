@@ -33,6 +33,8 @@ export class SSEConnectionManager {
         }
       }
     }, this.KEEP_ALIVE_INTERVAL_MS);
+    // 不阻止进程在无活跃连接时自然退出（stdio 模式）
+    this.keepAliveIntervalId.unref();
   }
 
   /**

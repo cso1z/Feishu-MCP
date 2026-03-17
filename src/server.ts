@@ -35,26 +35,22 @@ export class FeishuMcpServer {
     const server = new FeishuMcp();
     await server.connect(transport);
 
+    const shutdown = () => {
+      TokenRefreshManager.getInstance().stop();
+      this.stopCallbackServer();
+      process.exit(0);
+    };
+
     // 监听 transport 关闭事件，清理 callback 服务器
     // 对于 stdio 模式，监听 stdin 关闭事件
     if (process.stdin && typeof process.stdin.on === 'function') {
-      process.stdin.on('close', () => {
-        this.stopCallbackServer();
-      });
-      process.stdin.on('end', () => {
-        this.stopCallbackServer();
-      });
+      process.stdin.on('close', shutdown);
+      process.stdin.on('end', shutdown);
     }
 
     // 监听进程退出事件，确保清理资源
-    process.on('SIGINT', () => {
-      this.stopCallbackServer();
-      process.exit(0);
-    });
-    process.on('SIGTERM', () => {
-      this.stopCallbackServer();
-      process.exit(0);
-    });
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
 
     // 注意：在 stdio 模式下，Logger 会自动禁用输出，避免污染 MCP 协议
     // 如果需要日志，可以通过 MCP 协议的 logging 消息传递

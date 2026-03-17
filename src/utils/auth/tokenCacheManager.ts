@@ -68,6 +68,7 @@ export class TokenCacheManager {
   private tenantTokenCacheFile: string;
   private scopeVersionCacheFile: string;
   private cacheDir: string;
+  private cleanupTimerId: NodeJS.Timeout | null = null;
 
   /**
    * 私有构造函数，用于单例模式
@@ -538,10 +539,12 @@ export class TokenCacheManager {
    */
   private startCacheCleanupTimer(): void {
     // 每5分钟清理一次过期缓存
-    setInterval(() => {
+    this.cleanupTimerId = setInterval(() => {
       this.cleanExpiredTokens();
     }, 5 * 60 * 1000);
-    
+    // 不阻止进程在 stdio 模式下自然退出
+    this.cleanupTimerId.unref();
+
     Logger.info('Token缓存清理定时器已启动，每5分钟执行一次');
   }
 

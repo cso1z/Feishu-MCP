@@ -41,3 +41,4 @@ cache
 scripts
 .cursor
 .npmrc
+commit-msg

@@ -43,10 +43,11 @@ export class TokenRefreshManager {
     // 立即执行一次检查
     this.checkAndRefreshTokens();
     
-    // 设置定时器
+    // 设置定时器（不阻止进程在 stdio 模式下自然退出）
     this.intervalId = setInterval(() => {
       this.checkAndRefreshTokens();
     }, this.checkInterval);
+    this.intervalId.unref();
     
     this.isRunning = true;
     Logger.info('Token自动刷新管理器已启动');
