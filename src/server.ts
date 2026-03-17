@@ -134,8 +134,17 @@ export class FeishuMcpServer {
           return
         }
 
-        // Handle the request
-        await transport.handleRequest(req, res, req.body)
+        // 获取 baseUrl 并在用户上下文中处理请求
+        const baseUrl = getBaseUrl(req);
+        const userKey = sessionId || 'http-client';
+        
+        // Handle the request with user context
+        await this.userContextManager.run(
+          { userKey, baseUrl },
+          async () => {
+            await transport.handleRequest(req, res, req.body)
+          }
+        );
       } catch (error) {
         Logger.error('Error handling MCP request:', error)
         if (!res.headersSent) {
@@ -162,7 +171,17 @@ export class FeishuMcpServer {
         }
 
         const transport = transports[sessionId]
-        await transport.handleRequest(req, res)
+        
+        // 获取 baseUrl 并在用户上下文中处理请求
+        const baseUrl = getBaseUrl(req);
+        const userKey = sessionId || 'http-client';
+        
+        await this.userContextManager.run(
+          { userKey, baseUrl },
+          async () => {
+            await transport.handleRequest(req, res)
+          }
+        );
       } catch (error) {
         Logger.error('Error handling GET request:', error)
         if (!res.headersSent) {
@@ -181,7 +200,17 @@ export class FeishuMcpServer {
         }
 
         const transport = transports[sessionId]
-        await transport.handleRequest(req, res)
+        
+        // 获取 baseUrl 并在用户上下文中处理请求
+        const baseUrl = getBaseUrl(req);
+        const userKey = sessionId || 'http-client';
+        
+        await this.userContextManager.run(
+          { userKey, baseUrl },
+          async () => {
+            await transport.handleRequest(req, res)
+          }
+        );
 
         // Clean up resources after session termination
         if (transport.sessionId) {
