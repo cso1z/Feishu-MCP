@@ -93,27 +93,34 @@ export class FeishuMcpServer {
         });
         // Check for existing session ID
         const sessionId = req.headers['mcp-session-id'] as string | undefined
+        // 优先使用客户端显式传入的 ?userKey=，若不传则在 session 初始化时 fallback 到 sessionId
+        const queryUserKey = req.query.userKey as string | undefined;
         let transport: StreamableHTTPServerTransport
+        let userKey: string
 
         if (sessionId && transports[sessionId]) {
-          // Reuse existing transport
+          // Reuse existing transport，从 userAuthManager 取回持久化的 userKey
           Logger.log("Reusing existing StreamableHTTP transport for sessionId", sessionId);
           transport = transports[sessionId]
+          userKey = this.userAuthManager.getUserKeyBySessionId(sessionId) || sessionId
         } else if (!sessionId && isInitializeRequest(req.body)) {
           // New initialization request
           transport = new StreamableHTTPServerTransport({
             sessionIdGenerator: () => randomUUID(),
-            onsessioninitialized: (sessionId) => {
-              // Store the transport by session ID
-              Logger.log(`[StreamableHTTP connection] ${sessionId}`);
-              transports[sessionId] = transport
+            onsessioninitialized: (newSessionId) => {
+              // 建立 sessionId → userKey 持久映射：优先用客户端传入的，否则用 sessionId 兜底
+              const resolvedUserKey = queryUserKey || newSessionId;
+              this.userAuthManager.createSession(newSessionId, resolvedUserKey);
+              Logger.log(`[StreamableHTTP connection] ${newSessionId}, userKey: ${resolvedUserKey}`);
+              transports[newSessionId] = transport
             }
           })
 
           // Clean up transport and server when closed
           transport.onclose = () => {
             if (transport.sessionId) {
-              Logger.log(`[StreamableHTTP delete] ${transports[transport.sessionId]}`);
+              Logger.log(`[StreamableHTTP delete] ${transport.sessionId}`);
+              this.userAuthManager.removeSession(transport.sessionId)
               delete transports[transport.sessionId]
             }
           }
@@ -121,6 +128,8 @@ export class FeishuMcpServer {
           // Create and connect server instance
           const server = new FeishuMcp();
           await server.connect(transport);
+          // 初始化握手阶段 sessionId 尚未分配，使用 queryUserKey（若有）或临时占位符
+          userKey = queryUserKey || 'http-client'
         } else {
           // Invalid request
           res.status(400).json({
@@ -136,7 +145,6 @@ export class FeishuMcpServer {
 
         // 获取 baseUrl 并在用户上下文中处理请求
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
         
         // Handle the request with user context
         await this.userContextManager.run(
@@ -171,11 +179,11 @@ export class FeishuMcpServer {
         }
 
         const transport = transports[sessionId]
-        
+
         // 获取 baseUrl 并在用户上下文中处理请求
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
-        
+        const userKey = this.userAuthManager.getUserKeyBySessionId(sessionId) || sessionId;
+
         await this.userContextManager.run(
           { userKey, baseUrl },
           async () => {
@@ -200,11 +208,11 @@ export class FeishuMcpServer {
         }
 
         const transport = transports[sessionId]
-        
+
         // 获取 baseUrl 并在用户上下文中处理请求
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
-        
+        const userKey = this.userAuthManager.getUserKeyBySessionId(sessionId) || sessionId;
+
         await this.userContextManager.run(
           { userKey, baseUrl },
           async () => {
@@ -214,6 +222,7 @@ export class FeishuMcpServer {
 
         // Clean up resources after session termination
         if (transport.sessionId) {
+          this.userAuthManager.removeSession(transport.sessionId)
           delete transports[transport.sessionId]
         }
       } catch (error) {
