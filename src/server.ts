@@ -134,9 +134,13 @@ export class FeishuMcpServer {
           return
         }
 
-        // 获取 baseUrl 并在用户上下文中处理请求
+        // 获取 baseUrl 和 userKey
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
+        // 优先使用查询参数中的 userKey，若不存在则使用 sessionId 作为兜底
+        const queryUserKey = req.query.userKey as string | undefined;
+        const userKey = queryUserKey || sessionId || 'http-client';
+        
+        Logger.debug(`[StreamableHTTP] userKey: ${userKey}, from query: ${!!queryUserKey}, from sessionId: ${!!sessionId}`);
         
         // Handle the request with user context
         await this.userContextManager.run(
@@ -172,9 +176,13 @@ export class FeishuMcpServer {
 
         const transport = transports[sessionId]
         
-        // 获取 baseUrl 并在用户上下文中处理请求
+        // 获取 baseUrl 和 userKey
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
+        // 优先使用查询参数中的 userKey，若不存在则使用 sessionId 作为兜底
+        const queryUserKey = req.query.userKey as string | undefined;
+        const userKey = queryUserKey || sessionId || 'http-client';
+        
+        Logger.debug(`[StreamableHTTP GET] userKey: ${userKey}, from query: ${!!queryUserKey}, from sessionId: ${!!sessionId}`);
         
         await this.userContextManager.run(
           { userKey, baseUrl },
@@ -201,9 +209,13 @@ export class FeishuMcpServer {
 
         const transport = transports[sessionId]
         
-        // 获取 baseUrl 并在用户上下文中处理请求
+        // 获取 baseUrl 和 userKey
         const baseUrl = getBaseUrl(req);
-        const userKey = sessionId || 'http-client';
+        // 优先使用查询参数中的 userKey，若不存在则使用 sessionId 作为兜底
+        const queryUserKey = req.query.userKey as string | undefined;
+        const userKey = queryUserKey || sessionId || 'http-client';
+        
+        Logger.debug(`[StreamableHTTP DELETE] userKey: ${userKey}, from query: ${!!queryUserKey}, from sessionId: ${!!sessionId}`);
         
         await this.userContextManager.run(
           { userKey, baseUrl },
