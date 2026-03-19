@@ -2,9 +2,10 @@ import { exec } from 'child_process';
 import { createServer as createNetServer } from 'net';
 import express from 'express';
 import { Server } from 'http';
-import { Config } from '../utils/config.js';
-import { AuthUtils, TokenCacheManager } from '../utils/auth/index.js';
+import { Config } from '../../utils/config.js';
+import { AuthUtils, TokenCacheManager } from '../../utils/auth/index.js';
 // callbackService 需延迟导入，避免其模块级 Config.getInstance() 在 CLI 启动时提前触发 yargs
+
 
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
 const POLL_INTERVAL_MS = 1000;
@@ -12,7 +13,7 @@ const POLL_INTERVAL_MS = 1000;
 /**
  * 在系统默认浏览器中打开 URL（跨平台）
  */
-function openBrowser(url: string): void {
+export function openBrowser(url: string): void {
   let cmd: string;
   if (process.platform === 'win32') {
     cmd = `cmd /c start "" "${url}"`;
@@ -57,7 +58,7 @@ async function findAvailablePort(startPort: number): Promise<number> {
  * 启动临时 callback express 服务器（延迟导入 callbackService 避免提前触发 Config）
  */
 async function startCallbackServer(port: number): Promise<Server> {
-  const { callback } = await import('../services/callbackService.js');
+  const { callback } = await import('../../services/callbackService.js');
   const app = express();
   app.get('/callback', callback);
 
@@ -124,10 +125,38 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
   // 6. 等待 token 写入
   const ok = await waitForToken(clientKey, AUTH_TIMEOUT_MS);
 
-  // 7. 无论成功与否，关闭临时服务器
+  // 7. 延迟关闭临时服务器，确保 /callback 的 HTTP 响应已发送完毕
+  await new Promise<void>((resolve) => setTimeout(resolve, 1000));
   await new Promise<void>((resolve) => server.close(() => resolve()));
 
   if (!ok) {
     throw new Error('飞书授权超时（5 分钟），请重新执行命令');
   }
+}
+
+/** 展示当前 token 授权状态 */
+export async function handleAuthStatus(): Promise<void> {
+  const config = Config.getInstance();
+  const { authType, userKey } = config.feishu;
+
+  if (authType !== 'user') {
+    process.stdout.write(JSON.stringify({ authType, status: 'tenant 模式无需用户授权' }) + '\n');
+    return;
+  }
+
+  const clientKey = AuthUtils.generateClientKey(userKey);
+  const status = TokenCacheManager.getInstance().checkUserTokenStatus(clientKey);
+  process.stdout.write(JSON.stringify({ authType, userKey, ...status }) + '\n');
+}
+
+/** 清除当前用户 token 缓存 */
+export async function handleAuthLogout(): Promise<void> {
+  const config = Config.getInstance();
+  const { userKey } = config.feishu;
+  const clientKey = AuthUtils.generateClientKey(userKey);
+  const ok = TokenCacheManager.getInstance().removeUserToken(clientKey);
+  process.stdout.write(JSON.stringify({
+    ok,
+    message: ok ? '已退出登录，token 已清除' : '未找到缓存的 token',
+  }) + '\n');
 }
