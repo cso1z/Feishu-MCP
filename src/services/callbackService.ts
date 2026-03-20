@@ -77,7 +77,7 @@ export async function callback(req: Request, res: Response) {
     const data = (tokenResp && typeof tokenResp === 'object') ? tokenResp : undefined;
     Logger.debug('[callback] feishu response:', data);
     
-    if (!data || data.code !== 0 || !data.access_token) {
+    if (!data || !data.access_token) {
       return sendFail(res, `获取 access_token 失败，飞书返回: ${JSON.stringify(tokenResp)}`, CODE.CUSTOM);
     }
     

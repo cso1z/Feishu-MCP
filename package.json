@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "feishu-mcp": "./dist/cli.js"
+    "feishu-mcp": "./dist/cli.js",
+    "feishu-mcp-tool": "./dist/cli/index.js"
   },
   "files": [
     "dist",
