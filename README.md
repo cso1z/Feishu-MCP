@@ -6,6 +6,8 @@
 
 为 [Cursor](https://cursor.sh/)、[Windsurf](https://codeium.com/windsurf)、[Cline](https://cline.bot/) 和其他 AI 驱动的编码工具提供访问、编辑和结构化处理飞书文档的能力，**并支持飞书任务管理和用户信息查询**，基于 [Model Context Protocol](https://modelcontextprotocol.io/introduction) 服务器实现。
 
+**现已支持 `feishu-mcp-tool` 独立 CLI 工具**，可在终端或脚本中直接调用所有飞书工具，无需启动 MCP 服务器。配合 [Feishu-MCP-Skill](https://github.com/cso1z/Feishu-MCP-Skill) 可让 Claude Code 等 AI Agent 自动选择最合适的方式操作飞书。
+
 本项目让 AI 编码工具能够：
 - **文档处理**：直接获取、理解、创建和编辑飞书文档，显著提升文档处理的智能化和效率
 - **任务管理**：列取、创建、更新、删除飞书任务，支持子任务和成员管理（需 user 认证）
@@ -106,8 +108,8 @@
 - ~~**支持任务管理**：列取、创建、更新、删除飞书任务，支持子任务和成员管理~~ 0.2.4 ✅
 - ~~**支持用户信息查询**：按名称搜索或按 ID 批量获取用户，便于任务分配和文档协作~~ 0.2.4 ✅
 - ~~**Tool API 层抽取**：新建 Tool API 层，与 tool 层一一对应，统一参数校验、数据转换、错误映射等~~ ✅
-- ~~**兼容 CLI 模式**：支持 `feishu-mcp doc create` 等命令行子命令，便于脚本与自动化场景~~ ✅
-- **完成 Skill**：提供 Cursor Skill，指导 AI 在合适场景下使用 feishu-mcp CLI
+- ~~**兼容 CLI 模式**：支持 `feishu-mcp-tool <tool-name> '<json>'` 命令行调用，便于脚本与自动化场景~~ 0.2.6 ✅
+- ~~**完成 Skill**：提供 [Feishu-MCP-Skill](https://github.com/cso1z/Feishu-MCP-Skill)，指导 Claude Code 等 AI Agent 在合适场景下使用 feishu-mcp CLI~~ 0.2.6 ✅
 ---
 
 ## 🔧 飞书配置教程
@@ -168,6 +170,60 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
      ```bash
      docker-compose logs -f
      ```
+
+---
+
+## 🖥️ feishu-mcp-tool CLI 工具
+
+从 `0.2.5` 版本起，`feishu-mcp` npm 包随附 `feishu-mcp-tool` 独立 CLI，可在终端、Shell 脚本或 AI Agent 中直接调用所有飞书工具，**无需启动 MCP 服务器**。
+
+### 安装
+
+```bash
+# 全局安装（推荐）
+npm install -g feishu-mcp
+
+# 或通过 npx 临时运行
+npx feishu-mcp-tool <tool-name> '<json-params>'
+```
+
+### 配置
+
+```bash
+# 写入飞书应用凭证（一次性，保存至 ~/.cache/feishu-mcp/.env）
+feishu-mcp-tool config set FEISHU_APP_ID cli_xxxxx
+feishu-mcp-tool config set FEISHU_APP_SECRET your-secret
+feishu-mcp-tool config set FEISHU_AUTH_TYPE user        # tenant / user
+feishu-mcp-tool config set FEISHU_ENABLED_MODULES all   # document,task,member,...
+
+# 查看当前配置
+feishu-mcp-tool config
+
+# 查看初始化指南（自动打开浏览器文档）
+feishu-mcp-tool guide
+```
+
+> 完整参数说明请参阅 [Feishu-MCP-Skill 文档](https://github.com/cso1z/Feishu-MCP-Skill)。
+
+---
+
+## 🤖 AI Skill 支持（Claude Code）
+
+[**Feishu-MCP-Skill**](https://github.com/cso1z/Feishu-MCP-Skill) 是配套的 Claude Code Skill 仓库，让 AI Agent 能够自动理解所有飞书工具的参数格式、调用时机和最佳实践。
+
+- 覆盖全部 20 个工具的参数说明、使用示例和常见错误
+- 包含 6 个端到端工作流（创建文档→填充内容→插入图片→创建白板等）
+- 经过系统化测试验证，所有块类型（text / heading / code / list / image / mermaid / whiteboard / table）均通过
+
+### 在 Claude Code 中启用
+
+```bash
+# 克隆仓库到本地，再将 feishu-mcp/ 子目录复制到 Claude Skill 目录
+git clone https://github.com/cso1z/Feishu-MCP-Skill.git /tmp/Feishu-MCP-Skill
+cp -r /tmp/Feishu-MCP-Skill/feishu-mcp ~/.claude/skills/feishu-mcp
+```
+
+---
 
 ## ⚙️ 项目配置
 

@@ -6,7 +6,7 @@ import { ModuleRegistry } from '../modules/ModuleRegistry.js';
 
 export const serverInfo = {
   name: "Feishu MCP Server",
-  version: "0.2.5",
+  version: "0.2.6",
 };
 
 const serverOptions = {
