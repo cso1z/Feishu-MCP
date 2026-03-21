@@ -42,22 +42,38 @@ export function writeEnvKey(filePath: string, key: string, value: string): void 
   writeFileSync(filePath, content, 'utf-8');
 }
 
+/** 对敏感字段做脱敏处理 */
+function maskValue(key: string, value: string): string {
+  if (key.includes('SECRET') || key.includes('APP_ID')) {
+    if (value.length <= 6) return '****';
+    return `${value.slice(0, 3)}****${value.slice(-3)}`;
+  }
+  return value;
+}
+
 /** 展示当前生效配置 */
 export function handleConfigShow(envPath: string | undefined): void {
-  const fileConfig = readEnvFile(GLOBAL_CONFIG_FILE);
-  const output = {
+  // 仅当加载来源与全局配置文件不同时，才额外展示全局配置文件内容（避免重复）
+  const showGlobal = envPath !== GLOBAL_CONFIG_FILE;
+  const output: Record<string, unknown> = {
     configFile: existsSync(GLOBAL_CONFIG_FILE) ? GLOBAL_CONFIG_FILE : null,
     loadedFrom: envPath ?? null,
     config: {
-      FEISHU_APP_ID: process.env.FEISHU_APP_ID ?? '(未设置)',
+      FEISHU_APP_ID: process.env.FEISHU_APP_ID
+        ? maskValue('FEISHU_APP_ID', process.env.FEISHU_APP_ID) : '(未设置)',
       FEISHU_APP_SECRET: process.env.FEISHU_APP_SECRET
-        ? `${process.env.FEISHU_APP_SECRET.slice(0, 3)}****` : '(未设置)',
+        ? maskValue('FEISHU_APP_SECRET', process.env.FEISHU_APP_SECRET) : '(未设置)',
       FEISHU_AUTH_TYPE: process.env.FEISHU_AUTH_TYPE ?? 'tenant (默认)',
       FEISHU_ENABLED_MODULES: process.env.FEISHU_ENABLED_MODULES ?? 'document (默认)',
       PORT: process.env.PORT ?? '3333 (默认)',
     },
-    globalConfigFile: Object.keys(fileConfig).length ? fileConfig : '(文件不存在)',
   };
+  if (showGlobal) {
+    const fileConfig = readEnvFile(GLOBAL_CONFIG_FILE);
+    output.globalConfigFile = Object.keys(fileConfig).length
+      ? Object.fromEntries(Object.entries(fileConfig).map(([k, v]) => [k, maskValue(k, v)]))
+      : '(文件不存在)';
+  }
   process.stdout.write(JSON.stringify(output, null, 2) + '\n');
 }
 
@@ -83,6 +99,6 @@ export function handleConfigSet(key: string | undefined, value: string | undefin
   process.stdout.write(JSON.stringify({
     ok: true,
     file: targetFile,
-    set: { [key]: key.includes('SECRET') ? `${value.slice(0, 3)}****` : value },
+    set: { [key]: key.includes('SECRET') || key.includes('APP_ID') ? maskValue(key, value) : value },
   }) + '\n');
 }
