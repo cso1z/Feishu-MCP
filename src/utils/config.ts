@@ -33,6 +33,7 @@ export interface FeishuConfig {
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
   userKey: string;
+  redirectUri?: string; // 自定义 OAuth 回调地址（可选）
 }
 
 /**
@@ -173,6 +174,10 @@ export class Config {
         'enabled-modules': {
           type: 'string',
           description: '启用的功能模块列表（逗号分隔），可选值: document,task,calendar 或 all，默认 document'
+        },
+        'feishu-redirect-uri': {
+          type: 'string',
+          description: '自定义 OAuth 回调地址（默认 http://localhost:${port}/callback）'
         }
       })
       .help()
@@ -292,7 +297,16 @@ export class Config {
     } else {
       this.configSources['feishu.userKey'] = ConfigSource.DEFAULT;
     }
-    
+
+    // 处理 redirectUri（自定义 OAuth 回调地址）
+    if (argv['feishu-redirect-uri']) {
+      feishuConfig.redirectUri = argv['feishu-redirect-uri'];
+      this.configSources['feishu.redirectUri'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_REDIRECT_URI) {
+      feishuConfig.redirectUri = process.env.FEISHU_REDIRECT_URI;
+      this.configSources['feishu.redirectUri'] = ConfigSource.ENV;
+    }
+
     return feishuConfig;
   }
   

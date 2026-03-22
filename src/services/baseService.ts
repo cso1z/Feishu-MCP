@@ -427,9 +427,9 @@ export abstract class BaseApiService {
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
     const config = Config.getInstance();
-    const { appId, appSecret } = config.feishu;
+    const { appId, appSecret, redirectUri } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
-    const redirect_uri = `${baseUrl}/callback`;
+    const redirect_uri = redirectUri || `${baseUrl}/callback`;
     const authType = config.feishu.authType;
     const enabledIds = config.features.enabledModules;
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
