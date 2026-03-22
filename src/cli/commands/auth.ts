@@ -24,7 +24,7 @@ export function openBrowser(url: string): void {
   }
   exec(cmd, (err) => {
     if (err) {
-      process.stderr.write(`[feishu-mcp-tool] 无法自动打开浏览器，请手动访问上方授权链接\n`);
+      process.stderr.write(`[feishu-tool] 无法自动打开浏览器，请手动访问上方授权链接\n`);
     }
   });
 }
@@ -118,8 +118,8 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
   // 5. 打开浏览器并向 stderr 输出提示（不污染 stdout）
   openBrowser(authUrl);
   process.stderr.write(
-    `\n[feishu-mcp-tool] 需要飞书授权，已在浏览器打开授权页（5 分钟内有效）\n` +
-    `[feishu-mcp-tool] 授权链接：${authUrl}\n\n`
+    `\n[feishu-tool] 需要飞书授权，已在浏览器打开授权页（5 分钟内有效）\n` +
+    `[feishu-tool] 授权链接：${authUrl}\n\n`
   );
 
   // 6. 等待 token 写入

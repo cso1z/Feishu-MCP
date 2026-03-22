@@ -1,12 +1,12 @@
-# feishu-mcp-tool CLI 使用文档
+# feishu-tool CLI 使用文档
 
 ## 概述
 
-`feishu-mcp-tool` 是 feishu-mcp 提供的命令行工具，支持直接调用全部 20 个飞书 MCP 工具。设计目标是 **LLM Agent 调用**：参数以 JSON 字符串传入，结果以纯 JSON 输出到 stdout，错误和提示信息输出到 stderr。
+`feishu-tool` 是 feishu-mcp 提供的命令行工具，支持直接调用全部 20 个飞书 MCP 工具。设计目标是 **LLM Agent 调用**：参数以 JSON 字符串传入，结果以纯 JSON 输出到 stdout，错误和提示信息输出到 stderr。
 
 ## 安装与配置
 
-安装 feishu-mcp 后，`feishu-mcp-tool` 命令自动可用。
+安装 feishu-mcp 后，`feishu-tool` 命令自动可用。
 
 在项目根目录配置 `.env` 文件（与 MCP Server 共用）：
 
@@ -21,7 +21,7 @@ FEISHU_ENABLED_MODULES=all      # 启用的模块
 ## 调用格式
 
 ```bash
-feishu-mcp-tool <tool-name> '<json-params>'
+feishu-tool <tool-name> '<json-params>'
 ```
 
 - **stdout**：工具执行结果（JSON）
@@ -40,7 +40,7 @@ feishu-mcp-tool <tool-name> '<json-params>'
 ## 查看帮助
 
 ```bash
-feishu-mcp-tool --help
+feishu-tool --help
 # 输出所有支持的工具名称列表（JSON）
 ```
 
@@ -53,7 +53,7 @@ feishu-mcp-tool --help
 获取根文件夹、知识空间列表和我的知识库。
 
 ```bash
-feishu-mcp-tool get_feishu_root_folder_info
+feishu-tool get_feishu_root_folder_info
 # 无需参数
 ```
 
@@ -64,9 +64,9 @@ feishu-mcp-tool get_feishu_root_folder_info
 列出文件夹或知识库节点下的文件。
 
 ```bash
-feishu-mcp-tool get_feishu_folder_files '{"folderToken":"FWK2xxxxx"}'
+feishu-tool get_feishu_folder_files '{"folderToken":"FWK2xxxxx"}'
 # 知识库节点：
-feishu-mcp-tool get_feishu_folder_files '{"wikiSpaceId":"7614920810658024396","wikiNodeToken":"xxx"}'
+feishu-tool get_feishu_folder_files '{"wikiSpaceId":"7614920810658024396","wikiNodeToken":"xxx"}'
 ```
 
 **参数**：
@@ -83,7 +83,7 @@ feishu-mcp-tool get_feishu_folder_files '{"wikiSpaceId":"7614920810658024396","w
 在指定文件夹下创建子文件夹。
 
 ```bash
-feishu-mcp-tool create_feishu_folder '{"folderToken":"FWK2xxxxx","folderName":"新文件夹"}'
+feishu-tool create_feishu_folder '{"folderToken":"FWK2xxxxx","folderName":"新文件夹"}'
 ```
 
 ---
@@ -94,10 +94,10 @@ feishu-mcp-tool create_feishu_folder '{"folderToken":"FWK2xxxxx","folderName":"�
 
 ```bash
 # 文件夹模式
-feishu-mcp-tool create_feishu_document '{"title":"文档标题","folderToken":"FWK2xxxxx"}'
+feishu-tool create_feishu_document '{"title":"文档标题","folderToken":"FWK2xxxxx"}'
 
 # 知识库模式
-feishu-mcp-tool create_feishu_document '{"title":"文档标题","wikiContext":{"spaceId":"7614920810658024396","parentNodeToken":"xxx"}}'
+feishu-tool create_feishu_document '{"title":"文档标题","wikiContext":{"spaceId":"7614920810658024396","parentNodeToken":"xxx"}}'
 ```
 
 ---
@@ -107,7 +107,7 @@ feishu-mcp-tool create_feishu_document '{"title":"文档标题","wikiContext":{"
 获取文档元数据（支持普通文档和知识库文档）。
 
 ```bash
-feishu-mcp-tool get_feishu_document_info '{"documentId":"Uk6mdN6Hao5umbxC13ccGstonIh"}'
+feishu-tool get_feishu_document_info '{"documentId":"Uk6mdN6Hao5umbxC13ccGstonIh"}'
 # documentId 可以是 token、URL 或飞书文档链接
 ```
 
@@ -118,7 +118,7 @@ feishu-mcp-tool get_feishu_document_info '{"documentId":"Uk6mdN6Hao5umbxC13ccGst
 获取文档的块结构（包含图片/白板提示信息）。
 
 ```bash
-feishu-mcp-tool get_feishu_document_blocks '{"documentId":"Uk6mdN6Hao5umbxC13ccGstonIh"}'
+feishu-tool get_feishu_document_blocks '{"documentId":"Uk6mdN6Hao5umbxC13ccGstonIh"}'
 ```
 
 ---
@@ -129,7 +129,7 @@ feishu-mcp-tool get_feishu_document_blocks '{"documentId":"Uk6mdN6Hao5umbxC13ccG
 
 ```bash
 # 创建文本块
-feishu-mcp-tool batch_create_feishu_blocks '{
+feishu-tool batch_create_feishu_blocks '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "parentBlockId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "index": 0,
@@ -148,7 +148,7 @@ feishu-mcp-tool batch_create_feishu_blocks '{
 批量更新块的文本内容和样式。
 
 ```bash
-feishu-mcp-tool batch_update_feishu_block_text '{
+feishu-tool batch_update_feishu_block_text '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "updates": [
     {
@@ -166,7 +166,7 @@ feishu-mcp-tool batch_update_feishu_block_text '{
 删除文档中指定范围的块。
 
 ```bash
-feishu-mcp-tool delete_feishu_document_blocks '{
+feishu-tool delete_feishu_document_blocks '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "parentBlockId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "startIndex": 0,
@@ -181,7 +181,7 @@ feishu-mcp-tool delete_feishu_document_blocks '{
 在文档中创建表格。
 
 ```bash
-feishu-mcp-tool create_feishu_table '{
+feishu-tool create_feishu_table '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "parentBlockId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "tableConfig": {"rowSize": 3, "columnSize": 4}
@@ -195,7 +195,7 @@ feishu-mcp-tool create_feishu_table '{
 下载图片资源，返回 Buffer（含 base64 数据）。
 
 ```bash
-feishu-mcp-tool get_feishu_image_resource '{"mediaId":"IN3QbYHQWoijZgxjkOzcpQcPnOB","extra":""}'
+feishu-tool get_feishu_image_resource '{"mediaId":"IN3QbYHQWoijZgxjkOzcpQcPnOB","extra":""}'
 # 返回：{"type":"Buffer","data":[137,80,78,...]}
 ```
 
@@ -207,7 +207,7 @@ feishu-mcp-tool get_feishu_image_resource '{"mediaId":"IN3QbYHQWoijZgxjkOzcpQcPn
 
 ```bash
 # URL 图片
-feishu-mcp-tool upload_and_bind_image_to_block '{
+feishu-tool upload_and_bind_image_to_block '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh",
   "imageSource": "https://example.com/image.png",
@@ -215,7 +215,7 @@ feishu-mcp-tool upload_and_bind_image_to_block '{
 }'
 
 # 本地文件
-feishu-mcp-tool upload_and_bind_image_to_block '{
+feishu-tool upload_and_bind_image_to_block '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh",
   "imageSource": "/path/to/image.png",
@@ -230,7 +230,7 @@ feishu-mcp-tool upload_and_bind_image_to_block '{
 搜索飞书文档和/或知识库。
 
 ```bash
-feishu-mcp-tool search_feishu_documents '{"query":"MCP工具","searchType":"both"}'
+feishu-tool search_feishu_documents '{"query":"MCP工具","searchType":"both"}'
 # searchType: "doc" | "wiki" | "both"
 ```
 
@@ -241,7 +241,7 @@ feishu-mcp-tool search_feishu_documents '{"query":"MCP工具","searchType":"both
 获取白板内容和节点结构。
 
 ```bash
-feishu-mcp-tool get_feishu_whiteboard_content '{"whiteboardId":"白板ID"}'
+feishu-tool get_feishu_whiteboard_content '{"whiteboardId":"白板ID"}'
 ```
 
 ---
@@ -251,7 +251,7 @@ feishu-mcp-tool get_feishu_whiteboard_content '{"whiteboardId":"白板ID"}'
 用 PlantUML 或 Mermaid 图表填充白板。
 
 ```bash
-feishu-mcp-tool fill_whiteboard_with_plantuml '{
+feishu-tool fill_whiteboard_with_plantuml '{
   "whiteboardId": "白板ID",
   "plantumlContent": "@startuml\nA -> B: Hello\n@enduml"
 }'
@@ -264,9 +264,9 @@ feishu-mcp-tool fill_whiteboard_with_plantuml '{
 列出当前用户负责的任务。
 
 ```bash
-feishu-mcp-tool list_feishu_tasks '{}'
+feishu-tool list_feishu_tasks '{}'
 # 分页
-feishu-mcp-tool list_feishu_tasks '{"pageToken":"xxxxx","completed":false}'
+feishu-tool list_feishu_tasks '{"pageToken":"xxxxx","completed":false}'
 ```
 
 ---
@@ -276,7 +276,7 @@ feishu-mcp-tool list_feishu_tasks '{"pageToken":"xxxxx","completed":false}'
 批量创建任务（支持嵌套子任务）。
 
 ```bash
-feishu-mcp-tool create_feishu_task '{
+feishu-tool create_feishu_task '{
   "tasks": [
     {
       "summary": "主任务",
@@ -299,7 +299,7 @@ feishu-mcp-tool create_feishu_task '{
 更新任务字段。
 
 ```bash
-feishu-mcp-tool update_feishu_task '{
+feishu-tool update_feishu_task '{
   "taskGuid": "4a3e075f-a198-4b1a-8d5e-d98a8a6b6e76",
   "summary": "新标题",
   "completedAt": "1773582350576"
@@ -313,7 +313,7 @@ feishu-mcp-tool update_feishu_task '{
 批量删除任务。
 
 ```bash
-feishu-mcp-tool delete_feishu_task '{
+feishu-tool delete_feishu_task '{
   "taskGuids": [
     "4a3e075f-a198-4b1a-8d5e-d98a8a6b6e76",
     "aa3a9647-0fdc-4280-906d-ef072c876ba4"
@@ -329,10 +329,10 @@ feishu-mcp-tool delete_feishu_task '{
 
 ```bash
 # 按名称搜索
-feishu-mcp-tool get_feishu_users '{"queries":[{"query":"张三"}]}'
+feishu-tool get_feishu_users '{"queries":[{"query":"张三"}]}'
 
 # 按 open_id 批量获取
-feishu-mcp-tool get_feishu_users '{"userIdsParam":[{"id":"ou_xxxx","idType":"open_id"}]}'
+feishu-tool get_feishu_users '{"userIdsParam":[{"id":"ou_xxxx","idType":"open_id"}]}'
 ```
 
 ---
@@ -360,7 +360,7 @@ import subprocess, json
 
 def call_feishu_tool(tool_name: str, params: dict) -> dict:
     result = subprocess.run(
-        ["feishu-mcp-tool", tool_name, json.dumps(params)],
+        ["feishu-tool", tool_name, json.dumps(params)],
         capture_output=True, text=True
     )
     return json.loads(result.stdout)

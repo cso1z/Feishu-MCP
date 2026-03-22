@@ -32,8 +32,8 @@ export function handleGuide(): void {
           '进入应用详情 → 凭证与基础信息 → 获取 App ID 和 App Secret',
         ],
         commands: [
-          'feishu-mcp-tool config set FEISHU_APP_ID <your-app-id>',
-          'feishu-mcp-tool config set FEISHU_APP_SECRET <your-app-secret>',
+          'feishu-tool config set FEISHU_APP_ID <your-app-id>',
+          'feishu-tool config set FEISHU_APP_SECRET <your-app-secret>',
         ],
       },
       {
@@ -60,9 +60,9 @@ export function handleGuide(): void {
         step: authType === 'user' ? 5 : 4,
         title: '验证配置',
         commands: [
-          'feishu-mcp-tool config                           # 查看当前配置',
-          'feishu-mcp-tool auth                             # 查看 token 状态',
-          "feishu-mcp-tool get_feishu_root_folder_info '{}' # 测试接口连通性",
+          'feishu-tool config                           # 查看当前配置',
+          'feishu-tool auth                             # 查看 token 状态',
+          "feishu-tool get_feishu_root_folder_info '{}' # 测试接口连通性",
         ],
       },
     ],

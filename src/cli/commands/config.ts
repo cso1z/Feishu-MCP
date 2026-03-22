@@ -81,7 +81,7 @@ export function handleConfigShow(envPath: string | undefined): void {
 export function handleConfigSet(key: string | undefined, value: string | undefined, envPath: string | undefined): void {
   if (!key || !value) {
     process.stdout.write(JSON.stringify({
-      usage: 'feishu-mcp-tool config set <KEY> <VALUE>',
+      usage: 'feishu-tool config set <KEY> <VALUE>',
       availableKeys: CONFIG_KEYS,
     }, null, 2) + '\n');
     process.exit(0);

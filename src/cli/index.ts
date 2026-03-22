@@ -77,7 +77,7 @@ async function main(): Promise<void> {
       }
     }
     process.stdout.write(JSON.stringify({
-      usage: "feishu-mcp-tool <tool-name> '<json-params>'",
+      usage: "feishu-tool <tool-name> '<json-params>'",
       subcommands,
       authType,
       toolsNote: authType === 'tenant'
