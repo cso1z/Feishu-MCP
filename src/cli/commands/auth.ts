@@ -4,6 +4,8 @@ import express from 'express';
 import { Server } from 'http';
 import { Config } from '../../utils/config.js';
 import { AuthUtils, TokenCacheManager } from '../../utils/auth/index.js';
+import { getRequiredScopes } from '../../services/constants/feishuScopes.js';
+import { ModuleRegistry } from '../../modules/index.js';
 // callbackService 需延迟导入，避免其模块级 Config.getInstance() 在 CLI 启动时提前触发 yargs
 
 
@@ -96,15 +98,21 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
   const port = await findAvailablePort(config.server.port);
   const redirectUri = `http://localhost:${port}/callback`;
 
-  // 2. 计算 clientKey 和 state
+  // 2. 计算 clientKey、scope 和 state
   const clientKey = AuthUtils.generateClientKey(userKey);
+  const authType = config.feishu.authType;
+  const enabledIds = config.features.enabledModules;
+  const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
+  const scopeList = getRequiredScopes(effectiveModules, authType);
+  const scope = encodeURIComponent(scopeList.join(' '));
   const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirectUri);
 
-  // 3. 构造飞书 OAuth 授权 URL
+  // 3. 构造飞书 OAuth 授权 URL（与 baseService.generateUserAuthUrl 保持一致）
   const authUrl =
-    `https://open.feishu.cn/open-apis/authen/v1/index` +
-    `?app_id=${encodeURIComponent(appId)}` +
+    `https://accounts.feishu.cn/open-apis/authen/v1/authorize` +
+    `?client_id=${encodeURIComponent(appId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${scope}` +
     `&state=${encodeURIComponent(state)}`;
 
   // 4. 启动临时 callback 服务器
