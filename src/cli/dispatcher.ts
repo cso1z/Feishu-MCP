@@ -31,6 +31,30 @@ import { getUsers } from '../modules/member/toolApi/index.js';
 type AuthType = 'tenant' | 'user';
 type ToolHandler = (params: any, svc: FeishuApiService) => Promise<any>;
 
+/** 将 getImageResource 返回的 Buffer 转为 base64 字符串输出 */
+async function getImageResourceAsBase64(
+  mediaId: string,
+  extra: string,
+  svc: FeishuApiService
+): Promise<{ base64: string }> {
+  const result = await getImageResource(mediaId, extra, svc);
+  const buf = result instanceof Buffer ? result : Buffer.from((result as any).data);
+  return { base64: buf.toString('base64') };
+}
+
+/** 将 getWhiteboardContent 返回的 Buffer 缩略图转为 base64 字符串输出 */
+async function getWhiteboardContentSafe(
+  whiteboardId: string,
+  svc: FeishuApiService
+): Promise<any> {
+  const result = await getWhiteboardContent(whiteboardId, svc);
+  if (result.type === 'thumbnail') {
+    const buf = result.buffer instanceof Buffer ? result.buffer : Buffer.from((result.buffer as any).data);
+    return { type: 'thumbnail', base64: buf.toString('base64') };
+  }
+  return result;
+}
+
 interface ModuleToolMap {
   /** 模块所需最低认证类型：tenant 表示两者均可，user 表示仅 user 模式可用 */
   authType: AuthType;
@@ -51,10 +75,10 @@ const MODULE_REGISTRY: Record<string, ModuleToolMap> = {
       batch_update_feishu_block_text: (p, s) => batchUpdateBlockText(p, s),
       batch_create_feishu_blocks:     (p, s) => batchCreateBlocks(p, s),
       delete_feishu_document_blocks:  (p, s) => deleteDocumentBlocks(p, s),
-      get_feishu_image_resource:      (p, s) => getImageResource(p.mediaId, p.extra ?? '', s),
+      get_feishu_image_resource:      (p, s) => getImageResourceAsBase64(p.mediaId, p.extra ?? '', s),
       upload_and_bind_image_to_block: (p, s) => uploadAndBindImageToBlock(p, s),
       create_feishu_table:            (p, s) => createTable(p, s),
-      get_feishu_whiteboard_content:  (p, s) => getWhiteboardContent(p.whiteboardId, s),
+      get_feishu_whiteboard_content:  (p, s) => getWhiteboardContentSafe(p.whiteboardId, s),
       fill_whiteboard_with_plantuml:  (p, s) => fillWhiteboardWithPlantuml(p, s),
       get_feishu_root_folder_info:    (_p, s) => getRootFolderInfo(s),
       get_feishu_folder_files:        (p, s) => getFolderFiles(p, s),
