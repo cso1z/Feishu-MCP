@@ -6,7 +6,7 @@
 
 为 [Cursor](https://cursor.sh/)、[Windsurf](https://codeium.com/windsurf)、[Cline](https://cline.bot/) 和其他 AI 驱动的编码工具提供访问、编辑和结构化处理飞书文档的能力，**并支持飞书任务管理和用户信息查询**，基于 [Model Context Protocol](https://modelcontextprotocol.io/introduction) 服务器实现。
 
-**现已支持 `feishu-mcp-tool` 独立 CLI 工具**，可在终端或脚本中直接调用所有飞书工具，无需启动 MCP 服务器。配合 [Feishu-MCP-Skill](https://github.com/cso1z/Feishu-MCP-Skill) 可让 Claude Code 等 AI Agent 自动选择最合适的方式操作飞书。
+**现已支持 `feishu-tool` 独立 CLI 工具**，可在终端或脚本中直接调用所有飞书工具，无需启动 MCP 服务器。配合 [Feishu-Skill](https://github.com/cso1z/Feishu-Skill) 可让 Claude Code 等 AI Agent 自动选择最合适的方式操作飞书。
 
 本项目让 AI 编码工具能够：
 - **文档处理**：直接获取、理解、创建和编辑飞书文档，显著提升文档处理的智能化和效率
@@ -22,6 +22,10 @@
 
 本项目让你在飞书文档的日常使用流程中实现智能获取、编辑和搜索，并扩展任务与用户管理能力，提升内容处理效率和体验。
 
+
+### 💡项目推荐：
+使用 Claude Code 推荐配合 [claude-ip-guard](https://github.com/cso1z/claude-ip-guard) —— 自动检测 IP 地理位置并拦截受限地区访问，防止因网络切换导致 Claude 封号。
+
 ### 🎬 使用演示视频
 
 你可以通过以下视频了解 MCP 的实际使用效果和操作流程：
@@ -36,7 +40,6 @@
 
 > ⭐ **Star 本项目，第一时间获取最新功能和重要更新！** 关注项目可以让你不错过任何新特性、修复和优化，助你持续高效使用。你的支持也将帮助我们更好地完善和发展项目。⭐
 
-> 💡 使用 Claude Code？推荐配合 [claude-ip-guard](https://github.com/cso1z/claude-ip-guard) —— 自动检测 IP 地理位置并拦截受限地区访问，防止因网络切换导致 Claude 封号。
 
 ---
 
@@ -84,6 +87,7 @@
 
 ---
 
+
 ## 📈 一周计划：提升工具效率
 
 - ~~**精简工具集**：21个工具 → 13个工具，移除冗余，聚焦核心功能~~ 0.0.15 ✅
@@ -108,8 +112,8 @@
 - ~~**支持任务管理**：列取、创建、更新、删除飞书任务，支持子任务和成员管理~~ 0.2.4 ✅
 - ~~**支持用户信息查询**：按名称搜索或按 ID 批量获取用户，便于任务分配和文档协作~~ 0.2.4 ✅
 - ~~**Tool API 层抽取**：新建 Tool API 层，与 tool 层一一对应，统一参数校验、数据转换、错误映射等~~ ✅
-- ~~**兼容 CLI 模式**：支持 `feishu-mcp-tool <tool-name> '<json>'` 命令行调用，便于脚本与自动化场景~~ 0.2.6 ✅
-- ~~**完成 Skill**：提供 [Feishu-MCP-Skill](https://github.com/cso1z/Feishu-MCP-Skill)，指导 Claude Code 等 AI Agent 在合适场景下使用 feishu-mcp CLI~~ 0.2.6 ✅
+- ~~**兼容 CLI 模式**：支持 `feishu-tool <tool-name> '<json>'` 命令行调用，便于脚本与自动化场景~~ 0.2.6 ✅
+- ~~**完成 Skill**：提供 [Feishu-Skill](https://github.com/cso1z/Feishu-Skill)，指导 Claude Code 等 AI Agent 在合适场景下使用 feishu-mcp CLI~~ 0.2.6 ✅
 ---
 
 ## 🔧 飞书配置教程
@@ -173,55 +177,40 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
 
 ---
 
-## 🖥️ feishu-mcp-tool CLI 工具
+## 🖥️ feishu-tool CLI 工具
 
-从 `0.2.5` 版本起，`feishu-mcp` npm 包随附 `feishu-mcp-tool` 独立 CLI，可在终端、Shell 脚本或 AI Agent 中直接调用所有飞书工具，**无需启动 MCP 服务器**。
+从 `0.2.5` 版本起，`feishu-mcp` npm 包随附 `feishu-tool` 独立 CLI，可在终端、Shell 脚本或 AI Agent 中直接调用所有飞书工具，**无需启动 MCP 服务器**。
 
 ### 安装
 
 ```bash
 # 全局安装（推荐）
-npm install -g feishu-mcp
-
-# 或通过 npx 临时运行
-npx feishu-mcp-tool <tool-name> '<json-params>'
+npm install -g feishu-mcp@latest
 ```
 
 ### 配置
 
 ```bash
-# 写入飞书应用凭证（一次性，保存至 ~/.cache/feishu-mcp/.env）
-feishu-mcp-tool config set FEISHU_APP_ID cli_xxxxx
-feishu-mcp-tool config set FEISHU_APP_SECRET your-secret
-feishu-mcp-tool config set FEISHU_AUTH_TYPE user        # tenant / user
-feishu-mcp-tool config set FEISHU_ENABLED_MODULES all   # document,task,member,...
+# 1. 查看 CLI 概览（子命令 + 可用工具集）
+feishu-tool --help
 
-# 查看当前配置
-feishu-mcp-tool config
+# 2. 查看初始化指南（获取 App ID / Secret 的步骤说明）
+feishu-tool guide
 
-# 查看初始化指南（自动打开浏览器文档）
-feishu-mcp-tool guide
+# 3. 写入凭证
+feishu-tool config set FEISHU_APP_ID cli_xxxxx
+
+# 4. 查看当前配置（确认写入正确）
+feishu-tool config
+
+# 5. 查看某个工具的详细参数
+feishu-tool help create_feishu_document
+
+# 6. 调用工具
+feishu-tool create_feishu_document '{"title": "测试文档"}'
 ```
 
-> 完整参数说明请参阅 [Feishu-MCP-Skill 文档](https://github.com/cso1z/Feishu-MCP-Skill)。
-
----
-
-## 🤖 AI Skill 支持（Claude Code）
-
-[**Feishu-MCP-Skill**](https://github.com/cso1z/Feishu-MCP-Skill) 是配套的 Claude Code Skill 仓库，让 AI Agent 能够自动理解所有飞书工具的参数格式、调用时机和最佳实践。
-
-- 覆盖全部 20 个工具的参数说明、使用示例和常见错误
-- 包含 6 个端到端工作流（创建文档→填充内容→插入图片→创建白板等）
-- 经过系统化测试验证，所有块类型（text / heading / code / list / image / mermaid / whiteboard / table）均通过
-
-### 在 Claude Code 中启用
-
-```bash
-# 克隆仓库到本地，再将 feishu-mcp/ 子目录复制到 Claude Skill 目录
-git clone https://github.com/cso1z/Feishu-MCP-Skill.git /tmp/Feishu-MCP-Skill
-cp -r /tmp/Feishu-MCP-Skill/feishu-mcp ~/.claude/skills/feishu-mcp
-```
+> 完整参数说明请参阅 [Feishu-Skill 文档](https://github.com/cso1z/Feishu-Skill)。
 
 ---
 

@@ -1,15 +1,17 @@
 {
   "name": "feishu-mcp",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Model Context Protocol server for Feishu integration",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "feishu-mcp": "./dist/cli.js",
-    "feishu-mcp-tool": "./dist/cli/index.js"
+    "feishu-mcp-tool": "./dist/cli/index.js",
+    "feishu-tool": "./dist/cli/index.js"
   },
   "files": [
     "dist",
+    "tool-schemas",
     "README.md"
   ],
   "scripts": {

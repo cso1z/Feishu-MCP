@@ -1,0 +1,23 @@
+{
+  "name": "create_feishu_folder",
+  "description": "Creates a new folder in a specified parent folder. Use this to organize documents and files within your Feishu Drive structure. Returns the token and URL of the newly created folder.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "folderToken": {
+        "type": "string",
+        "description": "Folder token (required). The unique identifier for a folder in Feishu. Format is an alphanumeric string like \"FWK2fMleClICfodlHHWc4Mygnhb\"."
+      },
+      "folderName": {
+        "type": "string",
+        "description": "Folder name (required). The name for the new folder to be created."
+      }
+    },
+    "required": [
+      "folderToken",
+      "folderName"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

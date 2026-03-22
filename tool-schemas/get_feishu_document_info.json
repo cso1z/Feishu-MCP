@@ -1,0 +1,26 @@
+{
+  "name": "get_feishu_document_info",
+  "description": "Retrieves basic information about a Feishu document or Wiki node. Supports both regular documents (via document ID/URL) and Wiki documents (via Wiki URL/token). Use this to verify a document exists, check access permissions, or get metadata like title, type, and creation information. For Wiki documents, returns complete node information including documentId (obj_token) for document editing operations, and space_id and node_token for creating child nodes.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID, URL, or Wiki ID/URL (required). Supports regular document formats (https://xxx.feishu.cn/docx/xxx or direct ID) and Wiki formats (https://xxx.feishu.cn/wiki/xxxxx or Wiki token)."
+      },
+      "documentType": {
+        "type": "string",
+        "enum": [
+          "document",
+          "wiki"
+        ],
+        "description": "Document type (optional). \"document\" for regular document, \"wiki\" for Wiki document."
+      }
+    },
+    "required": [
+      "documentId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

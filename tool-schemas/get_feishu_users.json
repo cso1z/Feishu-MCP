@@ -1,0 +1,65 @@
+{
+  "name": "get_feishu_users",
+  "description": "Get Feishu users by either (1) name search or (2) user IDs. Provide exactly one: queries [{ query, pageToken? }, ...] (1–20 items; pageToken per query for pagination), OR userIdsParam [{ id, idType }, ...] (1–50 items) to batch get by ID. Returns user list with basic info: open_id, user_id, name, department_ids, email, mobile, status, avatar, etc.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "queries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Search keyword (required).Matches display name and pinyin (full/partial/initials, case-insensitive). user_id is NOT matched—use userIdsParam."
+            },
+            "pageToken": {
+              "type": "string",
+              "description": "Pagination token (optional). Omit on first call; use page_token from previous response."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1,
+        "maxItems": 20,
+        "description": "Search by name. Each item: query + optional pageToken for that query. Min 1, max 20."
+      },
+      "userIdsParam": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "User ID value (open_id, union_id, or user_id per idType)."
+            },
+            "idType": {
+              "type": "string",
+              "enum": [
+                "open_id",
+                "union_id",
+                "user_id"
+              ],
+              "default": "open_id",
+              "description": "ID type: open_id (per-app) | union_id (per-developer) | user_id (tenant). Default open_id."
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "Get by ID list. Each item: id + idType. IDs may mix types."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

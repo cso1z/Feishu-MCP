@@ -1,0 +1,35 @@
+{
+  "name": "delete_feishu_document_blocks",
+  "description": "Deletes a consecutive range of blocks from a Feishu document identified by startIndex (inclusive) and endIndex (exclusive). For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info first to obtain the documentId, then use that ID for editing operations.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID or URL (required). Supports the following formats:\n1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf"
+      },
+      "parentBlockId": {
+        "type": "string",
+        "description": "Parent block ID (required). The block ID whose direct children will be operated on, without any URL prefix. For root-level operations, use the document ID as parentBlockId."
+      },
+      "startIndex": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Start of the target range within the direct children of `parentBlockId` (0-based, title block excluded).\n0 = first content block; max = children.length - 1.\nExample: to target blocks at positions 2, 3, 4 → startIndex=2."
+      },
+      "endIndex": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "End of the target range (exclusive) within the direct children of `parentBlockId` (title block excluded).\nMust satisfy endIndex > startIndex.\nExample: to delete blocks at positions 2, 3, 4 → startIndex=2, endIndex=5; single block at 2 → startIndex=2, endIndex=3."
+      }
+    },
+    "required": [
+      "documentId",
+      "parentBlockId",
+      "startIndex",
+      "endIndex"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

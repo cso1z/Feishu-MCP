@@ -9,6 +9,7 @@ import { dispatch, listTools } from './dispatcher.js';
 import { handleConfigShow, handleConfigSet } from './commands/config.js';
 import { handleAuthStatus, handleAuthLogout } from './commands/auth.js';
 import { handleGuide } from './commands/guide.js';
+import { handleHelp } from './commands/help.js';
 
 // 按优先级查找 .env：CWD → ~/.cache/feishu-mcp（与 token 缓存同目录）
 const envCandidates = [
@@ -41,6 +42,9 @@ const COMMAND_REGISTRY: Record<string, Record<string, CommandDef>> = {
   },
   guide: {
     '':     { description: '飞书应用配置指南（步骤说明）',        handler: (_) => handleGuide() },
+  },
+  help: {
+    '':     { description: '查看工具详细说明 <tool-name>（不带参数列出所有工具）', handler: (args) => handleHelp(args) },
   },
 };
 

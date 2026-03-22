@@ -1,0 +1,40 @@
+{
+  "name": "create_feishu_document",
+  "description": "Creates a new Feishu document and returns its information. Supports two modes: (1) Feishu Drive folder mode: use folderToken to create a document in a folder. (2) Wiki space node mode: use wikiContext with spaceId (and optional parentNodeToken) to create a node (document) in a wiki space. IMPORTANT: In wiki spaces, documents are nodes themselves - they can act as parent nodes containing child documents, and can also be edited as regular documents. The created node returns both node_token (node ID, can be used as parentNodeToken for creating child nodes) and obj_token (document ID, can be used for document editing operations like get_feishu_document_blocks, batch_create_feishu_blocks, etc.). Only one mode can be used at a time - provide either folderToken OR wikiContext, not both.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Document title (required). This will be displayed in the Feishu document list and document header."
+      },
+      "folderToken": {
+        "type": "string",
+        "description": "Folder token (optional, for Feishu Drive folder mode). The unique identifier for a folder in Feishu Drive. Format is an alphanumeric string like \"FWK2fMleClICfodlHHWc4Mygnhb\"."
+      },
+      "wikiContext": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "string",
+            "description": "Space ID. Required when using wikiContext mode. The unique identifier for a wiki space in Feishu. Can be obtained from get_feishu_root_folder_info (wiki_spaces array or my_library.space_id). Format is typically like \"74812***88644\"."
+          },
+          "parentNodeToken": {
+            "type": "string",
+            "description": "Parent node token (optional). The token of the parent node in a wiki space. If not provided, retrieves nodes from the root of the wiki space. Format is typically like \"PdDWwIHD6****MhcIOY7npg\"."
+          }
+        },
+        "required": [
+          "spaceId"
+        ],
+        "additionalProperties": false,
+        "description": "Wiki space node context object (optional). Provide this instead of folderToken to operate in wiki space mode. spaceId is required; parentNodeToken is optional (omit to target the wiki root)."
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

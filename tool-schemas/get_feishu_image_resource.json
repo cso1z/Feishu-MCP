@@ -1,0 +1,22 @@
+{
+  "name": "get_feishu_image_resource",
+  "description": "Downloads an image resource from Feishu by its media ID and returns binary image data. To get the mediaId, extract block.image.token from an image block (block_type=27) returned by get_feishu_document_blocks.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "mediaId": {
+        "type": "string",
+        "description": "Image media token (required). Obtain from one of:\n1. An image block returned by get_feishu_document_blocks: block.image.token (block_type=27)\n2. Response of upload_and_bind_image_to_block: fileToken field"
+      },
+      "extra": {
+        "type": "string",
+        "description": "Extra query parameter for the Feishu media download API (optional). Required only for encrypted images; omit for standard image blocks."
+      }
+    },
+    "required": [
+      "mediaId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

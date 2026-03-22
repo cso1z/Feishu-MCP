@@ -1,0 +1,8 @@
+{
+  "name": "get_feishu_root_folder_info",
+  "description": "Retrieves the root folder in Feishu Drive, wiki spaces list, and \"My Library\". Use this when you need to browse folders or wiki spaces from the root. If you know the wiki node name, you can also use search_feishu_documents to directly locate specific wiki nodes instead of traversing from root. Returns root folder token, all wiki spaces, and personal library information.",
+  "arguments": {
+    "type": "object",
+    "properties": {}
+  }
+}

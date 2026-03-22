@@ -1,0 +1,46 @@
+{
+  "name": "fill_whiteboard_with_plantuml",
+  "description": "Fills whiteboard blocks with PlantUML or Mermaid diagram code. Accepts any number of whiteboards. Returns per-item success/failure details.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "whiteboards": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "whiteboardId": {
+              "type": "string",
+              "description": "Whiteboard token (required). Found in board.token of a block with block_type=43.\nExample: \"EPJKwvY5ghe3pVbKj9RcT2msnBX\""
+            },
+            "code": {
+              "type": "string",
+              "description": "Diagram code (required). The complete diagram code to create in the whiteboard.\nSupports both PlantUML and Mermaid formats.\nPlantUML example: \"@startuml\nAlice -> Bob: Hello\n@enduml\"\nMermaid example: \"graph TD\nA[Start] --> B[End]\""
+            },
+            "syntax_type": {
+              "type": "string",
+              "enum": [
+                "plantuml",
+                "mermaid"
+              ],
+              "description": "Diagram syntax type (required): \"plantuml\" or \"mermaid\"."
+            }
+          },
+          "required": [
+            "whiteboardId",
+            "code",
+            "syntax_type"
+          ],
+          "additionalProperties": false,
+          "description": "Whiteboard fill item: target whiteboard ID, diagram code, and syntax type."
+        },
+        "description": "Array of whiteboard fill items (required).\nExample: [{whiteboardId:\"token1\", code:\"@startuml\\nAlice -> Bob: Hi\\n@enduml\", syntax_type:\"plantuml\"}, {whiteboardId:\"token2\", code:\"graph TD\\nA-->B\", syntax_type:\"mermaid\"}]"
+      }
+    },
+    "required": [
+      "whiteboards"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

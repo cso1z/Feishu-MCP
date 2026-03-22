@@ -1,0 +1,26 @@
+{
+  "name": "delete_feishu_task",
+  "description": "Deletes one or more Feishu tasks by task_guid. Pass an array of task GUIDs (min 1, max 50). Requires edit permission on each task. Returns deleted guids and per-item errors. Deleted tasks cannot be retrieved.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "taskGuids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Task GUID (required). Global unique ID of the task. Max 100 characters."
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "Task GUIDs to delete (required). Min 1, max 50 per call. Requires edit permission on each task."
+      }
+    },
+    "required": [
+      "taskGuids"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

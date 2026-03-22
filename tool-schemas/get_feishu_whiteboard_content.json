@@ -1,0 +1,18 @@
+{
+  "name": "get_feishu_whiteboard_content",
+  "description": "Retrieves the content and structure of a Feishu whiteboard. Use this to analyze whiteboard content, extract information, or understand the structure of collaborative diagrams. The whiteboard ID can be obtained from the board.token field when getting document blocks with block_type: 43.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "whiteboardId": {
+        "type": "string",
+        "description": "Whiteboard token (required). Found in board.token of a block with block_type=43.\nExample: \"EPJKwvY5ghe3pVbKj9RcT2msnBX\""
+      }
+    },
+    "required": [
+      "whiteboardId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "name": "batch_update_feishu_block_text",
+  "description": "Updates text content and styling of multiple document blocks. For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info first to obtain the documentId, then use that ID for editing operations.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID or URL (required). Supports the following formats:\n1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf"
+      },
+      "updates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "blockId": {
+              "type": "string",
+              "description": "Block ID (required). The ID of the block to update."
+            },
+            "textElements": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "description": "Text content. Provide plain text without markdown syntax; use style object for formatting."
+                      },
+                      "style": {
+                        "type": "object",
+                        "properties": {
+                          "bold": {
+                            "type": "boolean",
+                            "description": "Whether to make text bold. Default is false, equivalent to **text** in Markdown."
+                          },
+                          "italic": {
+                            "type": "boolean",
+                            "description": "Whether to make text italic. Default is false, equivalent to *text* in Markdown."
+                          },
+                          "underline": {
+                            "type": "boolean",
+                            "description": "Whether to add underline. Default is false."
+                          },
+                          "strikethrough": {
+                            "type": "boolean",
+                            "description": "Whether to add strikethrough. Default is false, equivalent to ~~text~~ in Markdown."
+                          },
+                          "inline_code": {
+                            "type": "boolean",
+                            "description": "Whether to format as inline code. Default is false, equivalent to `code` in Markdown."
+                          },
+                          "text_color": {
+                            "type": "number",
+                            "description": "Text color (optional): 0=black (default), 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple."
+                          },
+                          "background_color": {
+                            "type": "number",
+                            "description": "Background color (optional): 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple."
+                          }
+                        },
+                        "additionalProperties": false,
+                        "description": "Text style settings (optional). Omit entirely for unstyled text; only set properties that differ from the default (false)."
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Regular text element with optional styling."
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "equation": {
+                        "type": "string",
+                        "description": "Mathematical equation content. The formula or expression to display. Format: LaTeX."
+                      },
+                      "style": {
+                        "$ref": "#/properties/updates/items/properties/textElements/items/anyOf/0/properties/style"
+                      }
+                    },
+                    "required": [
+                      "equation"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Mathematical equation element with optional styling."
+                  }
+                ]
+              },
+              "description": "Array of text content objects. A block can contain multiple text segments with different styles. Example: [{text:\"Hello\",style:{bold:true}},{text:\" World\",style:{italic:true}}]"
+            }
+          },
+          "required": [
+            "blockId",
+            "textElements"
+          ],
+          "additionalProperties": false,
+          "description": "A single block text update item: target blockId and its new text content."
+        },
+        "minItems": 1,
+        "description": "Array of block text update items (required, at least 1). Example: [{blockId:\"xxx\",textElements:[{text:\"Hello\",style:{bold:true}}]},{blockId:\"yyy\",textElements:[{text:\"World\"}]}]"
+      }
+    },
+    "required": [
+      "documentId",
+      "updates"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

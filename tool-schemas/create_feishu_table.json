@@ -1,0 +1,377 @@
+{
+  "name": "create_feishu_table",
+  "description": "Creates a table block with specified rows and columns in a Feishu document. Each cell can contain text, list, code, or other block types. For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info first to obtain the documentId, then use that ID for editing operations.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID or URL (required). Supports the following formats:\n1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf"
+      },
+      "parentBlockId": {
+        "type": "string",
+        "description": "Parent block ID (required). The block ID whose direct children will be operated on, without any URL prefix. For root-level operations, use the document ID as parentBlockId."
+      },
+      "index": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Insertion position within the direct children of `parentBlockId` (0-based, title block excluded).\n0 = before the first content block; max = children.length (append after last block).\nExample: document has 3 blocks → valid values are 0, 1, 2, 3."
+      },
+      "tableConfig": {
+        "type": "object",
+        "properties": {
+          "columnSize": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Table column size (required). The number of columns in the table. Must be at least 1."
+          },
+          "rowSize": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Table row size (required). The number of rows in the table. Must be at least 1."
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "coordinate": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "type": "number",
+                      "minimum": 0,
+                      "description": "Row coordinate (0-based). The row position of the cell in the table."
+                    },
+                    "column": {
+                      "type": "number",
+                      "minimum": 0,
+                      "description": "Column coordinate (0-based). The column position of the cell in the table."
+                    }
+                  },
+                  "required": [
+                    "row",
+                    "column"
+                  ],
+                  "additionalProperties": false
+                },
+                "content": {
+                  "type": "object",
+                  "properties": {
+                    "blockType": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "code",
+                        "heading",
+                        "list",
+                        "image",
+                        "mermaid",
+                        "whiteboard"
+                      ],
+                      "description": "Block type. 'image' and 'whiteboard' create empty blocks to be filled after creation."
+                    },
+                    "options": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "object",
+                              "properties": {
+                                "textStyles": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "text": {
+                                            "type": "string",
+                                            "description": "Text content. Provide plain text without markdown syntax; use style object for formatting."
+                                          },
+                                          "style": {
+                                            "type": "object",
+                                            "properties": {
+                                              "bold": {
+                                                "type": "boolean",
+                                                "description": "Whether to make text bold. Default is false, equivalent to **text** in Markdown."
+                                              },
+                                              "italic": {
+                                                "type": "boolean",
+                                                "description": "Whether to make text italic. Default is false, equivalent to *text* in Markdown."
+                                              },
+                                              "underline": {
+                                                "type": "boolean",
+                                                "description": "Whether to add underline. Default is false."
+                                              },
+                                              "strikethrough": {
+                                                "type": "boolean",
+                                                "description": "Whether to add strikethrough. Default is false, equivalent to ~~text~~ in Markdown."
+                                              },
+                                              "inline_code": {
+                                                "type": "boolean",
+                                                "description": "Whether to format as inline code. Default is false, equivalent to `code` in Markdown."
+                                              },
+                                              "text_color": {
+                                                "type": "number",
+                                                "description": "Text color (optional): 0=black (default), 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple."
+                                              },
+                                              "background_color": {
+                                                "type": "number",
+                                                "description": "Background color (optional): 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple."
+                                              }
+                                            },
+                                            "additionalProperties": false,
+                                            "description": "Text style settings (optional). Omit entirely for unstyled text; only set properties that differ from the default (false)."
+                                          }
+                                        },
+                                        "required": [
+                                          "text"
+                                        ],
+                                        "additionalProperties": false,
+                                        "description": "Regular text element with optional styling."
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "equation": {
+                                            "type": "string",
+                                            "description": "Mathematical equation content. The formula or expression to display. Format: LaTeX."
+                                          },
+                                          "style": {
+                                            "$ref": "#/properties/tableConfig/properties/cells/items/properties/content/properties/options/anyOf/0/properties/text/properties/textStyles/items/anyOf/0/properties/style"
+                                          }
+                                        },
+                                        "required": [
+                                          "equation"
+                                        ],
+                                        "additionalProperties": false,
+                                        "description": "Mathematical equation element with optional styling."
+                                      }
+                                    ]
+                                  },
+                                  "description": "Array of text content objects with styles. A block can contain multiple text segments with different styles, including both regular text and equations. Example: [{text:\"Hello\",style:{bold:true}},{equation:\"1+2=3\",style:{}}]"
+                                },
+                                "align": {
+                                  "type": "number",
+                                  "default": 1,
+                                  "description": "Text alignment: 1 for left (default), 2 for center, 3 for right."
+                                }
+                              },
+                              "required": [
+                                "textStyles"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "text"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Text block options. Used when blockType is 'text'."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "description": "Code content. The complete code text to display."
+                                },
+                                "language": {
+                                  "type": "number",
+                                  "default": 1,
+                                  "description": "Programming language code (optional). Common language codes:\n1: PlainText; 2: ABAP; 3: Ada; 4: Apache; 5: Apex; 6: Assembly; 7: Bash; 8: CSharp; 9: C++; 10: C; 11: COBOL; 12: CSS; 13: CoffeeScript; 14: D; 15: Dart; 16: Delphi; 17: Django; 18: Dockerfile; 19: Erlang; 20: Fortran; 22: Go; 23: Groovy; 24: HTML; 25: HTMLBars; 26: HTTP; 27: Haskell; 28: JSON; 29: Java; 30: JavaScript; 31: Julia; 32: Kotlin; 33: LateX; 34: Lisp; 36: Lua; 37: MATLAB; 38: Makefile; 39: Markdown; 40: Nginx; 41: Objective-C; 43: PHP; 44: Perl; 46: PowerShell; 47: Prolog; 48: ProtoBuf; 49: Python; 50: R; 52: Ruby; 53: Rust; 54: SAS; 55: SCSS; 56: SQL; 57: Scala; 58: Scheme; 60: Shell; 61: Swift; 62: Thrift; 63: TypeScript; 64: VBScript; 65: Visual Basic; 66: XML; 67: YAML; 68: CMake; 69: Diff; 70: Gherkin; 71: GraphQL. Default is 1 (PlainText)."
+                                },
+                                "wrap": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Whether to enable automatic line wrapping. Default is false."
+                                }
+                              },
+                              "required": [
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "code"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Code block options. Used when blockType is 'code'."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "heading": {
+                              "type": "object",
+                              "properties": {
+                                "level": {
+                                  "type": "number",
+                                  "minimum": 1,
+                                  "maximum": 9,
+                                  "description": "Heading level from 1 to 9, where 1 is the largest (h1) and 9 is the smallest (h9)."
+                                },
+                                "content": {
+                                  "type": "string",
+                                  "description": "Heading text content."
+                                },
+                                "align": {
+                                  "type": "number",
+                                  "default": 1,
+                                  "description": "Text alignment (optional): 1 for left (default), 2 for center, 3 for right. Only these three values are allowed."
+                                }
+                              },
+                              "required": [
+                                "level",
+                                "content"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "heading"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Heading block options. Used with both 'heading' and 'headingN' formats."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "list": {
+                              "type": "object",
+                              "properties": {
+                                "content": {
+                                  "type": "string",
+                                  "description": "List item content. The actual text of the list item."
+                                },
+                                "isOrdered": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Whether this is an ordered (numbered) list item. Default is false (bullet point/unordered)."
+                                },
+                                "align": {
+                                  "$ref": "#/properties/tableConfig/properties/cells/items/properties/content/properties/options/anyOf/2/properties/heading/properties/align"
+                                }
+                              },
+                              "required": [
+                                "content"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "list"
+                          ],
+                          "additionalProperties": false,
+                          "description": "List block options. Used when blockType is 'list'."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "image": {
+                              "type": "object",
+                              "properties": {
+                                "width": {
+                                  "type": "number",
+                                  "description": "Image width in pixels (optional). If not provided, the original image width will be used."
+                                },
+                                "height": {
+                                  "type": "number",
+                                  "description": "Image height in pixels (optional). If not provided, the original image height will be used."
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "image"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Image block options. Used when blockType is 'image'. Creates empty image blocks."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "mermaid": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "description": "Mermaid chart code (required). Node labels containing special characters ((), [], -->) must be wrapped in double quotes.\nExample: A[\"finish()/返回键\"] --> B"
+                                }
+                              },
+                              "required": [
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "mermaid"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Mermaid block options.  Used when blockType is 'mermaid'."
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "whiteboard": {
+                              "type": "object",
+                              "properties": {
+                                "align": {
+                                  "type": "number",
+                                  "default": 2,
+                                  "description": "Whiteboard alignment: 1 for left, 2 for center (default), 3 for right."
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "whiteboard"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Whiteboard block options. Used when blockType is 'whiteboard'. Creates an empty whiteboard; response includes board.token — pass it as whiteboardId to fill_whiteboard_with_plantuml."
+                        }
+                      ],
+                      "description": "Options for the block type. Key must match blockType (e.g., blockType:\"text\" → options:{text:{...}})."
+                    }
+                  },
+                  "required": [
+                    "blockType",
+                    "options"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "coordinate",
+                "content"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Array of cell configurations (optional). Each cell specifies its position (row, column) and content block configuration. If not provided, empty text blocks will be created for all cells. Multiple entries with the same coordinates add content blocks sequentially to that cell. Example: [{coordinate:{row:0,column:0}, content:{blockType:\"text\", options:{text:{textStyles:[{text:\"Header\"}]}}}}, {coordinate:{row:0,column:0}, content:{blockType:\"code\", options:{code:{code:\"console.log('hello')\", language:30}}}}] adds both a text block and a code block to cell (0,0)."
+          }
+        },
+        "required": [
+          "columnSize",
+          "rowSize"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "documentId",
+      "parentBlockId",
+      "index",
+      "tableConfig"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

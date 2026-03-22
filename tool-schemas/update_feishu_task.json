@@ -1,0 +1,106 @@
+{
+  "name": "update_feishu_task",
+  "description": "Updates an existing Feishu task. Provide task_guid and the fields to change. Supports summary, description, due, completed_at (use \"0\" to restore to unfinished), repeat_rule, start, mode, is_milestone. Also supports addAssigneeIds/addFollowerIds and removeAssigneeIds/removeFollowerIds for members; addReminderRelativeMinutes to add a reminder (task must have due; only one per task—remove first if needed) and removeReminderIds (from task.reminders[].id) to remove reminders. At least one update is required.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "taskGuid": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "description": "Task GUID (required). Global unique ID of the task. Max 100 characters."
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 3000,
+        "description": "Task title (required). Max 3000 UTF-8 characters."
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 3000,
+        "description": "Task description (optional). Max 3000 UTF-8 characters."
+      },
+      "dueTimestamp": {
+        "type": "string",
+        "description": "Timestamp in milliseconds since 1970-01-01 00:00:00 UTC. Example: \"1675454764000\"."
+      },
+      "isDueAllDay": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether the time is all-day. If true, only the date part of timestamp is used."
+      },
+      "completedAt": {
+        "type": "string",
+        "description": "Completion timestamp in ms (optional). Omit or \"0\" = unfinished; set to create a completed task."
+      },
+      "repeatRule": {
+        "type": "string",
+        "maxLength": 1000,
+        "description": "Recurrence rule (optional). Example: \"FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR\"."
+      },
+      "startTimestamp": {
+        "$ref": "#/properties/dueTimestamp"
+      },
+      "isStartAllDay": {
+        "$ref": "#/properties/isDueAllDay"
+      },
+      "mode": {
+        "type": "number",
+        "enum": [
+          1,
+          2
+        ],
+        "default": 2,
+        "description": "Task mode (optional): 1 = all assignees must complete, 2 = any assignee can complete. Default 2."
+      },
+      "isMilestone": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether the task is a milestone (optional). Default false."
+      },
+      "addAssigneeIds": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxItems": 50,
+        "description": "Assignee open_ids (optional). Use open_id from get_feishu_users. Max 50."
+      },
+      "addFollowerIds": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxItems": 50,
+        "description": "Follower open_ids (optional). Use open_id from get_feishu_users. Max 50."
+      },
+      "removeAssigneeIds": {
+        "$ref": "#/properties/addAssigneeIds"
+      },
+      "removeFollowerIds": {
+        "$ref": "#/properties/addFollowerIds"
+      },
+      "addReminderRelativeMinutes": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Reminder: minutes before due (0 = at due time, 30 = 30 min before). Task must have due; only one reminder per task—remove existing first if needed."
+      },
+      "removeReminderIds": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Reminder ids to remove (from task.reminders[].id)."
+      }
+    },
+    "required": [
+      "taskGuid"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

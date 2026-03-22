@@ -1,0 +1,18 @@
+{
+  "name": "get_feishu_document_blocks",
+  "description": "Retrieves the block hierarchy of a Feishu document, including block IDs, types, and content. For Feishu wiki links (https://xxx.feishu.cn/wiki/xxx), use get_feishu_document_info first to obtain the documentId, then use that ID for editing operations.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID or URL (required). Supports the following formats:\n1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf"
+      }
+    },
+    "required": [
+      "documentId"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

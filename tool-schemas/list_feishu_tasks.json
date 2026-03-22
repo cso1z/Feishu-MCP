@@ -1,0 +1,19 @@
+{
+  "name": "list_feishu_tasks",
+  "description": "Lists tasks assigned to the current user (\"我负责的\"). Returns up to 100 items per call (2 pages of 50). Optional pageToken for next page, optional completed (true=done only, false=todo only). Response includes slimmed task fields: guid, summary, description, due, reminders, creator, members, status, task_id, url, etc. Requires user_access_token.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "pageToken": {
+        "type": "string",
+        "description": "Page token for list tasks (omit on first request; use page_token from previous response for next page)."
+      },
+      "completed": {
+        "type": "boolean",
+        "description": "Filter by completion: true = only completed, false = only todo, omit = no filter."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

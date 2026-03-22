@@ -1,0 +1,36 @@
+{
+  "name": "search_feishu_documents",
+  "description": "Searches for documents and/or Wiki knowledge base nodes in Feishu. Supports keyword-based search with type filtering (document, wiki, or both). Returns document and wiki information including title, type, and owner. Supports pagination: use offset for document search pagination and pageToken for wiki search pagination. Each type (document or wiki) can return up to 100 results maximum per search. Default page size is 20 items.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "searchKey": {
+        "type": "string",
+        "description": "Search keyword (required). The keyword to search for in documents."
+      },
+      "searchType": {
+        "type": "string",
+        "enum": [
+          "document",
+          "wiki",
+          "both"
+        ],
+        "default": "both",
+        "description": "Search type (optional, default: \"both\"). \"document\": only documents, \"wiki\": only wiki nodes, \"both\": both (default)"
+      },
+      "offset": {
+        "type": "number",
+        "description": "Document offset (optional). Offset for document search pagination. Only needed when fetching next page of document results."
+      },
+      "pageToken": {
+        "type": "string",
+        "description": "Wiki page token (optional). Token from previous wiki search result for pagination. Only needed when fetching next page of wiki results."
+      }
+    },
+    "required": [
+      "searchKey"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

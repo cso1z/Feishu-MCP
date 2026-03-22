@@ -1,0 +1,45 @@
+{
+  "name": "upload_and_bind_image_to_block",
+  "description": "Uploads images from local paths or URLs and binds them to existing empty image blocks. This tool is used after creating image blocks with batch_create_feishu_blocks tool. It handles uploading the image media and setting the image content to the specified block IDs. Supports local file paths and HTTP/HTTPS URLs. Each image upload and binding is processed independently, and all results are returned in order.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "documentId": {
+        "type": "string",
+        "description": "Document ID or URL (required). Supports the following formats:\n1. Standard document URL: https://xxx.feishu.cn/docs/xxx or https://xxx.feishu.cn/docx/xxx\n2. Direct document ID: e.g., JcKbdlokYoPIe0xDzJ1cduRXnRf"
+      },
+      "images": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "blockId": {
+              "type": "string",
+              "description": "Block ID (required). The ID of the target block."
+            },
+            "imagePathOrUrl": {
+              "type": "string",
+              "description": "Image path or URL (required).\n1. Local absolute path: e.g., \"C:\\path\\to\\image.jpg\"\n2. HTTP/HTTPS URL: e.g., \"https://example.com/image.png\""
+            },
+            "fileName": {
+              "type": "string",
+              "description": "Image file name (optional). If not provided, a default name will be generated based on the source. Should include the file extension, e.g., \"image.png\" or \"photo.jpg\"."
+            }
+          },
+          "required": [
+            "blockId",
+            "imagePathOrUrl"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Array of image binding objects (required). Each object must include: blockId (target image block ID), imagePathOrUrl (local path or URL of the image), and optionally fileName (image file name, e.g., \"image.png\")."
+      }
+    },
+    "required": [
+      "documentId",
+      "images"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}
