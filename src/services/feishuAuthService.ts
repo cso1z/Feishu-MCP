@@ -12,7 +12,7 @@ export class AuthService {
     Logger.warn('[AuthService] getUserInfo called');
     try {
       const response = await axios.get(
-        'https://open.feishu.cn/open-apis/authen/v1/user_info',
+        `${this.config.feishu.baseUrl}/authen/v1/user_info`,
         { headers: { Authorization: `Bearer ${access_token}` } }
       );
       Logger.debug('[AuthService] getUserInfo response', response.data);
@@ -41,7 +41,7 @@ export class AuthService {
     };
     if (code_verifier) body.code_verifier = code_verifier;
     Logger.debug('[AuthService] getUserTokenByCode request', body);
-    const response = await fetch('https://open.feishu.cn/open-apis/authen/v2/oauth/token', {
+    const response = await fetch(`${this.config.feishu.baseUrl}/authen/v2/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -95,8 +95,8 @@ export class AuthService {
       has_refresh_token: !!actualRefreshToken
     });
     
-    const response = await axios.post('https://open.feishu.cn/open-apis/authen/v2/oauth/token', body, { 
-      headers: { 'Content-Type': 'application/json' } 
+    const response = await axios.post(`${this.config.feishu.baseUrl}/authen/v2/oauth/token`, body, {
+      headers: { 'Content-Type': 'application/json' }
     });
     const data = response.data;
     
@@ -143,7 +143,7 @@ export class AuthService {
     Logger.info('缓存中没有租户token，请求新的租户访问令牌');
     try {
       const requestData = { app_id: appId, app_secret: appSecret };
-      const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
+      const url = `${this.config.feishu.baseUrl}/auth/v3/tenant_access_token/internal`;
       const headers = { 'Content-Type': 'application/json' };
 
       Logger.debug('请求租户访问令牌:', url, requestData);

@@ -100,7 +100,7 @@ async function redirectToFeishu(request: Request, oauthReqInfo: AuthRequest, hea
 		headers: {
 			...headers,
 			location: getUpstreamAuthorizeUrl({
-				upstream_url: 'https://open.feishu.cn/open-apis/authen/v1/authorize',
+				upstream_url: `${c.env.FEISHU_BASE_URL || 'https://open.feishu.cn/open-apis'}/authen/v1/authorize`,
 				scope: 'wiki:wiki wiki:wiki:readonly wiki:node:read drive:drive drive:file drive:file:upload auth:user.id:read offline_access task:task:read docs:document:import docs:document.media:upload docx:document docx:document:readonly',
 				client_id: env.FEISHU_APP_ID,
 				redirect_uri: new URL('/callback', request.url).href,
@@ -127,7 +127,7 @@ app.get("/callback", async (c) => {
 
 	// Exchange the code for an access token
 	const [accessToken, refreshToken, expiresIn, errResponse] = await fetchUpstreamAuthToken({
-		upstream_url: "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+		upstream_url: `${c.env.FEISHU_BASE_URL || 'https://open.feishu.cn/open-apis'}/authen/v2/oauth/token`,
 		client_id: c.env.FEISHU_APP_ID,
 		client_secret: c.env.FEISHU_APP_SECRET,
 		code: c.req.query("code"),
@@ -136,7 +136,7 @@ app.get("/callback", async (c) => {
 	if (errResponse) {return errResponse;}
 
 	// Fetch the user info from Feishu
-	const userInfoResponse = await fetch("https://open.feishu.cn/open-apis/authen/v1/user_info", {
+	const userInfoResponse = await fetch(`${c.env.FEISHU_BASE_URL || 'https://open.feishu.cn/open-apis'}/authen/v1/user_info`, {
 		headers: {
 			"Authorization": `Bearer ${accessToken}`,
 			"Content-Type": "application/json; charset=utf-8"

@@ -13,7 +13,7 @@ import { ModuleRegistry } from '../../modules/ModuleRegistry.js';
 export class FeishuScopeValidator {
   private async getApplicationScopes(accessToken: string, authType: 'tenant' | 'user'): Promise<string[]> {
     try {
-      const baseUrl = 'https://open.feishu.cn/open-apis';
+      const baseUrl = Config.getInstance().feishu.baseUrl;
       const endpoint = '/application/v6/scopes';
       const headers = {
         'Authorization': `Bearer ${accessToken}`,
@@ -123,7 +123,7 @@ export class FeishuScopeValidator {
         app_id: appId,
         app_secret: appSecret,
       };
-      const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
+      const url = `${Config.getInstance().feishu.baseUrl}/auth/v3/tenant_access_token/internal`;
       const headers = { 'Content-Type': 'application/json' };
 
       Logger.debug('获取临时租户token用于scope校验:', url);
