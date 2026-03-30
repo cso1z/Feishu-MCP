@@ -93,7 +93,7 @@
   "scopes": {
     "tenant": [
       "contact:contact.base:readonly",
-      "contact:user.base:readonly",
+      "contact:user.base:readonly"
     ],
     "user": [
       "contact:contact.base:readonly",
