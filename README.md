@@ -151,7 +151,6 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    PORT=3333
    FEISHU_AUTH_TYPE=tenant/user
    FEISHU_ENABLED_MODULES=document,task
-   FEISHU_AUTH_BASE_URL=https://accounts.feishu.cn  # 可选，飞书授权页面域名，Lark 国际版设置为 https://accounts.larksuite.com
    ```
 
 4. **运行服务器**
@@ -275,9 +274,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 }
 ```
 
-#### HTTP Streamable 模式（MCP 2025-03-26 规范）
-
-从版本 0.2.x 开始，支持 MCP 协议最新的 HTTP Streamable 传输方式：
+#### HTTP Streamable 模式
 
 ```
 {
@@ -288,11 +285,6 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
   }
 }
 ```
-
-**HTTP Streamable 特点**：
-- 符合 MCP 2025-03-26 最新规范
-- 支持无状态请求和有状态会话两种模式
-- 更好的兼容性和性能
 
 **⚠️ 重要提示** : URL 中的 `userKey` 表示连接用户的标识，是非常重要的配置，请填写并尽可能随机
 
@@ -328,6 +320,13 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 
 6. ### **任务与用户信息功能**：
    想用 AI 帮你管理飞书任务（列出待办、创建任务、分配负责人）或查找同事信息？需要两步：① 使用 **user 认证**（tenant 模式下不提供这些能力）；② 在配置中设置 `FEISHU_ENABLED_MODULES=document,task`。启用 task 后，用户查询功能会自动可用，无需额外配置。
+
+7. ### **使用 Lark 国际版**：
+   飞书国内版无需额外配置。如果你的团队使用 **Lark 国际版或自建飞书服务**，需额外设置：
+   ```env
+   FEISHU_BASE_URL=https://open.larksuite.com/open-apis
+   FEISHU_AUTH_BASE_URL=https://accounts.larksuite.com
+   ```
 
 ---
 ## 🚨 故障排查

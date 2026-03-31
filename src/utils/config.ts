@@ -471,6 +471,7 @@ export class Config {
       Logger.info(`- App Secret: ${this.maskApiKey(this.feishu.appSecret)} (来源: ${this.configSources['feishu.appSecret']})`);
     }
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
+    Logger.info(`- 授权 URL: ${this.feishu.authBaseUrl} (来源: ${this.configSources['feishu.authBaseUrl']})`);
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
     Logger.info(`- 启用权限检查: ${this.feishu.enableScopeValidation} (来源: ${this.configSources['feishu.enableScopeValidation']})`);
     Logger.info(`- User Key: ${this.feishu.userKey} (来源: ${this.configSources['feishu.userKey']})`);
