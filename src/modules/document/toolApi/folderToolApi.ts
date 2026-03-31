@@ -58,15 +58,17 @@ export async function getFolderFiles(
   api: FeishuApiService
 ): Promise<any> {
   const { folderToken, wikiContext } = params;
+  const wikiSpaceId = wikiContext?.spaceId?.trim();
+  const hasWikiMode = !!wikiSpaceId;
 
-  if (folderToken && wikiContext) {
+  if (folderToken && hasWikiMode) {
     throw new Error(
       '错误：不能同时提供 folderToken 和 wikiContext 参数，请选择其中一种模式。\n' +
         '- 使用 folderToken 在飞书文档目录中操作\n' +
         '- 使用 wikiContext 在知识库中操作'
     );
   }
-  if (!folderToken && !wikiContext) {
+  if (!folderToken && !hasWikiMode) {
     throw new Error('错误：必须提供 folderToken（飞书文档目录模式）或 wikiContext（知识库节点模式）参数之一。');
   }
 
@@ -75,14 +77,13 @@ export async function getFolderFiles(
     return api.getFolderFileList(folderToken);
   }
 
-  if (!wikiContext) throw new Error('错误：内部参数状态异常。');
-  const { spaceId, parentNodeToken } = wikiContext;
-  if (!spaceId) {
+  if (!wikiContext || !wikiSpaceId) {
     throw new Error('错误：使用 wikiContext 模式时，必须提供 spaceId。');
   }
+  const { parentNodeToken } = wikiContext;
 
-  Logger.info(`getFolderFiles invoked: wiki mode, spaceId=${spaceId}`);
-  const nodeList = await api.getAllWikiSpaceNodes(spaceId, parentNodeToken);
+  Logger.info(`getFolderFiles invoked: wiki mode, spaceId=${wikiSpaceId}`);
+  const nodeList = await api.getAllWikiSpaceNodes(wikiSpaceId, parentNodeToken);
   return { nodes: nodeList ?? [] };
 }
 
