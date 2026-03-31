@@ -263,6 +263,10 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 
 **⚠️ 重要提示** : `http://localhost:3333/sse?userKey=123456` 中userKey表示连接用户的标识，是非常重要的配置，请填写并尽可能随机
 
+**userKey 传递方式**：支持两种方式传递用户标识
+- **URL 查询参数**：`?userKey=123456`（推荐，配置简单）
+- **请求头**：`user-key: 123456`（适合需要隐藏参数的场景）
+
 ---
 
 ## 📝 使用贴士（重要）
@@ -280,7 +284,11 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
    在文本块中可以混合使用普通文本和公式元素。公式使用LaTeX语法，如：`1+2=3`、`\frac{a}{b}`、`\sqrt{x}`等。支持在同一文本块中包含多个公式和普通文本。
 
 4. ### **使用飞书user认证**：
-   user认证与tenant认证在增加权限时是有区分的，所以**在初次由tenant切换到user时需要注意配置的权限**；为了区分不同的用户需要在配置mcp server服务的url增加query参数：userKey，**该值是用户的唯一标识 所以最好在设置时越随机越好**
+   user认证与tenant认证在增加权限时是有区分的，所以**在初次由tenant切换到user时需要注意配置的权限**；为了区分不同的用户需要传递用户标识 userKey，支持两种方式：
+   - **URL 查询参数**：在 MCP server URL 增加 `?userKey=123456`
+   - **请求头**：传递 `user-key: 123456` 请求头
+   
+   **该值是用户的唯一标识，所以最好在设置时越随机越好**
 
 5. ### **强烈建议使用user认证**：
    tenant认证有诸多限制，比如文件访问权限、飞书openapi兼容(不支持搜索wiki文档)、文档创建编辑记录等方面都不如user认证。

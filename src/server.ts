@@ -89,8 +89,10 @@ export class FeishuMcpServer {
         });
         // Check for existing session ID
         const sessionId = req.headers['mcp-session-id'] as string | undefined
-        // 优先使用客户端显式传入的 ?userKey=，若不传则在 session 初始化时 fallback 到 sessionId
+        // 获取 userKey：优先查询参数，其次请求头
         const queryUserKey = req.query.userKey as string | undefined;
+        const headerUserKey = req.headers['user-key'] as string | undefined;
+        const userKeyFromRequest = queryUserKey || headerUserKey;
         let transport: StreamableHTTPServerTransport
         let userKey: string
 
@@ -105,7 +107,7 @@ export class FeishuMcpServer {
             sessionIdGenerator: () => randomUUID(),
             onsessioninitialized: (newSessionId) => {
               // 建立 sessionId → userKey 持久映射：优先用客户端传入的，否则用 sessionId 兜底
-              const resolvedUserKey = queryUserKey || newSessionId;
+              const resolvedUserKey = userKeyFromRequest || newSessionId;
               this.userAuthManager.createSession(newSessionId, resolvedUserKey);
               Logger.log(`[StreamableHTTP connection] ${newSessionId}, userKey: ${resolvedUserKey}`);
               transports[newSessionId] = transport
@@ -124,8 +126,8 @@ export class FeishuMcpServer {
           // Create and connect server instance
           const server = new FeishuMcp();
           await server.connect(transport);
-          // 初始化握手阶段 sessionId 尚未分配，使用 queryUserKey（若有）或临时占位符
-          userKey = queryUserKey || 'http-client'
+          // 初始化握手阶段 sessionId 尚未分配，使用 userKeyFromRequest（若有）或临时占位符
+          userKey = userKeyFromRequest || 'http-client'
         } else {
           // Invalid request
           res.status(400).json({
@@ -230,8 +232,12 @@ export class FeishuMcpServer {
     })
 
     app.get('/sse', async (req: Request, res: Response) => {
-      // 获取 userKey 参数
+      // 获取 userKey 参数：优先查询参数，其次请求头
       let userKey = req.query.userKey as string | undefined;
+      if (!userKey) {
+        // 支持请求头传递 user-key 或 User-Key
+        userKey = req.headers['user-key'] as string | undefined;
+      }
       
       const sseTransport = new SSEServerTransport('/messages', res);
       const sessionId = sseTransport.sessionId;
