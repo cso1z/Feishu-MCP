@@ -151,6 +151,7 @@ npx feishu-mcp@latest --feishu-app-id=<你的飞书应用ID> --feishu-app-secret
    PORT=3333
    FEISHU_AUTH_TYPE=tenant/user
    FEISHU_ENABLED_MODULES=document,task
+   FEISHU_AUTH_BASE_URL=https://accounts.feishu.cn  # 可选，飞书授权页面域名，Lark 国际版设置为 https://accounts.larksuite.com
    ```
 
 4. **运行服务器**
@@ -223,6 +224,8 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_APP_ID` | ✅ | 飞书应用 ID                                                            | - |
 | `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥                                                             | - |
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
+| `FEISHU_BASE_URL` | ❌ | 飞书 API 基础 URL，Lark 国际版可配置为 `https://open.larksuite.com/open-apis` | `https://open.feishu.cn/open-apis` |
+| `FEISHU_AUTH_BASE_URL` | ❌ | 飞书授权页面域名，Lark 国际版设置为 `https://accounts.larksuite.com` | `https://accounts.feishu.cn` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
@@ -240,6 +243,8 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
+#### stdio 模式（推荐）
+
 ```
 {
   "mcpServers": {
@@ -253,7 +258,16 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
         "FEISHU_ENABLED_MODULES": "document,task",
         "FEISHU_USER_KEY": "<你的用户标识>"
       }
-    },
+    }
+  }
+}
+```
+
+#### SSE 模式
+
+```
+{
+  "mcpServers": {
     "feishu_local": {
       "url": "http://localhost:3333/sse?userKey=123456"
     }
@@ -261,7 +275,26 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 }
 ```
 
-**⚠️ 重要提示** : `http://localhost:3333/sse?userKey=123456` 中userKey表示连接用户的标识，是非常重要的配置，请填写并尽可能随机
+#### HTTP Streamable 模式（MCP 2025-03-26 规范）
+
+从版本 0.2.x 开始，支持 MCP 协议最新的 HTTP Streamable 传输方式：
+
+```
+{
+  "mcpServers": {
+    "feishu_streamable": {
+      "url": "http://localhost:3333/mcp?userKey=123456"
+    }
+  }
+}
+```
+
+**HTTP Streamable 特点**：
+- 符合 MCP 2025-03-26 最新规范
+- 支持无状态请求和有状态会话两种模式
+- 更好的兼容性和性能
+
+**⚠️ 重要提示** : URL 中的 `userKey` 表示连接用户的标识，是非常重要的配置，请填写并尽可能随机
 
 **userKey 传递方式**：支持两种方式传递用户标识
 - **URL 查询参数**：`?userKey=123456`（推荐，配置简单）

@@ -92,7 +92,7 @@ async function waitForToken(clientKey: string, timeoutMs: number): Promise<boole
  */
 export async function handleAuthRequired(userKey: string): Promise<void> {
   const config = Config.getInstance();
-  const { appId, appSecret } = config.feishu;
+  const { appId, appSecret, authBaseUrl } = config.feishu;
 
   // 1. 寻找可用端口（从配置端口开始）
   const port = await findAvailablePort(config.server.port);
@@ -109,7 +109,7 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
 
   // 3. 构造飞书 OAuth 授权 URL（与 baseService.generateUserAuthUrl 保持一致）
   const authUrl =
-    `https://accounts.feishu.cn/open-apis/authen/v1/authorize` +
+    `${authBaseUrl}/open-apis/authen/v1/authorize` +
     `?client_id=${encodeURIComponent(appId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&scope=${scope}` +
