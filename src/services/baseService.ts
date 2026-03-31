@@ -427,7 +427,7 @@ export abstract class BaseApiService {
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
     const config = Config.getInstance();
-    const { appId, appSecret } = config.feishu;
+    const { appId, appSecret, authBaseUrl } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
     const redirect_uri = `${baseUrl}/callback`;
     const authType = config.feishu.authType;
@@ -438,6 +438,6 @@ export abstract class BaseApiService {
     const scope = encodeURIComponent(scopeList.join(' '));
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
-    return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
+    return `${authBaseUrl}/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
   }
-} 
+}

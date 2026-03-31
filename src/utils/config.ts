@@ -29,6 +29,7 @@ export interface FeishuConfig {
   appId: string;
   appSecret: string;
   baseUrl: string;
+  authBaseUrl: string; // 授权页面基础URL，默认 https://accounts.feishu.cn
   authType: 'tenant' | 'user';
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
@@ -146,6 +147,10 @@ export class Config {
           type: 'string',
           description: '飞书API基础URL'
         },
+        'feishu-auth-base-url': {
+          type: 'string',
+          description: '飞书授权页面基础URL，默认 https://accounts.feishu.cn'
+        },
         'cache-enabled': {
           type: 'boolean',
           description: '是否启用缓存'
@@ -214,6 +219,7 @@ export class Config {
       appId: '',
       appSecret: '',
       baseUrl: 'https://open.feishu.cn/open-apis',
+      authBaseUrl: 'https://accounts.feishu.cn', // 默认飞书授权页面域名
       authType: 'tenant', // 默认
       tokenEndpoint: `http://127.0.0.1:${serverConfig.port}/getToken`, // 默认动态端口
       enableScopeValidation: true, // 默认启用权限检查
@@ -247,6 +253,17 @@ export class Config {
       this.configSources['feishu.baseUrl'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.baseUrl'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理Auth Base URL（授权页面域名）
+    if (argv['feishu-auth-base-url']) {
+      feishuConfig.authBaseUrl = argv['feishu-auth-base-url'];
+      this.configSources['feishu.authBaseUrl'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_AUTH_BASE_URL) {
+      feishuConfig.authBaseUrl = process.env.FEISHU_AUTH_BASE_URL;
+      this.configSources['feishu.authBaseUrl'] = ConfigSource.ENV;
+    } else {
+      this.configSources['feishu.authBaseUrl'] = ConfigSource.DEFAULT;
     }
 
     // 处理authType
