@@ -12,6 +12,7 @@ const CONFIG_KEYS: Record<string, string> = {
   FEISHU_ENABLED_MODULES:  '启用的功能模块，逗号分隔，可选值: document,task,member,calendar,all',
   FEISHU_BASE_URL:         '飞书 API 基础地址。飞书国内版：https://open.feishu.cn/open-apis（默认），Lark 国际版：https://open.larksuite.com/open-apis',
   FEISHU_AUTH_BASE_URL:    '飞书授权页面域名。飞书国内版：https://accounts.feishu.cn（默认），Lark 国际版：https://accounts.larksuite.com',
+  FEISHU_PUBLIC_BASE_URL:  '服务对外可访问的基础地址，用于生成 user 认证的 OAuth 回调地址',
   FEISHU_SCOPE_VALIDATION: '是否启用权限校验：true 或 false，默认 true',
   PORT:                    '服务监听端口，默认 3333',
 };
@@ -68,6 +69,7 @@ export function handleConfigShow(envPath: string | undefined): void {
       FEISHU_ENABLED_MODULES: process.env.FEISHU_ENABLED_MODULES ?? 'document (默认)',
       FEISHU_BASE_URL: process.env.FEISHU_BASE_URL ?? 'https://open.feishu.cn/open-apis (默认)',
       FEISHU_AUTH_BASE_URL: process.env.FEISHU_AUTH_BASE_URL ?? 'https://accounts.feishu.cn (默认)',
+      FEISHU_PUBLIC_BASE_URL: process.env.FEISHU_PUBLIC_BASE_URL ?? '(未设置)',
       PORT: process.env.PORT ?? '3333 (默认)',
     },
   };

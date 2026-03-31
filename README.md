@@ -225,6 +225,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `PORT` | ❌ | 服务器端口                                                              | `3333` |
 | `FEISHU_BASE_URL` | ❌ | 飞书 API 基础 URL，Lark 国际版可配置为 `https://open.larksuite.com/open-apis` | `https://open.feishu.cn/open-apis` |
 | `FEISHU_AUTH_BASE_URL` | ❌ | 飞书授权页面域名，Lark 国际版设置为 `https://accounts.larksuite.com` | `https://accounts.feishu.cn` |
+| `FEISHU_PUBLIC_BASE_URL` | ❌ | 服务对外可访问的基础 URL。`user` 认证时若 MCP 通过内网地址访问、但 OAuth 回调需走公网域名，可设置为如 `https://mcp.example.com` | - |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
@@ -327,6 +328,13 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
    FEISHU_BASE_URL=https://open.larksuite.com/open-apis
    FEISHU_AUTH_BASE_URL=https://accounts.larksuite.com
    ```
+
+8. ### **内网访问、外网回调分离**：
+   如果 MCP 客户端通过内网地址访问服务（例如 `http://feishu-mcp:3333/mcp`），但飞书 OAuth 回调必须使用公网域名，可额外设置：
+   ```env
+   FEISHU_PUBLIC_BASE_URL=https://somo-feishu-mcp.yfgao.net
+   ```
+   这样客户端仍可继续连接内网地址，而返回给用户的授权链接会使用 `https://somo-feishu-mcp.yfgao.net/callback` 作为回调地址。
 
 ---
 ## 🚨 故障排查
