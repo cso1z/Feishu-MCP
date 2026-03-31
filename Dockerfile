@@ -1,5 +1,5 @@
 # 使用官方Node.js运行时作为父镜像
-FROM docker.1ms.run/node:20.17.0
+FROM node:24-bookworm-slim
 
 # 设置工作目录
 WORKDIR /app

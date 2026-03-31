@@ -30,7 +30,7 @@
     "pub:test": "pnpm build && npm publish --tag test"
   },
   "engines": {
-    "node": "^20.17.0"
+    "node": "^24.0.0"
   },
   "repository": {
     "type": "git",
