@@ -10,7 +10,8 @@ const CONFIG_KEYS: Record<string, string> = {
   FEISHU_APP_SECRET:       '飞书应用 App Secret',
   FEISHU_AUTH_TYPE:        '认证类型：tenant（应用身份）或 user（用户身份，支持 task/member）',
   FEISHU_ENABLED_MODULES:  '启用的功能模块，逗号分隔，可选值: document,task,member,calendar,all',
-  FEISHU_BASE_URL:         '飞书 API 基础地址，默认 https://open.feishu.cn/open-apis',
+  FEISHU_BASE_URL:         '飞书 API 基础地址。飞书国内版：https://open.feishu.cn/open-apis（默认），Lark 国际版：https://open.larksuite.com/open-apis',
+  FEISHU_AUTH_BASE_URL:    '飞书授权页面域名。飞书国内版：https://accounts.feishu.cn（默认），Lark 国际版：https://accounts.larksuite.com',
   FEISHU_SCOPE_VALIDATION: '是否启用权限校验：true 或 false，默认 true',
   PORT:                    '服务监听端口，默认 3333',
 };
@@ -65,6 +66,8 @@ export function handleConfigShow(envPath: string | undefined): void {
         ? maskValue('FEISHU_APP_SECRET', process.env.FEISHU_APP_SECRET) : '(未设置)',
       FEISHU_AUTH_TYPE: process.env.FEISHU_AUTH_TYPE ?? 'tenant (默认)',
       FEISHU_ENABLED_MODULES: process.env.FEISHU_ENABLED_MODULES ?? 'document (默认)',
+      FEISHU_BASE_URL: process.env.FEISHU_BASE_URL ?? 'https://open.feishu.cn/open-apis (默认)',
+      FEISHU_AUTH_BASE_URL: process.env.FEISHU_AUTH_BASE_URL ?? 'https://accounts.feishu.cn (默认)',
       PORT: process.env.PORT ?? '3333 (默认)',
     },
   };
