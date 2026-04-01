@@ -441,4 +441,20 @@ export abstract class BaseApiService {
 
     return `${authBaseUrl}/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
   }
+
+  private resolveOAuthBaseUrl(baseUrl: string, publicBaseUrl?: string): string {
+    if (!publicBaseUrl) return baseUrl;
+
+    try {
+      const parsed = new URL(baseUrl);
+      const host = parsed.hostname.toLowerCase();
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        return baseUrl;
+      }
+    } catch {
+      return publicBaseUrl;
+    }
+
+    return publicBaseUrl;
+  }
 }
