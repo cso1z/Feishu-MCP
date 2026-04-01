@@ -427,14 +427,15 @@ export abstract class BaseApiService {
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
     const config = Config.getInstance();
-    const { appId, appSecret, authBaseUrl } = config.feishu;
+    const { appId, appSecret, authBaseUrl, callbackUrl } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
-    const redirect_uri = `${baseUrl}/callback`;
+    // 优先使用配置的回调地址，如果没有配置则使用动态生成的地址
+    const redirect_uri = callbackUrl || `${baseUrl}/callback`;
     const authType = config.feishu.authType;
     const enabledIds = config.features.enabledModules;
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
     const scopeList = getRequiredScopes(effectiveModules, authType);
-    Logger.info(`[generateUserAuthUrl] enabledModules=${effectiveModules.join(',')} authType=${authType} scopes=${scopeList.join(',')}`);
+    Logger.info(`[generateUserAuthUrl] enabledModules=${effectiveModules.join(',')} authType=${authType} scopes=${scopeList.join(',')} redirect_uri=${redirect_uri}`);
     const scope = encodeURIComponent(scopeList.join(' '));
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 

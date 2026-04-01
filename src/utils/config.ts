@@ -34,6 +34,7 @@ export interface FeishuConfig {
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
   userKey: string;
+  callbackUrl: string; // OAuth回调地址，可选，默认动态生成 http://localhost:{port}/callback
 }
 
 /**
@@ -178,6 +179,10 @@ export class Config {
         'enabled-modules': {
           type: 'string',
           description: '启用的功能模块列表（逗号分隔），可选值: document,task,calendar 或 all，默认 document'
+        },
+        'feishu-callback-url': {
+          type: 'string',
+          description: 'OAuth回调地址，可选，默认动态生成 http://localhost:{port}/callback'
         }
       })
       .help()
@@ -224,6 +229,7 @@ export class Config {
       tokenEndpoint: `http://127.0.0.1:${serverConfig.port}/getToken`, // 默认动态端口
       enableScopeValidation: true, // 默认启用权限检查
       userKey: 'stdio',
+      callbackUrl: '', // 默认空，表示动态生成 http://localhost:{port}/callback
     };
     
     // 处理App ID
@@ -308,6 +314,17 @@ export class Config {
       this.configSources['feishu.userKey'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.userKey'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理 callbackUrl（OAuth回调地址）
+    if (argv['feishu-callback-url']) {
+      feishuConfig.callbackUrl = argv['feishu-callback-url'];
+      this.configSources['feishu.callbackUrl'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_CALLBACK_URL) {
+      feishuConfig.callbackUrl = process.env.FEISHU_CALLBACK_URL;
+      this.configSources['feishu.callbackUrl'] = ConfigSource.ENV;
+    } else {
+      this.configSources['feishu.callbackUrl'] = ConfigSource.DEFAULT;
     }
     
     return feishuConfig;

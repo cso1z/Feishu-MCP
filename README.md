@@ -226,6 +226,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_BASE_URL` | ❌ | 飞书 API 基础 URL，Lark 国际版可配置为 `https://open.larksuite.com/open-apis` | `https://open.feishu.cn/open-apis` |
 | `FEISHU_AUTH_BASE_URL` | ❌ | 飞书授权页面域名，Lark 国际版设置为 `https://accounts.larksuite.com` | `https://accounts.feishu.cn` |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
+| `FEISHU_CALLBACK_URL` | ❌ | OAuth 回调地址，用于固定回调入口（如反向代理场景），未配置时 HTTP 模式自动适配、stdio 模式使用 localhost | 动态生成 |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
 | `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |

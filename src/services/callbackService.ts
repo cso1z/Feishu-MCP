@@ -60,8 +60,9 @@ export async function callback(req: Request, res: Response) {
     return sendFail(res, 'state参数验证失败', CODE.PARAM_ERROR);
   }
 
-  // 使用从state中解析的redirect_uri，如果没有则使用默认值
-  const redirect_uri = redirectUri || `http://localhost:${config.server.port}/callback`;
+  // 优先使用配置的回调地址，其次使用state中的redirect_uri，最后使用默认值
+  const callbackUrl = config.feishu.callbackUrl;
+  const redirect_uri = callbackUrl || redirectUri || `http://localhost:${config.server.port}/callback`;
   const session = (req as any).session;
   const code_verifier = session?.code_verifier || undefined;
 

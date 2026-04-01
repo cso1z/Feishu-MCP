@@ -92,11 +92,25 @@ async function waitForToken(clientKey: string, timeoutMs: number): Promise<boole
  */
 export async function handleAuthRequired(userKey: string): Promise<void> {
   const config = Config.getInstance();
-  const { appId, appSecret, authBaseUrl } = config.feishu;
+  const { appId, appSecret, authBaseUrl, callbackUrl } = config.feishu;
 
-  // 1. 寻找可用端口（从配置端口开始）
-  const port = await findAvailablePort(config.server.port);
-  const redirectUri = `http://localhost:${port}/callback`;
+  // 1. 优先使用配置的回调地址，如果没有配置则动态生成
+  // 注意：如果配置了固定回调地址，需要确保有对应的服务能够接收回调
+  let redirectUri: string;
+  let port: number | null = null;
+  let server: Server | null = null;
+
+  if (callbackUrl) {
+    // 使用配置的固定回调地址
+    redirectUri = callbackUrl;
+    process.stderr.write(
+      `\n[feishu-tool] 使用配置的固定回调地址：${callbackUrl}\n`
+    );
+  } else {
+    // 寻找可用端口（从配置端口开始）并动态生成回调地址
+    port = await findAvailablePort(config.server.port);
+    redirectUri = `http://localhost:${port}/callback`;
+  }
 
   // 2. 计算 clientKey、scope 和 state
   const clientKey = AuthUtils.generateClientKey(userKey);
@@ -115,12 +129,13 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
     `&scope=${scope}` +
     `&state=${encodeURIComponent(state)}`;
 
-  // 4. 启动临时 callback 服务器
-  let server: Server;
-  try {
-    server = await startCallbackServer(port);
-  } catch (err) {
-    throw new Error(`无法启动授权回调服务器（端口 ${port}）：${err}`);
+  // 4. 启动临时 callback 服务器（仅在动态端口模式下）
+  if (port !== null) {
+    try {
+      server = await startCallbackServer(port);
+    } catch (err) {
+      throw new Error(`无法启动授权回调服务器（端口 ${port}）：${err}`);
+    }
   }
 
   // 5. 打开浏览器并向 stderr 输出提示（不污染 stdout）
@@ -133,9 +148,12 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
   // 6. 等待 token 写入
   const ok = await waitForToken(clientKey, AUTH_TIMEOUT_MS);
 
-  // 7. 延迟关闭临时服务器，确保 /callback 的 HTTP 响应已发送完毕
-  await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-  await new Promise<void>((resolve) => server.close(() => resolve()));
+  // 7. 关闭临时服务器（如果启动了）
+  if (server) {
+    // 延迟关闭临时服务器，确保 /callback 的 HTTP 响应已发送完毕
+    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 
   if (!ok) {
     throw new Error('飞书授权超时（5 分钟），请重新执行命令');
