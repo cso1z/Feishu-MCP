@@ -30,6 +30,7 @@ export interface FeishuConfig {
   appSecret: string;
   baseUrl: string;
   authBaseUrl: string; // 授权页面基础URL，默认 https://accounts.feishu.cn
+  publicBaseUrl: string; // 对外可访问的服务基础URL，用于生成 OAuth 回调地址
   authType: 'tenant' | 'user';
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
@@ -151,6 +152,10 @@ export class Config {
           type: 'string',
           description: '飞书授权页面基础URL，默认 https://accounts.feishu.cn'
         },
+        'feishu-public-base-url': {
+          type: 'string',
+          description: '对外可访问的服务基础URL，用于生成 OAuth 回调地址'
+        },
         'cache-enabled': {
           type: 'boolean',
           description: '是否启用缓存'
@@ -220,6 +225,7 @@ export class Config {
       appSecret: '',
       baseUrl: 'https://open.feishu.cn/open-apis',
       authBaseUrl: 'https://accounts.feishu.cn', // 默认飞书授权页面域名
+      publicBaseUrl: '',
       authType: 'tenant', // 默认
       tokenEndpoint: `http://127.0.0.1:${serverConfig.port}/getToken`, // 默认动态端口
       enableScopeValidation: true, // 默认启用权限检查
@@ -264,6 +270,17 @@ export class Config {
       this.configSources['feishu.authBaseUrl'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.authBaseUrl'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理 Public Base URL（对外可访问的服务域名）
+    if (argv['feishu-public-base-url']) {
+      feishuConfig.publicBaseUrl = this.normalizeBaseUrl(argv['feishu-public-base-url']);
+      this.configSources['feishu.publicBaseUrl'] = ConfigSource.CLI;
+    } else if (process.env.FEISHU_PUBLIC_BASE_URL) {
+      feishuConfig.publicBaseUrl = this.normalizeBaseUrl(process.env.FEISHU_PUBLIC_BASE_URL);
+      this.configSources['feishu.publicBaseUrl'] = ConfigSource.ENV;
+    } else {
+      this.configSources['feishu.publicBaseUrl'] = ConfigSource.DEFAULT;
     }
 
     // 处理authType
@@ -472,6 +489,7 @@ export class Config {
     }
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
     Logger.info(`- 授权 URL: ${this.feishu.authBaseUrl} (来源: ${this.configSources['feishu.authBaseUrl']})`);
+    Logger.info(`- 公网回调基址: ${this.feishu.publicBaseUrl || '(未设置)'} (来源: ${this.configSources['feishu.publicBaseUrl']})`);
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
     Logger.info(`- 启用权限检查: ${this.feishu.enableScopeValidation} (来源: ${this.configSources['feishu.enableScopeValidation']})`);
     Logger.info(`- User Key: ${this.feishu.userKey} (来源: ${this.configSources['feishu.userKey']})`);
@@ -514,6 +532,10 @@ export class Config {
   private maskApiKey(key: string): string {
     if (!key || key.length <= 4) return '****';
     return `${key.substring(0, 2)}****${key.substring(key.length - 2)}`;
+  }
+
+  private normalizeBaseUrl(url: string): string {
+    return url.replace(/\/+$/, '');
   }
   
   /**

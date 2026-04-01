@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "tsc && tsc-alias",
+    "test": "tsx --test src/**/*.test.ts",
     "type-check": "tsc --noEmit",
     "start": "node dist/index.js",
     "start:cli": "cross-env NODE_ENV=cli node dist/index.js",

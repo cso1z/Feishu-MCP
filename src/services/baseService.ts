@@ -427,9 +427,10 @@ export abstract class BaseApiService {
    */
   private generateUserAuthUrl(baseUrl: string, userKey: string): string {
     const config = Config.getInstance();
-    const { appId, appSecret, authBaseUrl } = config.feishu;
+    const { appId, appSecret, authBaseUrl, publicBaseUrl } = config.feishu;
     const clientKey = AuthUtils.generateClientKey(userKey);
-    const redirect_uri = `${baseUrl}/callback`;
+    const redirectBaseUrl = this.resolveOAuthBaseUrl(baseUrl, publicBaseUrl);
+    const redirect_uri = `${redirectBaseUrl}/callback`;
     const authType = config.feishu.authType;
     const enabledIds = config.features.enabledModules;
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
@@ -439,5 +440,21 @@ export abstract class BaseApiService {
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 
     return `${authBaseUrl}/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
+  }
+
+  private resolveOAuthBaseUrl(baseUrl: string, publicBaseUrl?: string): string {
+    if (!publicBaseUrl) return baseUrl;
+
+    try {
+      const parsed = new URL(baseUrl);
+      const host = parsed.hostname.toLowerCase();
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        return baseUrl;
+      }
+    } catch {
+      return publicBaseUrl;
+    }
+
+    return publicBaseUrl;
   }
 }
