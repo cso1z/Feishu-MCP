@@ -38,7 +38,9 @@ Thumbs.db
 
 prd
 cache
+feishu-mcp
 scripts
 .cursor
+.claude
 .npmrc
 commit-msg
