@@ -89,18 +89,22 @@ export class TokenRefreshManager {
         checkedCount++;
         
         try {
-          const tokenStatus = tokenCacheManager.checkUserTokenStatus(clientKey);
-          
-          // 检查是否需要刷新：token即将过期（5分钟内）且可以刷新
-          if (tokenStatus.shouldRefresh || (tokenStatus.canRefresh && tokenStatus.isExpired)) {
-            Logger.info(`检测到需要刷新的token: ${clientKey}`);
-            
-            const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
-            if (!tokenInfo) {
-              Logger.warn(`无法获取token信息: ${clientKey}`);
-              failedCount++;
-              continue;
-            }
+          const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
+          if (!tokenInfo) {
+            Logger.debug(`无token信息，跳过: ${clientKey}`);
+            continue;
+          }
+
+          const now = Math.floor(Date.now() / 1000);
+          const refreshTokenTimeToExpiry = tokenInfo.refresh_token_expires_at
+            ? Math.max(0, tokenInfo.refresh_token_expires_at - now)
+            : 0;
+          const isRefreshTokenExpiringSoon =
+            refreshTokenTimeToExpiry > 0 && refreshTokenTimeToExpiry < 600;
+
+          // 检查是否需要刷新：refresh_token 即将过期（5分钟内）
+          if (isRefreshTokenExpiringSoon) {
+            Logger.info(`检测到refresh_token即将过期，主动刷新: ${clientKey}`);
 
             // 验证是否有刷新所需的必要信息
             if (!tokenInfo.refresh_token) {
@@ -132,12 +136,7 @@ export class TokenRefreshManager {
               }
             }
           } else {
-            Logger.debug(`token状态正常，无需刷新: ${clientKey}`, {
-              isValid: tokenStatus.isValid,
-              isExpired: tokenStatus.isExpired,
-              canRefresh: tokenStatus.canRefresh,
-              shouldRefresh: tokenStatus.shouldRefresh
-            });
+            Logger.debug(`refresh_token未到期，无需主动刷新: ${clientKey}`);
           }
         } catch (error) {
           Logger.error(`检查token时发生错误: ${clientKey}`, error);
