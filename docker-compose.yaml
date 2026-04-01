@@ -14,5 +14,5 @@ services:
       - CACHE_TTL=${CACHE_TTL:-300}
     volumes:
       - ./logs:/app/logs
-      - ./cache:/app/cache
+      - ./feishu-mcp:/root/.cache/feishu-mcp
     restart: unless-stopped

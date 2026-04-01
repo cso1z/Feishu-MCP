@@ -41,7 +41,7 @@ export class Logger {
     showLevel: true,
     timestampFormat: 'yyyy-MM-dd HH:mm:ss.SSS',
     logToFile: false,
-    logFilePath: 'log/log.txt',
+    logFilePath: 'logs/log.txt',
     maxObjectDepth: 2,         // 限制对象序列化深度
     maxObjectStringLength: 5000000 // 限制序列化后字符串长度
   };
