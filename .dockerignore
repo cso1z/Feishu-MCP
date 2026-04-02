@@ -1,0 +1,36 @@
+node_modules
+dist
+.git
+pnpm-lock.yaml
+
+# 敏感文件 - 绝不能打入镜像
+.env
+.env.local
+.env.*.local
+.npmrc
+
+# 运行时 volume 挂载目录
+logs
+feishu-mcp
+
+# 旧版 token 缓存文件（可能残留在项目根目录）
+# 避免容器内被误当作旧路径触发迁移
+user_token_cache.json
+tenant_token_cache.json
+scope_version_cache.json
+
+# 本地工具/IDE 配置
+.claude
+.cursor
+.idea
+.DS_Store
+
+# 构建/测试产物
+*.log
+coverage
+.cache
+
+# 文档和静态资源（无需进镜像）
+doc
+image
+prd
