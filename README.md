@@ -230,6 +230,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
 | `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |
+| `FEISHU_ENCRYPTION_KEY` | ❌ | Token缓存敏感字段加密密钥。任意字符串，系统自动通过SHA-256派生加密密钥。设置后 `access_token`、`refresh_token`、`client_secret` 等敏感字段将被加密存储。Docker部署时建议设置固定密钥 | - |
 
 ### 功能模块说明
 

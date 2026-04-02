@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { Logger } from '../logger.js';
 import { migrateLegacyTokenCacheIfNeeded } from './legacyCacheMigration.js';
+import { FieldEncryption } from '../encryption.js';
 
 /**
  * 用户Token信息接口
@@ -69,6 +70,7 @@ export class TokenCacheManager {
   private scopeVersionCacheFile: string;
   private cacheDir: string;
   private cleanupTimerId: NodeJS.Timeout | null = null;
+  private fieldEncryption: FieldEncryption;
 
   /**
    * 私有构造函数，用于单例模式
@@ -80,6 +82,10 @@ export class TokenCacheManager {
     this.tenantTokenCacheFile = path.join(this.cacheDir, 'tenant_token_cache.json');
     this.scopeVersionCacheFile = path.join(this.cacheDir, 'scope_version_cache.json');
     Logger.info(`Token缓存目录: ${this.cacheDir}`);
+
+    // 初始化字段加密模块
+    this.fieldEncryption = FieldEncryption.getInstance();
+    this.fieldEncryption.initialize();
 
     migrateLegacyTokenCacheIfNeeded(this.cacheDir, [
       this.userTokenCacheFile,
@@ -141,14 +147,20 @@ export class TokenCacheManager {
         const cacheData = JSON.parse(raw);
         
         let loadedCount = 0;
+        let decryptedCount = 0;
         for (const key in cacheData) {
           if (key.startsWith('user_access_token:')) {
-            this.cache.set(key, cacheData[key]);
+            // 解密敏感字段
+            const decryptedItem = this.decryptUserTokenSensitiveFields(cacheData[key]);
+            this.cache.set(key, decryptedItem);
             loadedCount++;
+            if (cacheData[key].data?.access_token && FieldEncryption.isEncrypted(cacheData[key].data.access_token)) {
+              decryptedCount++;
+            }
           }
         }
         
-        Logger.info(`已加载用户token缓存，共 ${loadedCount} 条记录`);
+        Logger.info(`已加载用户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
       } catch (error) {
         Logger.warn('加载用户token缓存失败:', error);
       }
@@ -167,14 +179,20 @@ export class TokenCacheManager {
         const cacheData = JSON.parse(raw);
 
         let loadedCount = 0;
+        let decryptedCount = 0;
         for (const key in cacheData) {
           if (key.startsWith('tenant_access_token:')) {
-            this.cache.set(key, cacheData[key]);
+            // 解密敏感字段
+            const decryptedItem = this.decryptTenantTokenSensitiveFields(cacheData[key]);
+            this.cache.set(key, decryptedItem);
             loadedCount++;
+            if (cacheData[key].data?.app_access_token && FieldEncryption.isEncrypted(cacheData[key].data.app_access_token)) {
+              decryptedCount++;
+            }
           }
         }
         
-        Logger.info(`已加载租户token缓存，共 ${loadedCount} 条记录`);
+        Logger.info(`已加载租户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
       } catch (error) {
         Logger.warn('加载租户token缓存失败:', error);
       }
@@ -436,13 +454,15 @@ export class TokenCacheManager {
 
   /**
    * 保存用户token缓存到文件
+   * 如果启用加密，敏感字段将被加密存储
    */
   private saveUserTokenCache(): void {
     const cacheData: Record<string, any> = {};
     
     for (const [key, value] of this.cache.entries()) {
       if (key.startsWith('user_access_token:')) {
-        cacheData[key] = value;
+        // 加密敏感字段后保存
+        cacheData[key] = this.encryptUserTokenSensitiveFields(value);
       }
     }
     
@@ -456,13 +476,15 @@ export class TokenCacheManager {
 
   /**
    * 保存租户token缓存到文件
+   * 如果启用加密，敏感字段将被加密存储
    */
   private saveTenantTokenCache(): void {
     const cacheData: Record<string, any> = {};
     
     for (const [key, value] of this.cache.entries()) {
       if (key.startsWith('tenant_access_token:')) {
-        cacheData[key] = value;
+        // 加密敏感字段后保存
+        cacheData[key] = this.encryptTenantTokenSensitiveFields(value);
       }
     }
     
@@ -472,6 +494,84 @@ export class TokenCacheManager {
     } catch (error) {
       Logger.warn('保存租户token缓存失败:', error);
     }
+  }
+
+  /**
+   * 加密用户token缓存项的敏感字段
+   * @param cacheItem 缓存项
+   * @returns 加密后的缓存项
+   */
+  private encryptUserTokenSensitiveFields(cacheItem: CacheItem<UserTokenInfo>): CacheItem<UserTokenInfo> {
+    if (!this.fieldEncryption.isEnabled()) {
+      return cacheItem; // 未启用加密，直接返回
+    }
+
+    const data = cacheItem.data;
+    return {
+      ...cacheItem,
+      data: {
+        ...data,
+        access_token: this.fieldEncryption.encryptField(data.access_token),
+        refresh_token: this.fieldEncryption.encryptField(data.refresh_token),
+        client_secret: this.fieldEncryption.encryptField(data.client_secret),
+      }
+    };
+  }
+
+  /**
+   * 解密用户token缓存项的敏感字段
+   * @param cacheItem 缓存项
+   * @returns 解密后的缓存项
+   */
+  private decryptUserTokenSensitiveFields(cacheItem: CacheItem<UserTokenInfo>): CacheItem<UserTokenInfo> {
+    const data = cacheItem.data;
+    
+    return {
+      ...cacheItem,
+      data: {
+        ...data,
+        access_token: this.fieldEncryption.decryptIfNeeded(data.access_token),
+        refresh_token: this.fieldEncryption.decryptIfNeeded(data.refresh_token),
+        client_secret: this.fieldEncryption.decryptIfNeeded(data.client_secret),
+      }
+    };
+  }
+
+  /**
+   * 加密租户token缓存项的敏感字段
+   * @param cacheItem 缓存项
+   * @returns 加密后的缓存项
+   */
+  private encryptTenantTokenSensitiveFields(cacheItem: CacheItem<TenantTokenInfo>): CacheItem<TenantTokenInfo> {
+    if (!this.fieldEncryption.isEnabled()) {
+      return cacheItem; // 未启用加密，直接返回
+    }
+
+    const data = cacheItem.data;
+    return {
+      ...cacheItem,
+      data: {
+        ...data,
+        app_access_token: this.fieldEncryption.encryptField(data.app_access_token),
+      }
+    };
+  }
+
+  /**
+   * 解密租户token缓存项的敏感字段
+   * @param cacheItem 缓存项
+   * @returns 解密后的缓存项
+   */
+  private decryptTenantTokenSensitiveFields(cacheItem: CacheItem<TenantTokenInfo>): CacheItem<TenantTokenInfo> {
+    const data = cacheItem.data;
+    
+    return {
+      ...cacheItem,
+      data: {
+        ...data,
+        app_access_token: this.fieldEncryption.decryptIfNeeded(data.app_access_token),
+      }
+    };
   }
 
   /**
