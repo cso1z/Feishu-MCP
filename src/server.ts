@@ -101,6 +101,13 @@ export class FeishuMcpServer {
           Logger.log("Reusing existing StreamableHTTP transport for sessionId", sessionId);
           transport = transports[sessionId]
           userKey = this.userAuthManager.getUserKeyBySessionId(sessionId) || sessionId
+          
+          // 如果后续请求传递了新的 user-key，更新映射
+          if (userKeyFromRequest && userKeyFromRequest !== userKey) {
+            this.userAuthManager.createSession(sessionId, userKeyFromRequest);
+            userKey = userKeyFromRequest;
+            Logger.log(`[StreamableHTTP] Updated userKey for session ${sessionId}: ${userKey}`);
+          }
         } else if (!sessionId && isInitializeRequest(req.body)) {
           // New initialization request
           transport = new StreamableHTTPServerTransport({
