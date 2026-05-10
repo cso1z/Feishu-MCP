@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import { Config } from '../config.js';
+import { Logger } from '../logger.js';
 
 /**
  * 认证工具类
@@ -10,6 +11,14 @@ export class AuthUtils {
 
   /**
    * 生成客户端缓存键
+   *
+   * 安全说明：在 user 认证模式下，userKey 为空时会生成一个基于 appId:appSecret 的
+   * 确定性共享键（sha256(appId:appSecret)），这意味着所有不带 userKey 的请求都会
+   * 共享同一个缓存键，可能导致不同用户访问同一缓存 token，存在严重安全隐患。
+   *
+   * 因此在 user 认证模式下，调用方应确保 userKey 不为空；如果为空，应拒绝请求
+   * 而不是使用此共享键。
+   *
    * @param userKey 用户标识（可选）
    * @returns 生成的客户端键
    */
@@ -20,6 +29,10 @@ export class AuthUtils {
     if (feishuConfig.authType==="tenant"){
       source = `${feishuConfig.appId}:${feishuConfig.appSecret}`;
     }else {
+      // user 认证模式下，userKey 为空时生成共享键，存在安全隐患
+      if (!userKey) {
+        Logger.warn('[AuthUtils] user 认证模式下 userKey 为空，将生成共享缓存键 sha256(appId:appSecret)。不同请求可能共享同一缓存 token，存在安全隐患。请确保通过 user-key 请求头传递用户标识');
+      }
       source = `${feishuConfig.appId}:${feishuConfig.appSecret}${userPart}`;
     }
     return crypto.createHash('sha256').update(source).digest('hex');

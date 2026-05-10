@@ -7,6 +7,7 @@ import { Request } from 'express';
 interface UserContext {
   userKey: string;
   baseUrl: string;
+  isUserKeyProvided: boolean; // 是否由客户端明确提供 user-key（而非系统自动生成的 fallback）
 }
 
 /**
@@ -48,6 +49,17 @@ export class UserContextManager {
   public getUserKey(): string {
     const context = this.asyncLocalStorage.getStore();
     return context?.userKey || '';
+  }
+
+  /**
+   * 检查当前上下文中的 userKey 是否由客户端明确提供
+   * 当返回 false 时，userKey 是系统自动生成的 fallback 值（如 sessionId 或 anon-xxx），
+   * 不应用于查找缓存 token，否则可能访问到其他用户的缓存数据
+   * @returns 如果 userKey 由客户端明确提供则返回 true
+   */
+  public isUserKeyProvided(): boolean {
+    const context = this.asyncLocalStorage.getStore();
+    return context?.isUserKeyProvided ?? false;
   }
 
   /**

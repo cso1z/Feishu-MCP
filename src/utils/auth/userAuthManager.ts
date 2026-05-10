@@ -7,12 +7,14 @@ import { Logger } from '../logger.js';
 export class UserAuthManager {
   private static instance: UserAuthManager;
   private sessionToUserKey: Map<string, string>; // sessionId -> userKey
+  private sessionToIsUserKeyProvided: Map<string, boolean>; // sessionId -> 是否由客户端明确提供 userKey
 
   /**
    * 私有构造函数，用于单例模式
    */
   private constructor() {
     this.sessionToUserKey = new Map();
+    this.sessionToIsUserKeyProvided = new Map();
   }
 
   /**
@@ -32,15 +34,16 @@ export class UserAuthManager {
    * @param userKey 用户密钥
    * @returns 是否创建成功
    */
-  public createSession(sessionId: string, userKey: string): boolean {
+  public createSession(sessionId: string, userKey: string, isUserKeyProvided: boolean = false): boolean {
     if (!sessionId || !userKey) {
       Logger.warn('创建会话失败：sessionId 或 userKey 为空');
       return false;
     }
 
     this.sessionToUserKey.set(sessionId, userKey);
+    this.sessionToIsUserKeyProvided.set(sessionId, isUserKeyProvided);
 
-    Logger.info(`创建用户会话：sessionId=${sessionId}, userKey=${userKey}`);
+    Logger.info(`创建用户会话：sessionId=${sessionId}, userKey=${userKey}, isUserKeyProvided=${isUserKeyProvided}`);
     return true;
   }
 
@@ -65,6 +68,18 @@ export class UserAuthManager {
   }
 
   /**
+   * 根据 sessionId 查询该会话的 userKey 是否由客户端明确提供
+   * @param sessionId 会话ID
+   * @returns 如果 userKey 由客户端明确提供则返回 true，否则返回 false
+   */
+  public isUserKeyProvidedBySessionId(sessionId: string): boolean {
+    if (!sessionId) {
+      return false;
+    }
+    return this.sessionToIsUserKeyProvided.get(sessionId) ?? false;
+  }
+
+  /**
    * 删除会话
    * @param sessionId 会话ID
    * @returns 是否删除成功
@@ -81,6 +96,7 @@ export class UserAuthManager {
     }
 
     this.sessionToUserKey.delete(sessionId);
+    this.sessionToIsUserKeyProvided.delete(sessionId);
 
     Logger.info(`删除用户会话：sessionId=${sessionId}, userKey=${userKey}`);
     return true;
@@ -113,6 +129,7 @@ export class UserAuthManager {
   public clearAllSessions(): void {
     const count = this.sessionToUserKey.size;
     this.sessionToUserKey.clear();
+    this.sessionToIsUserKeyProvided.clear();
     Logger.info(`清空所有会话，删除了 ${count} 个会话`);
   }
 }

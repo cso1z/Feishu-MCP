@@ -143,9 +143,12 @@ export async function dispatch(toolName: string, params: unknown): Promise<unkno
   const apiService = FeishuApiService.getInstance();
   const baseUrl = `http://localhost:${config.server.port}`;
 
+  // stdio 模式下，userKey 来自配置（环境变量或 CLI 参数），视为明确提供
+  const isUserKeyProvided = !!userKey && userKey !== 'stdio';
+
   const invoke = (): Promise<unknown> =>
     userContextManager.run(
-      { userKey, baseUrl },
+      { userKey, baseUrl, isUserKeyProvided },
       () => handler(params, apiService)
     );
 
