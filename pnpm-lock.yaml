@@ -39,7 +39,7 @@ importers:
         specifier: ^17.7.2
         version: 17.7.2
       zod:
-        specifier: ^3.24.2
+        specifier: ^3.25.28
         version: 3.25.76
     devDependencies:
       '@types/express':
