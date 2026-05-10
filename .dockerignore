@@ -1,7 +1,6 @@
 node_modules
 dist
 .git
-pnpm-lock.yaml
 
 # 敏感文件 - 绝不能打入镜像
 .env
