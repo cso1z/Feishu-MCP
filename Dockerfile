@@ -8,7 +8,7 @@ WORKDIR /app
 RUN npm install -g pnpm --registry=https://registry.npmmirror.com
 
 # 复制 package 文件
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # 禁用 prepare 脚本来避免在安装依赖时构建
 RUN pnpm install --registry=https://registry.npmmirror.com --ignore-scripts
