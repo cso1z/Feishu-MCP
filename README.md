@@ -231,6 +231,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
 | `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |
 | `FEISHU_ENCRYPTION_KEY` | ❌ | Token缓存敏感字段加密密钥。任意字符串，系统自动通过SHA-256派生加密密钥。设置后 `access_token`、`refresh_token`、`client_secret` 等敏感字段将被加密存储。Docker部署时建议设置固定密钥 | - |
+| `MCP_BEARER_TOKEN` | ❌ | MCP Bearer Token 认证令牌。设置后，所有 HTTP/SSE/StreamableHTTP 端点将要求请求头 `Authorization: Bearer <token>`，未设置时不启用认证。建议使用 UUID 等随机字符串 | - |
 
 ### 功能模块说明
 
@@ -286,6 +287,31 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
     }
   }
 }
+```
+
+#### Bearer Token 认证（可选）
+
+当配置了 `MCP_BEARER_TOKEN` 环境变量后，所有 HTTP/SSE/StreamableHTTP 端点将要求请求携带 `Authorization: Bearer <token>` 头。适用于公网部署场景，防止未授权访问。
+
+**配置示例**：
+
+```env
+# .env 文件
+MCP_BEARER_TOKEN=your-secret-token-here
+```
+
+**客户端配置示例（SSE 模式 + Bearer 认证）**：
+
+> ⚠️ 目前大多数 MCP 客户端（如 Cursor、Cline）不支持在 SSE/StreamableHTTP 连接中自定义请求头。如需使用 Bearer 认证，请确认你的客户端支持传递 `Authorization` 头，或通过反向代理（如 Nginx）在服务端前置认证。
+
+对于支持自定义头的客户端或 API 调用：
+
+```bash
+# SSE 连接示例
+curl -H "Authorization: Bearer your-secret-token-here" http://localhost:3333/sse?userKey=123456
+
+# StreamableHTTP 请求示例
+curl -X POST -H "Authorization: Bearer your-secret-token-here" -H "Content-Type: application/json" http://localhost:3333/mcp?userKey=123456
 ```
 
 **⚠️ 重要提示** : URL 中的 `userKey` 表示连接用户的标识，是非常重要的配置，请填写并尽可能随机

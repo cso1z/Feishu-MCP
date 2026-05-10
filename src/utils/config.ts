@@ -20,6 +20,7 @@ export enum ConfigSource {
  */
 export interface ServerConfig {
   port: number;
+  bearerToken: string; // MCP Bearer Token 认证，为空时不启用认证
 }
 
 /**
@@ -132,6 +133,10 @@ export class Config {
           type: 'number',
           description: '服务器监听端口'
         },
+        'bearer-token': {
+          type: 'string',
+          description: 'MCP Bearer Token 认证令牌，设置后所有 HTTP/SSE 端点将要求 Authorization: Bearer <token>'
+        },
         'log-level': {
           type: 'string',
           description: '日志级别 (debug, info, log, warn, error, none)'
@@ -197,6 +202,7 @@ export class Config {
   private initServerConfig(argv: any): ServerConfig {
     const serverConfig: ServerConfig = {
       port: 3333,
+      bearerToken: '',
     };
     
     // 处理PORT
@@ -209,6 +215,18 @@ export class Config {
     } else {
       this.configSources['server.port'] = ConfigSource.DEFAULT;
     }
+
+    // 处理 Bearer Token（trim 去除空白字符，stripQuotes 去除环境变量中可能的引号包裹）
+    if (argv['bearer-token']) {
+      serverConfig.bearerToken = this.stripQuotes(argv['bearer-token'].trim());
+      this.configSources['server.bearerToken'] = ConfigSource.CLI;
+    } else if (process.env.MCP_BEARER_TOKEN) {
+      serverConfig.bearerToken = this.stripQuotes(process.env.MCP_BEARER_TOKEN.trim());
+      this.configSources['server.bearerToken'] = ConfigSource.ENV;
+    } else {
+      this.configSources['server.bearerToken'] = ConfigSource.DEFAULT;
+    }
+
     return serverConfig;
   }
   
@@ -479,6 +497,7 @@ export class Config {
     
     Logger.info('服务器配置:');
     Logger.info(`- 端口: ${this.server.port} (来源: ${this.configSources['server.port']})`);
+    Logger.info(`- Bearer Token 认证: ${this.server.bearerToken ? '已启用' : '未启用'} (来源: ${this.configSources['server.bearerToken']})`);
 
     Logger.info('飞书配置:');
     if (this.feishu.appId) {
@@ -536,6 +555,20 @@ export class Config {
 
   private normalizeBaseUrl(url: string): string {
     return url.replace(/\/+$/, '');
+  }
+
+  /**
+   * 去除字符串两端可能存在的引号包裹（单引号或双引号）
+   * Docker 环境变量和 .env 文件有时会将值用引号包裹
+   * @param value 原始字符串
+   * @returns 去除引号后的字符串
+   */
+  private stripQuotes(value: string): string {
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+      return value.slice(1, -1);
+    }
+    return value;
   }
   
   /**

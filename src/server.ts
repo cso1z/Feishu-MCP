@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { Server } from 'http';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -10,6 +10,7 @@ import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
 import { callback} from './services/callbackService.js';
 import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager, TokenRefreshManager } from './utils/auth/index.js';
+import { Config } from './utils/config.js';
 
 export class FeishuMcpServer {
   private connectionManager: SSEConnectionManager;
@@ -69,6 +70,72 @@ export class FeishuMcpServer {
     }
   }
 
+  /**
+   * Bearer Token 认证中间件
+   * 如果配置了 MCP_BEARER_TOKEN，则验证请求的 Authorization 头
+   * 未配置时跳过认证（向后兼容）
+   */
+  private bearerAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
+    const config = Config.getInstance();
+    const bearerToken = config.server.bearerToken;
+
+    // 未配置 bearer token 时跳过认证
+    if (!bearerToken) {
+      next();
+      return;
+    }
+
+    // 从 Authorization 头提取 token（Express 可能返回 string 或 string[]）
+    const authHeaderRaw = req.headers['authorization'];
+    if (!authHeaderRaw) {
+      Logger.warn(`[Bearer Auth] 请求缺少 Authorization 头: ${req.method} ${req.url}`);
+      res.status(401).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Unauthorized: Missing Authorization header. Provide Authorization: Bearer <token>',
+        },
+        id: null,
+      });
+      return;
+    }
+
+    // 处理可能为数组的情况，取第一个值
+    const authHeader = Array.isArray(authHeaderRaw) ? authHeaderRaw[0] : authHeaderRaw;
+
+    // 验证 Bearer token 格式和值（RFC 6750: Bearer 前缀大小写不敏感）
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
+      Logger.warn(`[Bearer Auth] Authorization 头格式错误: ${req.method} ${req.url}`);
+      res.status(401).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Unauthorized: Invalid Authorization header format. Expected: Bearer <token>',
+        },
+        id: null,
+      });
+      return;
+    }
+
+    const token = parts[1].trim();
+    if (token !== bearerToken) {
+      Logger.warn(`[Bearer Auth] Token 验证失败: ${req.method} ${req.url}, 请求token长度=${token.length}, 配置token长度=${bearerToken.length}`);
+      res.status(403).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32002,
+          message: 'Forbidden: Invalid bearer token',
+        },
+        id: null,
+      });
+      return;
+    }
+
+    // 认证通过
+    next();
+  }
+
   async startHttpServer(port: number): Promise<void> {
     const app = express();
 
@@ -76,6 +143,11 @@ export class FeishuMcpServer {
 
     // Parse JSON requests for the Streamable HTTP endpoint only, will break SSE endpoint
     app.use("/mcp", express.json());
+
+    // 对所有 MCP 相关端点应用 Bearer Token 认证中间件
+    app.use('/mcp', this.bearerAuthMiddleware.bind(this));
+    app.use('/sse', this.bearerAuthMiddleware.bind(this));
+    app.use('/messages', this.bearerAuthMiddleware.bind(this));
 
     app.post('/mcp', async (req, res) => {
       try {
