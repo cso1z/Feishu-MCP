@@ -195,18 +195,25 @@ export function formatErrorMessage(error: any, context?: string): string {
 /**
  * 授权异常类
  * 用于处理需要用户授权的情况
+ *
+ * shouldClearCache 属性用于区分两种场景：
+ * - true（默认）：token 确实无效/过期，需要清除缓存并重新授权
+ * - false：token 缓存本身有效，但当前请求因安全策略（如未提供 user-key）不允许使用缓存，
+ *          不应清除缓存，否则会影响其他合法请求
  */
 export class AuthRequiredError extends Error {
   public readonly authType: 'tenant' | 'user';
   public readonly authUrl?: string;
   public readonly message: string;
+  public readonly shouldClearCache: boolean;
 
-  constructor(authType: 'tenant' | 'user', message: string, authUrl?: string) {
+  constructor(authType: 'tenant' | 'user', message: string, authUrl?: string, shouldClearCache: boolean = true) {
     super(message);
     this.name = 'AuthRequiredError';
     this.authType = authType;
     this.authUrl = authUrl;
     this.message = message;
+    this.shouldClearCache = shouldClearCache;
   }
 }
 

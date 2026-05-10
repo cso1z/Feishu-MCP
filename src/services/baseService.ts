@@ -121,9 +121,16 @@ export abstract class BaseApiService {
     let baseUrl: string;
     
     if (this.isStdioMode()) {
-      // stdio 模式下直接使用默认值
+      // stdio 模式下使用配置中的 userKey
       const config = Config.getInstance();
-      userKey = config.feishu.userKey || 'stdio';
+      userKey = config.feishu.userKey;
+      
+      // 安全检查：user 认证模式下，userKey 为默认值 'stdio' 时存在共享缓存键风险
+      // 多个 stdio 进程在同一机器上运行时，若都使用默认 'stdio'，会共享同一缓存 token
+      if (config.feishu.authType === 'user' && (!userKey || userKey === 'stdio')) {
+        Logger.warn('[BaseService] user 认证模式下使用默认 userKey "stdio"，多个进程可能共享同一缓存 token。建议通过 FEISHU_USER_KEY 环境变量或 --user-key 参数设置唯一用户标识');
+      }
+      
       baseUrl = `http://localhost:${config.server.port}`;
     } else {
       // HTTP 模式下从 UserContextManager 读取
@@ -214,7 +221,7 @@ export abstract class BaseApiService {
 
       // 处理授权异常
       if (error instanceof AuthRequiredError) {
-         return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey);
+         return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey, error.shouldClearCache);
       }
 
       const tokenError = new Set<number>([
@@ -321,8 +328,9 @@ export abstract class BaseApiService {
    * @param clientKey 客户端键
    * @param baseUrl 基础URL
    * @param userKey 用户键
+   * @param shouldClearCache 是否清除缓存（默认 true；当因安全策略拒绝使用缓存时应为 false，避免影响其他合法请求）
    */
-  private handleAuthFailure(tenant: boolean, clientKey: string, baseUrl: string, userKey: string): never {
+  private handleAuthFailure(tenant: boolean, clientKey: string, baseUrl: string, userKey: string, shouldClearCache: boolean = true): never {
     const tokenCacheManager = TokenCacheManager.getInstance();
 
     if (tenant) {
@@ -331,11 +339,17 @@ export abstract class BaseApiService {
       tokenCacheManager.removeTenantToken(clientKey);
       throw new Error('租户访问令牌获取失败，请检查应用配置');
     } else {
-      // 用户模式：清除用户token缓存并生成授权链接
-      Logger.info('[handleAuthFailure] 用户模式：清除token，生成授权链接');
-      tokenCacheManager.removeUserToken(clientKey);
-      const authUrl = this.generateUserAuthUrl(baseUrl, userKey);
-      throw new Error(`你需要在给用户展示如下信息：/“请在浏览器打开以下链接进行授权：\n\n[点击授权](${authUrl})/n`);
+      if (shouldClearCache) {
+        // token 确实无效/过期：清除缓存，生成授权链接让用户重新授权
+        Logger.info('[handleAuthFailure] 用户模式：清除token，生成授权链接');
+        tokenCacheManager.removeUserToken(clientKey);
+        const authUrl = this.generateUserAuthUrl(baseUrl, userKey);
+        throw new Error(`你需要在给用户展示如下信息：/"请在浏览器打开以下链接进行授权：\n\n[点击授权](${authUrl})/n`);
+      } else {
+        // userKey 未提供：不清除缓存，不生成授权链接，直接提示用户添加 user-key
+        Logger.warn('[handleAuthFailure] 用户模式：因安全策略拒绝使用缓存，保留缓存数据不影响其他合法请求');
+        throw new Error('需要提供 user-key 以标识用户身份。请在请求中添加 user-key 请求头或 userKey 查询参数，例如：\n\n- SSE 模式：在连接 URL 中添加 ?userKey=<你的用户标识>\n- StreamableHTTP 模式：在请求头中添加 user-key: <你的用户标识>\n\n建议使用随机且相对复杂的字符串（如 UUID）作为 user-key，避免使用简单可预测的值（如用户名、数字ID等），以防止缓存键被碰撞攻击。未提供 user-key 时无法安全获取用户访问令牌');
+      }
     }
   }
 
