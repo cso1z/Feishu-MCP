@@ -200,6 +200,7 @@ feishu-tool guide
 # 3. 写入凭证
 feishu-tool config set FEISHU_APP_ID cli_xxxxx
 feishu-tool config set FEISHU_USER_KEY "$(node -e 'console.log(crypto.randomUUID())')"
+# FEISHU_USER_KEY 建议每个本地用户或客户端保持唯一
 
 # 4. 查看当前配置（确认写入正确）
 feishu-tool config
