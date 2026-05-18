@@ -199,6 +199,7 @@ feishu-tool guide
 
 # 3. 写入凭证
 feishu-tool config set FEISHU_APP_ID cli_xxxxx
+feishu-tool config set FEISHU_USER_KEY "$(node -e 'console.log(crypto.randomUUID())')"
 
 # 4. 查看当前配置（确认写入正确）
 feishu-tool config
@@ -229,7 +230,8 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
 | `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
-| `FEISHU_USER_KEY` | ❌ | `stdio` 模式的用户标识，可通过命令行参数 `--user-key` 覆盖 | `stdio` |
+| `FEISHU_USER_KEY` | ❌ | `stdio/CLI` 模式的用户标识，可通过 `feishu-tool config set FEISHU_USER_KEY <value>` 或命令行参数 `--user-key` 设置 | `stdio` |
+| `FEISHU_REQUIRE_USER_KEY` | ❌ | `user` 认证模式下是否强制要求显式 user-key。默认保持兼容；多用户 HTTP/中转场景建议设为 `true` | `false` |
 | `FEISHU_ENCRYPTION_KEY` | ❌ | Token缓存敏感字段加密密钥。任意字符串，系统自动通过SHA-256派生加密密钥。设置后 `access_token`、`refresh_token`、`client_secret` 等敏感字段将被加密存储。Docker部署时建议设置固定密钥 | - |
 | `MCP_BEARER_TOKEN` | ❌ | MCP Bearer Token 认证令牌。设置后，所有 HTTP/SSE/StreamableHTTP 端点将要求请求头 `Authorization: Bearer <token>`，未设置时不启用认证。建议使用 UUID 等随机字符串 | - |
 

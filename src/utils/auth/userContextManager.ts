@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { Request } from 'express';
+import type { UserKeyMode } from './userKeyPolicy.js';
 
 /**
  * 用户上下文接口
@@ -8,6 +9,7 @@ interface UserContext {
   userKey: string;
   baseUrl: string;
   isUserKeyProvided: boolean; // 是否由客户端明确提供 user-key（而非系统自动生成的 fallback）
+  userKeyMode?: UserKeyMode;
 }
 
 /**
@@ -60,6 +62,11 @@ export class UserContextManager {
   public isUserKeyProvided(): boolean {
     const context = this.asyncLocalStorage.getStore();
     return context?.isUserKeyProvided ?? false;
+  }
+
+  public getUserKeyMode(): UserKeyMode {
+    const context = this.asyncLocalStorage.getStore();
+    return context?.userKeyMode ?? 'unknown';
   }
 
   /**

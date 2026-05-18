@@ -9,7 +9,15 @@ import { Logger } from './utils/logger.js';
 import { SSEConnectionManager } from './manager/sseConnectionManager.js';
 import { FeishuMcp } from './mcp/feishuMcp.js';
 import { callback} from './services/callbackService.js';
-import { UserAuthManager, UserContextManager, getBaseUrl ,TokenCacheManager, TokenRefreshManager } from './utils/auth/index.js';
+import {
+  UserAuthManager,
+  UserContextManager,
+  getBaseUrl,
+  TokenCacheManager,
+  TokenRefreshManager,
+  isRequestUserKeyProvided,
+  resolveExistingStreamableSessionContext,
+} from './utils/auth/index.js';
 import { Config } from './utils/config.js';
 
 export class FeishuMcpServer {
@@ -167,17 +175,24 @@ export class FeishuMcpServer {
         const userKeyFromRequest = queryUserKey || headerUserKey;
         let transport: StreamableHTTPServerTransport
         let userKey: string
+        let isUserKeyProvided: boolean
 
         if (sessionId && transports[sessionId]) {
           // Reuse existing transport，从 userAuthManager 取回持久化的 userKey
           Logger.log("Reusing existing StreamableHTTP transport for sessionId", sessionId);
           transport = transports[sessionId]
-          userKey = this.userAuthManager.getUserKeyBySessionId(sessionId) || sessionId
+          const sessionContext = resolveExistingStreamableSessionContext({
+            sessionId,
+            storedUserKey: this.userAuthManager.getUserKeyBySessionId(sessionId),
+            storedIsUserKeyProvided: this.userAuthManager.isUserKeyProvidedBySessionId(sessionId),
+            requestUserKey: userKeyFromRequest,
+          });
+          userKey = sessionContext.userKey
+          isUserKeyProvided = sessionContext.isUserKeyProvided
           
           // 如果后续请求传递了新的 user-key，更新映射
-          if (userKeyFromRequest && userKeyFromRequest !== userKey) {
-            this.userAuthManager.createSession(sessionId, userKeyFromRequest);
-            userKey = userKeyFromRequest;
+          if (sessionContext.shouldUpdateSession) {
+            this.userAuthManager.createSession(sessionId, userKey, isUserKeyProvided);
             Logger.log(`[StreamableHTTP] Updated userKey for session ${sessionId}: ${userKey}`);
           }
         } else if (!sessionId && isInitializeRequest(req.body)) {
@@ -187,11 +202,11 @@ export class FeishuMcpServer {
             onsessioninitialized: (newSessionId) => {
                 // 建立 sessionId → userKey 持久映射：优先用客户端传入的，否则用 sessionId 兜底
                 const resolvedUserKey = userKeyFromRequest || newSessionId;
-                const isUserKeyProvided = !!userKeyFromRequest;
-                if (!isUserKeyProvided) {
+                const sessionUserKeyProvided = isRequestUserKeyProvided(userKeyFromRequest);
+                if (!sessionUserKeyProvided) {
                   Logger.warn(`[StreamableHTTP] 未提供 user-key，使用 sessionId 作为用户标识: ${newSessionId}。建议通过请求头 user-key 传递用户标识以保持身份持久性`);
                 }
-                this.userAuthManager.createSession(newSessionId, resolvedUserKey, isUserKeyProvided);
+                this.userAuthManager.createSession(newSessionId, resolvedUserKey, sessionUserKeyProvided);
                 Logger.log(`[StreamableHTTP connection] ${newSessionId}, userKey: ${resolvedUserKey}`);
                 transports[newSessionId] = transport
               }
@@ -212,6 +227,7 @@ export class FeishuMcpServer {
           // 初始化握手阶段 sessionId 尚未分配，使用 userKeyFromRequest（若有）或临时匿名标识符
           // 注意：不使用共享常量（如 'http-client'），避免不同连接共享同一缓存键导致安全隐患
           userKey = userKeyFromRequest || `anon-${randomUUID()}`
+          isUserKeyProvided = isRequestUserKeyProvided(userKeyFromRequest)
         } else {
           // Invalid request
           res.status(400).json({
@@ -227,12 +243,10 @@ export class FeishuMcpServer {
 
         // 获取 baseUrl 并在用户上下文中处理请求
         const baseUrl = getBaseUrl(req);
-        // 判断 userKey 是否由客户端明确提供（初始化阶段）
-        const isUserKeyProvided = !!userKeyFromRequest;
         
         // Handle the request with user context
         await this.userContextManager.run(
-          { userKey, baseUrl, isUserKeyProvided },
+          { userKey, baseUrl, isUserKeyProvided, userKeyMode: 'http' },
           async () => {
             await transport.handleRequest(req, res, req.body)
           }
@@ -270,7 +284,7 @@ export class FeishuMcpServer {
         const isUserKeyProvided = this.userAuthManager.isUserKeyProvidedBySessionId(sessionId);
 
         await this.userContextManager.run(
-          { userKey, baseUrl, isUserKeyProvided },
+          { userKey, baseUrl, isUserKeyProvided, userKeyMode: 'http' },
           async () => {
             await transport.handleRequest(req, res)
           }
@@ -300,7 +314,7 @@ export class FeishuMcpServer {
         const isUserKeyProvided = this.userAuthManager.isUserKeyProvidedBySessionId(sessionId);
 
         await this.userContextManager.run(
-          { userKey, baseUrl, isUserKeyProvided },
+          { userKey, baseUrl, isUserKeyProvided, userKeyMode: 'http' },
           async () => {
             await transport.handleRequest(req, res)
           }
@@ -331,7 +345,7 @@ export class FeishuMcpServer {
       const sessionId = sseTransport.sessionId;
       
       // 判断 userKey 是否由客户端明确提供
-      const isUserKeyProvided = !!userKey;
+      const isUserKeyProvided = isRequestUserKeyProvided(userKey);
       
       // 如果 userKey 为空，使用 sessionId 替代
       // 注意：sessionId 是唯一标识，不会与其他用户共享缓存，但身份不具备持久性
@@ -402,7 +416,8 @@ export class FeishuMcpServer {
         {
           userKey,
           baseUrl: baseUrl,
-          isUserKeyProvided
+          isUserKeyProvided,
+          userKeyMode: 'http'
         },
         async () => {
           await transport.handlePostMessage(req, res);

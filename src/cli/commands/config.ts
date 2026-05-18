@@ -14,6 +14,7 @@ const CONFIG_KEYS: Record<string, string> = {
   FEISHU_AUTH_BASE_URL:    '飞书授权页面域名。飞书国内版：https://accounts.feishu.cn（默认），Lark 国际版：https://accounts.larksuite.com',
   FEISHU_PUBLIC_BASE_URL:  '服务对外可访问的基础地址，用于生成 user 认证的 OAuth 回调地址',
   FEISHU_SCOPE_VALIDATION: '是否启用权限校验：true 或 false，默认 true',
+  FEISHU_USER_KEY:         'stdio/CLI 模式下的用户标识，默认 stdio，可通过 --user-key 覆盖',
   PORT:                    '服务监听端口，默认 3333',
 };
 
@@ -70,6 +71,7 @@ export function handleConfigShow(envPath: string | undefined): void {
       FEISHU_BASE_URL: process.env.FEISHU_BASE_URL ?? 'https://open.feishu.cn/open-apis (默认)',
       FEISHU_AUTH_BASE_URL: process.env.FEISHU_AUTH_BASE_URL ?? 'https://accounts.feishu.cn (默认)',
       FEISHU_PUBLIC_BASE_URL: process.env.FEISHU_PUBLIC_BASE_URL ?? '(未设置)',
+      FEISHU_USER_KEY: process.env.FEISHU_USER_KEY ?? 'stdio (默认)',
       PORT: process.env.PORT ?? '3333 (默认)',
     },
   };

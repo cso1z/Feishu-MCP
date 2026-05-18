@@ -36,6 +36,7 @@ export interface FeishuConfig {
   tokenEndpoint: string;
   enableScopeValidation: boolean; // 是否启用权限检查
   userKey: string;
+  requireUserKey: boolean; // user 认证模式下是否强制要求显式 user-key
 }
 
 /**
@@ -248,6 +249,7 @@ export class Config {
       tokenEndpoint: `http://127.0.0.1:${serverConfig.port}/getToken`, // 默认动态端口
       enableScopeValidation: true, // 默认启用权限检查
       userKey: 'stdio',
+      requireUserKey: false,
     };
     
     // 处理App ID
@@ -343,6 +345,14 @@ export class Config {
       this.configSources['feishu.userKey'] = ConfigSource.ENV;
     } else {
       this.configSources['feishu.userKey'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理 user-key 强校验开关。只支持环境变量/手动配置，不暴露到 feishu-tool config set。
+    if (process.env.FEISHU_REQUIRE_USER_KEY !== undefined) {
+      feishuConfig.requireUserKey = process.env.FEISHU_REQUIRE_USER_KEY.toLowerCase() === 'true';
+      this.configSources['feishu.requireUserKey'] = ConfigSource.ENV;
+    } else {
+      this.configSources['feishu.requireUserKey'] = ConfigSource.DEFAULT;
     }
     
     return feishuConfig;
@@ -512,6 +522,7 @@ export class Config {
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
     Logger.info(`- 启用权限检查: ${this.feishu.enableScopeValidation} (来源: ${this.configSources['feishu.enableScopeValidation']})`);
     Logger.info(`- User Key: ${this.feishu.userKey} (来源: ${this.configSources['feishu.userKey']})`);
+    Logger.info(`- 强制 user-key: ${this.feishu.requireUserKey} (来源: ${this.configSources['feishu.requireUserKey']})`);
 
     Logger.info('日志配置:');
     Logger.info(`- 日志级别: ${LogLevel[this.log.level]} (来源: ${this.configSources['log.level']})`);

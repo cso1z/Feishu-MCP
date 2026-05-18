@@ -1,5 +1,11 @@
 import { FeishuApiService } from '../services/feishuApiService.js';
-import { UserContextManager, TokenCacheManager, AuthUtils } from '../utils/auth/index.js';
+import {
+  UserContextManager,
+  TokenCacheManager,
+  AuthUtils,
+  assertExplicitUserKey,
+  isConfiguredUserKeyProvided,
+} from '../utils/auth/index.js';
 import { Config } from '../utils/config.js';
 import { handleAuthRequired } from './commands/auth.js';
 
@@ -144,16 +150,22 @@ export async function dispatch(toolName: string, params: unknown): Promise<unkno
   const baseUrl = `http://localhost:${config.server.port}`;
 
   // stdio 模式下，userKey 来自配置（环境变量或 CLI 参数），视为明确提供
-  const isUserKeyProvided = !!userKey && userKey !== 'stdio';
+  const isUserKeyProvided = isConfiguredUserKeyProvided(userKey);
 
   const invoke = (): Promise<unknown> =>
     userContextManager.run(
-      { userKey, baseUrl, isUserKeyProvided },
+      { userKey, baseUrl, isUserKeyProvided, userKeyMode: 'stdio' },
       () => handler(params, apiService)
     );
 
   // 在 user 模式下，预先检查 token 是否有效，无效则触发授权流程
   if (config.feishu.authType === 'user') {
+    assertExplicitUserKey(
+      config.feishu.authType,
+      config.feishu.requireUserKey,
+      isUserKeyProvided,
+      'stdio'
+    );
     const clientKey = AuthUtils.generateClientKey(userKey);
     const status = TokenCacheManager.getInstance().checkUserTokenStatus(clientKey);
     if (!status.isValid && !status.canRefresh) {

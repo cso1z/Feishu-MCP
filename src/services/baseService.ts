@@ -3,7 +3,14 @@ import FormData from 'form-data';
 import { Logger } from '../utils/logger.js';
 import { formatErrorMessage, AuthRequiredError, ScopeInsufficientError } from '../utils/error.js';
 import { Config } from '../utils/config.js';
-import { TokenCacheManager, UserContextManager,AuthUtils } from '../utils/auth/index.js';
+import {
+  TokenCacheManager,
+  UserContextManager,
+  AuthUtils,
+  MissingUserKeyError,
+  assertExplicitUserKey,
+  isConfiguredUserKeyProvided,
+} from '../utils/auth/index.js';
 import { getRequiredScopes } from './constants/feishuScopes.js';
 import { ModuleRegistry } from '../modules/index.js';
 
@@ -119,11 +126,13 @@ export abstract class BaseApiService {
     // 获取用户上下文
     let userKey: string;
     let baseUrl: string;
+    let isUserKeyProvided: boolean;
     
     if (this.isStdioMode()) {
       // stdio 模式下使用配置中的 userKey
       const config = Config.getInstance();
       userKey = config.feishu.userKey;
+      isUserKeyProvided = isConfiguredUserKeyProvided(userKey);
       
       // 安全检查：user 认证模式下，userKey 为默认值 'stdio' 时存在共享缓存键风险
       // 多个 stdio 进程在同一机器上运行时，若都使用默认 'stdio'，会共享同一缓存 token
@@ -137,7 +146,16 @@ export abstract class BaseApiService {
       const userContextManager = UserContextManager.getInstance();
       userKey = userContextManager.getUserKey();
       baseUrl = userContextManager.getBaseUrl();
+      isUserKeyProvided = userContextManager.isUserKeyProvided();
     }
+
+    const config = Config.getInstance().feishu;
+    assertExplicitUserKey(
+      config.authType,
+      config.requireUserKey,
+      isUserKeyProvided,
+      this.isStdioMode() ? 'stdio' : UserContextManager.getInstance().getUserKeyMode()
+    );
     
     const clientKey = AuthUtils.generateClientKey(userKey);
 
@@ -222,6 +240,10 @@ export abstract class BaseApiService {
       // 处理授权异常
       if (error instanceof AuthRequiredError) {
          return this.handleAuthFailure(config.authType==="tenant", clientKey, baseUrl, userKey, error.shouldClearCache);
+      }
+
+      if (error instanceof MissingUserKeyError) {
+        throw error;
       }
 
       const tokenError = new Set<number>([
