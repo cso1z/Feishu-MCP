@@ -7,15 +7,19 @@ const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.me
   version: string;
 };
 
-test('main CLI prints package version without starting the server', () => {
-  const result = spawnSync(process.execPath, ['dist/cli.js', '--version'], {
-    encoding: 'utf-8',
-  });
+for (const cliPath of ['dist/cli.js', 'dist/cli/index.js']) {
+  for (const versionFlag of ['--version', '-v']) {
+    test(`${cliPath} prints package version for ${versionFlag}`, () => {
+      const result = spawnSync(process.execPath, [cliPath, versionFlag], {
+        encoding: 'utf-8',
+      });
 
-  assert.equal(result.status, 0);
-  assert.equal(result.stderr, '');
-  assert.equal(result.stdout.trim(), packageJson.version);
-});
+      assert.equal(result.status, 0);
+      assert.equal(result.stderr, '');
+      assert.equal(result.stdout.trim(), packageJson.version);
+    });
+  }
+}
 
 test('main CLI help still prints yargs usage metadata', () => {
   const result = spawnSync(process.execPath, ['dist/cli.js', '--help'], {

@@ -3,14 +3,11 @@ import { FeishuApiService } from '../services/feishuApiService.js';
 import { Logger } from '../utils/logger.js';
 import { Config } from '../utils/config.js';
 import { ModuleRegistry } from '../modules/ModuleRegistry.js';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { version } = require('../../package.json');
+import { packageVersion } from '../utils/packageVersion.js';
 
 export const serverInfo = {
   name: "Feishu MCP Server",
-  version,
+  version: packageVersion,
 };
 
 const serverOptions = {

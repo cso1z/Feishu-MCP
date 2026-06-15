@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 
 import { resolve } from "path";
-import { createRequire } from "module";
 import { config } from "dotenv";
-import { startServer } from "./index.js";
 import { Logger } from "./utils/logger.js";
+import { printVersionIfRequested } from "./utils/packageVersion.js";
 
-if (process.argv.includes("--version") || process.argv.includes("-v")) {
-  const require = createRequire(import.meta.url);
-  const packageJson = require("../package.json") as { version: string };
-  console.log(packageJson.version);
+if (printVersionIfRequested(process.argv.slice(2))) {
   process.exit(0);
 }
+
+const { startServer } = await import("./index.js");
 
 // Load .env from the current working directory
 config({ path: resolve(process.cwd(), ".env") });
