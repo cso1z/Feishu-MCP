@@ -113,8 +113,81 @@ export class Logger {
       result.push(`[${levelStr}]`);
     }
     
-    // 添加原始日志内容
-    return [...result, ...args];
+    // 添加脱敏后的日志内容
+    return [...result, ...args.map(arg => this.sanitizeLogValue(arg))];
+  }
+
+  private static isSecretKey(key: string): boolean {
+    return key.replace(/[^a-z0-9]/gi, '').toLowerCase().includes('secret');
+  }
+
+  private static maskSecret(value: unknown): string {
+    const text = String(value);
+    if (text.length <= 8) return '****';
+    return `${text.slice(0, 2)}****${text.slice(-2)}`;
+  }
+
+  private static sanitizeString(value: string): string {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object') {
+        return JSON.stringify(this.sanitizeLogValue(parsed));
+      }
+    } catch {
+      // Not a JSON string; redact common key/value forms below.
+    }
+
+    return value
+      .replace(
+        /((?:"|')?[\w.-]*secret[\w.-]*(?:"|')?\s*[:=]\s*)(["'])(.*?)\2/gi,
+        (_match, prefix: string, quote: string, secret: string) =>
+          `${prefix}${quote}${this.maskSecret(secret)}${quote}`,
+      )
+      .replace(
+        /(\b[\w.-]*secret[\w.-]*\b\s*[:=]\s*)(?!["'])([^,\s&}]+)/gi,
+        (_match, prefix: string, secret: string) => `${prefix}${this.maskSecret(secret)}`,
+      );
+  }
+
+  private static sanitizeLogValue(value: any, seen = new WeakMap<object, any>()): any {
+    if (typeof value === 'string') {
+      return this.sanitizeString(value);
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+
+    if (value instanceof Error) {
+      const sanitizedError: Record<string, unknown> = {
+        name: value.name,
+        message: this.sanitizeString(value.message),
+        stack: value.stack ? this.sanitizeString(value.stack) : undefined,
+      };
+      seen.set(value, sanitizedError);
+      for (const [key, nestedValue] of Object.entries(value)) {
+        sanitizedError[key] = this.isSecretKey(key)
+          ? this.maskSecret(nestedValue)
+          : this.sanitizeLogValue(nestedValue, seen);
+      }
+      return sanitizedError;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+      return value;
+    }
+
+    const sanitized: any = Array.isArray(value) ? [] : {};
+    seen.set(value, sanitized);
+    for (const [key, nestedValue] of Object.entries(value)) {
+      sanitized[key] = this.isSecretKey(key)
+        ? this.maskSecret(nestedValue)
+        : this.sanitizeLogValue(nestedValue, seen);
+    }
+    return sanitized;
   }
 
   /**
@@ -316,4 +389,4 @@ export class Logger {
       this.info(`API调用: ${method} ${url} - 状态码: ${statusCode}`);
     }
   }
-} 
+}
