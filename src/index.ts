@@ -11,6 +11,16 @@ export async function startServer(): Promise<void> {
 
   // 获取配置实例
   const config = Config.getInstance();
+
+  // 应用日志配置到 Logger（修复环境变量控制日志级别失效的问题）
+  Logger.configure({
+    minLevel: config.log.level,
+    showTimestamp: config.log.showTimestamp,
+    showLevel: config.log.showLevel,
+    timestampFormat: config.log.timestampFormat,
+    logToFile: config.log.logToFile,
+    logFilePath: config.log.logFilePath,
+  });
   
   // 打印配置信息
   config.printConfig(isStdioMode);

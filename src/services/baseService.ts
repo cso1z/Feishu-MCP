@@ -137,7 +137,7 @@ export abstract class BaseApiService {
       // 安全检查：user 认证模式下，userKey 为默认值 'stdio' 时存在共享缓存键风险
       // 多个 stdio 进程在同一机器上运行时，若都使用默认 'stdio'，会共享同一缓存 token
       if (config.feishu.authType === 'user' && (!userKey || userKey === 'stdio')) {
-        Logger.warn('[BaseService] user 认证模式下使用默认 userKey "stdio"，多个进程可能共享同一缓存 token。建议通过 FEISHU_USER_KEY 环境变量或 --user-key 参数设置唯一用户标识');
+        Logger.warnOnce('[BaseService] user 认证模式下使用默认 userKey "stdio"，多个进程可能共享同一缓存 token。建议通过 FEISHU_USER_KEY 环境变量或 --user-key 参数设置唯一用户标识');
       }
       
       baseUrl = `http://localhost:${config.server.port}`;
@@ -158,8 +158,6 @@ export abstract class BaseApiService {
     );
     
     const clientKey = AuthUtils.generateClientKey(userKey);
-
-    Logger.debug(`[BaseService] Request context - userKey: ${userKey}, baseUrl: ${baseUrl}`);
 
     try {
       // 构建请求URL
@@ -184,14 +182,6 @@ export abstract class BaseApiService {
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
       
-      // 记录请求信息
-      Logger.debug('准备发送请求:');
-      Logger.debug(`请求URL: ${url}`);
-      Logger.debug(`请求方法: ${method}`);
-      if (data) {
-        Logger.debug(`请求数据:`, data);
-      }
-      
       // 构建请求配置
       const config: AxiosRequestConfig = {
         method,
@@ -205,11 +195,10 @@ export abstract class BaseApiService {
       // 发送请求
       const response = await axios<ApiResponse<T>>(config);
       
-      // 记录响应信息
-      Logger.debug('收到响应:');
-      Logger.debug(`响应状态码: ${response.status}`);
-      Logger.debug(`响应头:`, response.headers);
-      Logger.debug(`响应数据:`, response.data);
+      // 单条结构化日志：记录请求摘要和响应状态
+      Logger.debug(`[API] ${method} ${endpoint} → ${response.status}${
+        response.data?.code !== undefined ? ` (code: ${response.data.code})` : ''
+      }`);
       
       // 对于非JSON响应，直接返回数据
       if (responseType && responseType !== 'json') {
@@ -356,20 +345,16 @@ export abstract class BaseApiService {
     const tokenCacheManager = TokenCacheManager.getInstance();
 
     if (tenant) {
-      // 租户模式：清除租户token缓存
-      Logger.info('租户模式：清除租户token缓存');
       tokenCacheManager.removeTenantToken(clientKey);
       throw new Error('租户访问令牌获取失败，请检查应用配置');
     } else {
       if (shouldClearCache) {
-        // token 确实无效/过期：清除缓存，生成授权链接让用户重新授权
-        Logger.info('[handleAuthFailure] 用户模式：清除token，生成授权链接');
         tokenCacheManager.removeUserToken(clientKey);
         const authUrl = this.generateUserAuthUrl(baseUrl, userKey);
+        Logger.infoOnce('[认证] 需要用户授权，授权链接已生成');
         throw new Error(`你需要在给用户展示如下信息：/"请在浏览器打开以下链接进行授权：\n\n[点击授权](${authUrl})/n`);
       } else {
-        // userKey 未提供：不清除缓存，不生成授权链接，直接提示用户添加 user-key
-        Logger.warn('[handleAuthFailure] 用户模式：因安全策略拒绝使用缓存，保留缓存数据不影响其他合法请求');
+        Logger.warnOnce('[认证] 因安全策略拒绝使用缓存，需要提供 user-key');
         throw new Error('需要提供 user-key 以标识用户身份。请在请求中添加 user-key 请求头或 userKey 查询参数，例如：\n\n- SSE 模式：在连接 URL 中添加 ?userKey=<你的用户标识>\n- StreamableHTTP 模式：在请求头中添加 user-key: <你的用户标识>\n\n建议使用随机且相对复杂的字符串（如 UUID）作为 user-key，避免使用简单可预测的值（如用户名、数字ID等），以防止缓存键被碰撞攻击。未提供 user-key 时无法安全获取用户访问令牌');
       }
     }
@@ -397,12 +382,7 @@ export abstract class BaseApiService {
     additionalHeaders: Record<string, string> | undefined,
     responseType: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream' | undefined
   ): Promise<T> {
-    // 租户模式：直接清除租户token缓存
-    Logger.info('租户模式：清除租户token缓存');
     tokenCacheManager.removeTenantToken(clientKey);
-
-    // 重试请求
-    Logger.info('重试租户请求...');
     return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, responseType, true);
   }
 
@@ -430,26 +410,16 @@ export abstract class BaseApiService {
     baseUrl: string,
     userKey: string
   ): Promise<T> {
-    // 用户模式：检查用户token状态
     const tokenStatus = tokenCacheManager.checkUserTokenStatus(clientKey);
-    Logger.debug(`用户token状态:`, tokenStatus);
 
     if (tokenStatus.canRefresh && !tokenStatus.isExpired) {
-      // 有有效的refresh_token，设置token为过期状态，让下次请求时刷新
-      Logger.info('用户模式：token过期，将在下次请求时刷新');
       const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
       if (tokenInfo) {
-        // 设置access_token为过期，但保留refresh_token
         tokenInfo.expires_at = Math.floor(Date.now() / 1000) - 1;
         tokenCacheManager.cacheUserToken(clientKey, tokenInfo);
       }
-
-      // 重试请求
-      Logger.info('重试用户请求...');
       return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, responseType, true);
     } else {
-      // refresh_token已过期或不存在，直接清除缓存
-      Logger.warn('用户模式：refresh_token已过期，清除用户token缓存');
       tokenCacheManager.removeUserToken(clientKey);
       return this.handleAuthFailure(false, clientKey, baseUrl, userKey);
     }
@@ -471,7 +441,6 @@ export abstract class BaseApiService {
     const enabledIds = config.features.enabledModules;
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
     const scopeList = getRequiredScopes(effectiveModules, authType);
-    Logger.info(`[generateUserAuthUrl] enabledModules=${effectiveModules.join(',')} authType=${authType} scopes=${scopeList.join(',')}`);
     const scope = encodeURIComponent(scopeList.join(' '));
     const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
 

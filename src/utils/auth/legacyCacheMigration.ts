@@ -31,7 +31,7 @@ export function migrateLegacyTokenCacheIfNeeded(
     return;
   }
 
-  Logger.info(`检查旧路径缓存并迁移: ${legacyDir} -> ${newCacheDir}`);
+  Logger.debug(`检查旧路径缓存并迁移: ${legacyDir} -> ${newCacheDir}`);
   let migratedCount = 0;
 
   for (let i = 0; i < LEGACY_FILES.length; i++) {
@@ -46,14 +46,14 @@ export function migrateLegacyTokenCacheIfNeeded(
       fs.writeFileSync(newPath, content, 'utf-8');
       fs.unlinkSync(oldPath);
       migratedCount++;
-      Logger.info(`已迁移旧缓存并删除原文件: ${LEGACY_FILES[i]} -> ${newPath}`);
+      Logger.debug(`已迁移旧缓存并删除原文件: ${LEGACY_FILES[i]} -> ${newPath}`);
     } catch (error) {
       Logger.warn(`迁移旧缓存失败，跳过 ${LEGACY_FILES[i]}`, error);
     }
   }
 
   if (migratedCount > 0) {
-    Logger.info(`Token 缓存迁移完成，共 ${migratedCount} 个文件`);
+    Logger.debug(`Token 缓存迁移完成，共 ${migratedCount} 个文件`);
   }
 
   try {

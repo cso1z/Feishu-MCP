@@ -16,7 +16,7 @@ export class TokenRefreshManager {
    * 私有构造函数，用于单例模式
    */
   private constructor() {
-    Logger.info('Token刷新管理器已初始化');
+    Logger.debug('Token刷新管理器已初始化');
   }
 
   /**
@@ -38,7 +38,7 @@ export class TokenRefreshManager {
       return;
     }
 
-    Logger.info(`启动Token自动刷新管理器，检查间隔: ${this.checkInterval / 1000}秒`);
+    Logger.debug(`启动Token自动刷新管理器，检查间隔: ${this.checkInterval / 1000}秒`);
     
     // 立即执行一次检查
     this.checkAndRefreshTokens();
@@ -50,7 +50,7 @@ export class TokenRefreshManager {
     this.intervalId.unref();
     
     this.isRunning = true;
-    Logger.info('Token自动刷新管理器已启动');
+    Logger.debug('Token自动刷新管理器已启动');
   }
 
   /**
@@ -68,7 +68,7 @@ export class TokenRefreshManager {
     }
     
     this.isRunning = false;
-    Logger.info('Token自动刷新管理器已停止');
+    Logger.debug('Token自动刷新管理器已停止');
   }
 
   /**

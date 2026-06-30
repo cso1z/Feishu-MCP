@@ -31,7 +31,7 @@ export class AuthUtils {
     }else {
       // user 认证模式下，userKey 为空时生成共享键，存在安全隐患
       if (!userKey) {
-        Logger.warn('[AuthUtils] user 认证模式下 userKey 为空，将生成共享缓存键 sha256(appId:appSecret)。不同请求可能共享同一缓存 token，存在安全隐患。请确保通过 user-key 请求头传递用户标识');
+        Logger.warnOnce('[AuthUtils] user 认证模式下 userKey 为空，将生成共享缓存键 sha256(appId:appSecret)。不同请求可能共享同一缓存 token，存在安全隐患。请确保通过 user-key 请求头传递用户标识');
       }
       source = `${feishuConfig.appId}:${feishuConfig.appSecret}${userPart}`;
     }

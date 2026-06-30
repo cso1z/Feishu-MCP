@@ -30,7 +30,7 @@ const config = Config.getInstance();
 export async function callback(req: Request, res: Response) {
   const code = req.query.code as string;
   const state = req.query.state as string;
-  Logger.debug(`[callback] query:`, req.query);
+  Logger.debug(`[callback] query: code=${code ? '***' : 'missing'}, state=${state ? 'present' : 'missing'}`);
   
   if (!code) {
     Logger.warn('[callback] 缺少code参数');
@@ -50,7 +50,7 @@ export async function callback(req: Request, res: Response) {
   }
 
   const { appId, appSecret, clientKey, redirectUri } = stateData;
-  Logger.debug(`[callback] 解析state成功:`, { appId, clientKey, redirectUri });
+  Logger.debug(`[callback] 解析state成功: clientKey=${clientKey ? '***' : 'missing'}`);
 
   // 验证state中的appId和appSecret是否与配置匹配
   const configAppId = config.feishu.appId;
@@ -75,10 +75,10 @@ export async function callback(req: Request, res: Response) {
       code_verifier
     });
     const data = (tokenResp && typeof tokenResp === 'object') ? tokenResp : undefined;
-    Logger.debug('[callback] feishu response:', data);
+    Logger.debug('[callback] feishu token response:', { code: data?.code, has_access_token: !!data?.access_token, expires_in: data?.expires_in });
     
     if (!data || !data.access_token) {
-      return sendFail(res, `获取 access_token 失败，飞书返回: ${JSON.stringify(tokenResp)}`, CODE.CUSTOM);
+      return sendFail(res, `获取 access_token 失败，飞书返回错误码: ${data?.code ?? 'unknown'}`, CODE.CUSTOM);
     }
     
     // 使用TokenCacheManager缓存token信息
@@ -97,7 +97,7 @@ export async function callback(req: Request, res: Response) {
       // 缓存token信息
       const refreshTtl = data.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
       tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl);
-      Logger.info(`[callback] token已缓存到clientKey: ${clientKey}`);
+      Logger.infoOnce(`[callback] 用户授权成功，token已缓存`);
     }
     
     // 获取用户信息
@@ -105,7 +105,11 @@ export async function callback(req: Request, res: Response) {
     let userInfo = null;
     if (access_token) {
       userInfo = await authService.getUserInfo(access_token);
-      Logger.debug('[callback] feishu userInfo:', userInfo);
+      Logger.debug('[callback] feishu userInfo:', {
+        code: userInfo?.code,
+        name: userInfo?.data?.name,
+        open_id: userInfo?.data?.open_id,
+      });
     }
     
     return sendSuccess(res, { ...data, userInfo, clientKey });

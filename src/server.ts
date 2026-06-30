@@ -37,7 +37,7 @@ export class FeishuMcpServer {
     // 启动Token自动刷新管理器
     const tokenRefreshManager = TokenRefreshManager.getInstance();
     tokenRefreshManager.start();
-    Logger.info('Token自动刷新管理器已在服务器启动时初始化');
+    Logger.debug('Token自动刷新管理器已在服务器启动时初始化');
   }
 
   async connect(transport: Transport): Promise<void> {
@@ -159,13 +159,10 @@ export class FeishuMcpServer {
 
     app.post('/mcp', async (req, res) => {
       try {
-        Logger.log("Received StreamableHTTP request", {
+        Logger.debug("Received StreamableHTTP request", {
           method: req.method,
           url: req.url,
-          headers: req.headers,
-          body: req.body,
-          query: req.query,
-          params: req.params
+          toolName: req.body?.params?.name,
         });
         // Check for existing session ID
         const sessionId = req.headers['mcp-session-id'] as string | undefined
@@ -193,7 +190,7 @@ export class FeishuMcpServer {
           // 如果后续请求传递了新的 user-key，更新映射
           if (sessionContext.shouldUpdateSession) {
             this.userAuthManager.createSession(sessionId, userKey, isUserKeyProvided);
-            Logger.log(`[StreamableHTTP] Updated userKey for session ${sessionId}: ${userKey}`);
+            Logger.log(`[StreamableHTTP] Updated userKey for session ${sessionId}`);
           }
         } else if (!sessionId && isInitializeRequest(req.body)) {
           // New initialization request
@@ -207,7 +204,7 @@ export class FeishuMcpServer {
                   Logger.warn(`[StreamableHTTP] 未提供 user-key，使用 sessionId 作为用户标识: ${newSessionId}。建议通过请求头 user-key 传递用户标识以保持身份持久性`);
                 }
                 this.userAuthManager.createSession(newSessionId, resolvedUserKey, sessionUserKeyProvided);
-                Logger.log(`[StreamableHTTP connection] ${newSessionId}, userKey: ${resolvedUserKey}`);
+                Logger.log(`[StreamableHTTP connection] ${newSessionId}`);
                 transports[newSessionId] = transport
               }
           })
@@ -383,7 +380,7 @@ export class FeishuMcpServer {
       // 通过 sessionId 获取 userKey
       const userKey = this.userAuthManager.getUserKeyBySessionId(sessionId);
       
-      Logger.info(`[SSE messages] Received message with sessionId: ${sessionId}, userKey: ${userKey}, params: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}`,);
+      Logger.debug(`[SSE messages] Received message with sessionId: ${sessionId}`);
 
       if (!sessionId) {
         res.status(400).send('Missing sessionId query parameter');

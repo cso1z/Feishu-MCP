@@ -41,19 +41,15 @@ export abstract class FeishuBaseApiService extends BaseApiService {
       assertExplicitUserKey(authType, requireUserKey, userKeyContext.isUserKeyProvided, userKeyContext.mode);
       if (!userKeyContext.isUserKeyProvided) {
         if (shouldWarnFallbackUserKeyOnce(userKeyContext.mode, userKey)) {
-          Logger.warn('[FeishuBaseApiService] user 认证模式下 userKey 未由客户端明确提供，继续使用兼容模式。多用户 HTTP 场景建议设置 FEISHU_REQUIRE_USER_KEY=true');
+          Logger.warnOnce('[FeishuBaseApiService] user 认证模式下 userKey 未由客户端明确提供，继续使用兼容模式。多用户 HTTP 场景建议设置 FEISHU_REQUIRE_USER_KEY=true');
         }
       }
     }
 
     const clientKey = AuthUtils.generateClientKey(userKey);
 
-    Logger.debug(`[FeishuBaseApiService] 获取访问令牌，authType: ${authType}, clientKey: ${clientKey}`);
-
     if (enableScopeValidation) {
       await this.scopeValidator.validateScopeWithVersion(appId, appSecret, authType, clientKey);
-    } else {
-      Logger.debug('权限检查已禁用，跳过scope校验');
     }
 
     if (authType === 'tenant') {

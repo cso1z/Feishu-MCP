@@ -43,7 +43,7 @@ export class UserAuthManager {
     this.sessionToUserKey.set(sessionId, userKey);
     this.sessionToIsUserKeyProvided.set(sessionId, isUserKeyProvided);
 
-    Logger.info(`创建用户会话：sessionId=${sessionId}, userKey=${userKey}, isUserKeyProvided=${isUserKeyProvided}`);
+    Logger.debug(`创建用户会话：sessionId=${sessionId}`);
     return true;
   }
 
@@ -63,7 +63,7 @@ export class UserAuthManager {
       return null;
     }
 
-    Logger.debug(`获取用户密钥：sessionId=${sessionId}, userKey=${userKey}`);
+    Logger.debug(`获取用户密钥：sessionId=${sessionId}`);
     return userKey;
   }
 
@@ -98,7 +98,7 @@ export class UserAuthManager {
     this.sessionToUserKey.delete(sessionId);
     this.sessionToIsUserKeyProvided.delete(sessionId);
 
-    Logger.info(`删除用户会话：sessionId=${sessionId}, userKey=${userKey}`);
+    Logger.debug(`删除用户会话：sessionId=${sessionId}`);
     return true;
   }
 
@@ -130,6 +130,6 @@ export class UserAuthManager {
     const count = this.sessionToUserKey.size;
     this.sessionToUserKey.clear();
     this.sessionToIsUserKeyProvided.clear();
-    Logger.info(`清空所有会话，删除了 ${count} 个会话`);
+    Logger.debug(`清空所有会话，删除了 ${count} 个会话`);
   }
 }

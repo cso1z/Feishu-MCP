@@ -19,8 +19,22 @@ const envCandidates = [
 const envPath = envCandidates.find(p => existsSync(p));
 if (envPath) loadDotEnv({ path: envPath });
 
-// 禁用所有日志输出，保持 stdout 纯 JSON
-Logger.setEnabled(false);
+// CLI 模式日志策略：控制台静默（stdout 纯 JSON），但支持文件日志用于排查
+const logToFile = process.env.LOG_TO_FILE?.toLowerCase() === 'true';
+if (logToFile) {
+  const levelMap: Record<string, number> = { debug: 0, info: 1, log: 2, warn: 3, error: 4, none: 5 };
+  const level = levelMap[process.env.LOG_LEVEL?.toLowerCase() ?? ''] ?? 1;
+  Logger.configure({
+    enabled: true,
+    minLevel: level,
+    logToFile: true,
+    logFilePath: process.env.LOG_FILE_PATH || 'logs/log.txt',
+    showTimestamp: process.env.LOG_SHOW_TIMESTAMP?.toLowerCase() !== 'false',
+    showLevel: process.env.LOG_SHOW_LEVEL?.toLowerCase() !== 'false',
+  });
+} else {
+  Logger.setEnabled(false);
+}
 
 // ---- 子命令注册表 ----
 type Handler = (args: string[]) => Promise<void> | void;

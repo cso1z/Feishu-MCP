@@ -81,7 +81,7 @@ export class TokenCacheManager {
     this.userTokenCacheFile = path.join(this.cacheDir, 'user_token_cache.json');
     this.tenantTokenCacheFile = path.join(this.cacheDir, 'tenant_token_cache.json');
     this.scopeVersionCacheFile = path.join(this.cacheDir, 'scope_version_cache.json');
-    Logger.info(`Token缓存目录: ${this.cacheDir}`);
+    Logger.debug(`Token缓存目录: ${this.cacheDir}`);
 
     // 初始化字段加密模块
     this.fieldEncryption = FieldEncryption.getInstance();
@@ -160,12 +160,12 @@ export class TokenCacheManager {
           }
         }
         
-        Logger.info(`已加载用户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
+        Logger.debug(`已加载用户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
       } catch (error) {
         Logger.warn('加载用户token缓存失败:', error);
       }
     } else {
-      Logger.info('用户token缓存文件不存在，将创建新的缓存');
+      Logger.debug('用户token缓存文件不存在，将创建新的缓存');
     }
   }
 
@@ -192,7 +192,7 @@ export class TokenCacheManager {
           }
         }
         
-        Logger.info(`已加载租户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
+        Logger.debug(`已加载租户token缓存，共 ${loadedCount} 条记录，解密 ${decryptedCount} 条加密记录`);
       } catch (error) {
         Logger.warn('加载租户token缓存失败:', error);
       }
@@ -628,7 +628,7 @@ export class TokenCacheManager {
       // 分别保存用户和租户缓存
       this.saveUserTokenCache();
       this.saveTenantTokenCache();
-      Logger.info(`清理过期token，删除了 ${cleanedCount} 条记录`);
+      Logger.debug(`清理过期token，删除了 ${cleanedCount} 条记录`);
     }
     
     return cleanedCount;
@@ -645,7 +645,7 @@ export class TokenCacheManager {
     // 不阻止进程在 stdio 模式下自然退出
     this.cleanupTimerId.unref();
 
-    Logger.info('Token缓存清理定时器已启动，每5分钟执行一次');
+    Logger.debug('Token缓存清理定时器已启动，每5分钟执行一次');
   }
 
   /**
@@ -755,12 +755,12 @@ export class TokenCacheManager {
           }
         }
         
-        Logger.info(`已加载Scope版本缓存，共 ${loadedCount} 条记录`);
+        Logger.debug(`已加载Scope版本缓存，共 ${loadedCount} 条记录`);
       } catch (error) {
         Logger.warn('加载Scope版本缓存失败:', error);
       }
     } else {
-      Logger.info('Scope版本缓存文件不存在，将创建新的缓存');
+      Logger.debug('Scope版本缓存文件不存在，将创建新的缓存');
     }
   }
 

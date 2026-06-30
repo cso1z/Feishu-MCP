@@ -20,7 +20,7 @@ export class FeishuScopeValidator {
         'Content-Type': 'application/json'
       };
 
-      Logger.debug('请求应用权限范围:', endpoint);
+      Logger.debug('请求应用权限范围');
       const response = await axios.get(`${baseUrl}${endpoint}`, { headers });
       const data = response.data;
 
@@ -37,7 +37,6 @@ export class FeishuScopeValidator {
         }
       }
 
-      Logger.debug(`获取应用权限范围成功，共 ${scopes.length} 个${authType}权限`);
       return scopes;
     } catch (error) {
       Logger.error('获取应用权限范围失败:', error);
@@ -126,7 +125,7 @@ export class FeishuScopeValidator {
       const url = `${Config.getInstance().feishu.baseUrl}/auth/v3/tenant_access_token/internal`;
       const headers = { 'Content-Type': 'application/json' };
 
-      Logger.debug('获取临时租户token用于scope校验:', url);
+      Logger.debug('获取临时租户token用于scope校验');
       const response = await axios.post(url, requestData, { headers });
       const data = response.data;
 
@@ -138,7 +137,6 @@ export class FeishuScopeValidator {
         throw new Error('获取临时租户访问令牌失败：响应中没有token');
       }
 
-      Logger.debug('临时租户token获取成功，用于scope校验');
       return data.tenant_access_token;
     } catch (error) {
       Logger.error('获取临时租户访问令牌失败:', error);
@@ -160,11 +158,10 @@ export class FeishuScopeValidator {
     const scopeVersion = '3.0.0';
 
     if (!tokenCacheManager.shouldValidateScope(scopeKey, scopeVersion)) {
-      Logger.debug(`Scope版本已校验过，跳过校验: ${scopeKey}`);
       return;
     }
 
-    Logger.info(`开始校验scope权限，版本: ${scopeVersion}, 有效模块: ${effectiveModules.join(', ')}`);
+    Logger.debug(`[ScopeValidator] 校验scope权限 v${scopeVersion}`);
 
     try {
       const tempTenantToken = await this.getTempTenantTokenForScope(appId, appSecret);
@@ -176,10 +173,8 @@ export class FeishuScopeValidator {
         if (clientKey) {
           if (authType === 'user') {
             tokenCacheManager.removeUserToken(clientKey);
-            Logger.info(`已清除当前用户 token（scope 不足）: ${clientKey}`);
           } else {
             tokenCacheManager.removeTenantToken(clientKey);
-            Logger.info(`已清除当前租户 token（scope 不足）: ${clientKey}`);
           }
         }
         this.throwScopeInsufficientError(validationResult.missingScopes, effectiveModules, authType);
@@ -193,7 +188,6 @@ export class FeishuScopeValidator {
       };
 
       tokenCacheManager.saveScopeVersionInfo(scopeKey, scopeVersionInfo);
-      Logger.info(`Scope权限校验成功，版本: ${scopeVersion}，共 ${requiredScopes.length} 个权限`);
     } catch (error) {
       if (error instanceof ScopeInsufficientError) {
         throw error;

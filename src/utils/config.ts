@@ -47,6 +47,8 @@ export interface LogConfig {
   showTimestamp: boolean;
   showLevel: boolean;
   timestampFormat: string;
+  logToFile: boolean;
+  logFilePath: string;
 }
 
 /**
@@ -368,7 +370,9 @@ export class Config {
       level: LogLevel.INFO,
       showTimestamp: true,
       showLevel: true,
-      timestampFormat: 'yyyy-MM-dd HH:mm:ss.SSS'
+      timestampFormat: 'yyyy-MM-dd HH:mm:ss.SSS',
+      logToFile: false,
+      logFilePath: 'logs/log.txt'
     };
     
     // 处理日志级别
@@ -404,6 +408,21 @@ export class Config {
       this.configSources['log.timestampFormat'] = ConfigSource.ENV;
     } else {
       this.configSources['log.timestampFormat'] = ConfigSource.DEFAULT;
+    }
+
+    // 处理文件日志
+    if (process.env.LOG_TO_FILE) {
+      logConfig.logToFile = process.env.LOG_TO_FILE.toLowerCase() === 'true';
+      this.configSources['log.logToFile'] = ConfigSource.ENV;
+    } else {
+      this.configSources['log.logToFile'] = ConfigSource.DEFAULT;
+    }
+
+    if (process.env.LOG_FILE_PATH) {
+      logConfig.logFilePath = process.env.LOG_FILE_PATH;
+      this.configSources['log.logFilePath'] = ConfigSource.ENV;
+    } else {
+      this.configSources['log.logFilePath'] = ConfigSource.DEFAULT;
     }
     
     return logConfig;
@@ -511,23 +530,24 @@ export class Config {
 
     Logger.info('飞书配置:');
     if (this.feishu.appId) {
-      Logger.info(`- App ID: ${this.maskApiKey(this.feishu.appId)} (来源: ${this.configSources['feishu.appId']})`);
+      Logger.info(`- App ID: ${this.feishu.appId} (来源: ${this.configSources['feishu.appId']})`);
     }
     if (this.feishu.appSecret) {
-      Logger.info(`- App Secret: ${this.maskApiKey(this.feishu.appSecret)} (来源: ${this.configSources['feishu.appSecret']})`);
+      Logger.info(`- App Secret: ${Logger.maskSecret(this.feishu.appSecret)} (来源: ${this.configSources['feishu.appSecret']})`);
     }
     Logger.info(`- API URL: ${this.feishu.baseUrl} (来源: ${this.configSources['feishu.baseUrl']})`);
     Logger.info(`- 授权 URL: ${this.feishu.authBaseUrl} (来源: ${this.configSources['feishu.authBaseUrl']})`);
     Logger.info(`- 公网回调基址: ${this.feishu.publicBaseUrl || '(未设置)'} (来源: ${this.configSources['feishu.publicBaseUrl']})`);
     Logger.info(`- 认证类型: ${this.feishu.authType} (来源: ${this.configSources['feishu.authType']})`);
     Logger.info(`- 启用权限检查: ${this.feishu.enableScopeValidation} (来源: ${this.configSources['feishu.enableScopeValidation']})`);
-    Logger.info(`- User Key: ${this.feishu.userKey} (来源: ${this.configSources['feishu.userKey']})`);
+    Logger.info(`- User Key: ${Logger.maskSecret(this.feishu.userKey)} (来源: ${this.configSources['feishu.userKey']})`);
     Logger.info(`- 强制 user-key: ${this.feishu.requireUserKey} (来源: ${this.configSources['feishu.requireUserKey']})`);
 
     Logger.info('日志配置:');
     Logger.info(`- 日志级别: ${LogLevel[this.log.level]} (来源: ${this.configSources['log.level']})`);
     Logger.info(`- 显示时间戳: ${this.log.showTimestamp} (来源: ${this.configSources['log.showTimestamp']})`);
     Logger.info(`- 显示日志级别: ${this.log.showLevel} (来源: ${this.configSources['log.showLevel']})`);
+    Logger.info(`- 文件日志: ${this.log.logToFile ? this.log.logFilePath : '未启用'} (来源: ${this.configSources['log.logToFile']})`);
     
     Logger.info('缓存配置:');
     Logger.info(`- 启用缓存: ${this.cache.enabled} (来源: ${this.configSources['cache.enabled']})`);
@@ -554,16 +574,6 @@ export class Config {
     }
   }
   
-  /**
-   * 掩盖API密钥
-   * @param key API密钥
-   * @returns 掩盖后的密钥字符串
-   */
-  private maskApiKey(key: string): string {
-    if (!key || key.length <= 4) return '****';
-    return `${key.substring(0, 2)}****${key.substring(key.length - 2)}`;
-  }
-
   private normalizeBaseUrl(url: string): string {
     return url.replace(/\/+$/, '');
   }
