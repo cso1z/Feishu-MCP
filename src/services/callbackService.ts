@@ -49,7 +49,7 @@ export async function callback(req: Request, res: Response) {
     return sendFail(res, 'state参数格式错误', CODE.PARAM_ERROR);
   }
 
-  const { appId, appSecret, clientKey, redirectUri } = stateData;
+  const { appId, appSecret, clientKey, redirectUri, userKeyHint } = stateData;
   Logger.debug(`[callback] 解析state成功: clientKey=${clientKey ? '***' : 'missing'}`);
 
   // 验证state中的appId和appSecret是否与配置匹配
@@ -96,7 +96,7 @@ export async function callback(req: Request, res: Response) {
       
       // 缓存token信息
       const refreshTtl = data.refresh_token_expires_in || 3600 * 24 * 365; // 默认1年
-      tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl);
+      tokenCacheManager.cacheUserToken(clientKey, data, refreshTtl, userKeyHint);
       Logger.infoOnce(`[callback] 用户授权成功，token已缓存`);
     }
     

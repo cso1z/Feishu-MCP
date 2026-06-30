@@ -266,6 +266,17 @@ export class Logger {
   }
 
   /**
+   * 对 userKey 进行脱敏处理（隐藏中间 1/3）
+   * ≤3字符完全遮蔽，>3字符显示首尾各1/3，中间用 **** 替代
+   */
+  static maskUserKey(value: unknown): string {
+    const text = String(value);
+    if (text.length <= 3) return '****';
+    const showLen = Math.max(1, Math.floor(text.length / 3));
+    return `${text.slice(0, showLen)}****${text.slice(-showLen)}`;
+  }
+
+  /**
    * 对字符串内容进行脱敏
    * 处理 JSON 字符串和 key=value/key:value 格式的敏感信息
    */

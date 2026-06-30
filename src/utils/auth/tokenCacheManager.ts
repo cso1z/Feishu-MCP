@@ -36,6 +36,7 @@ interface CacheItem<T> {
   data: T;
   timestamp: number;
   expiresAt: number;
+  userKeyHint?: string; // 脱敏后的 userKey，便于识别缓存记录归属
 }
 
 /**
@@ -315,7 +316,7 @@ export class TokenCacheManager {
    * @param customTtl 自定义TTL（秒），如果不提供则使用refresh_token的过期时间
    * @returns 是否成功缓存
    */
-  public cacheUserToken(key: string, tokenInfo: UserTokenInfo, customTtl?: number): boolean {
+  public cacheUserToken(key: string, tokenInfo: UserTokenInfo, customTtl?: number, userKeyHint?: string): boolean {
     try {
       const now = Date.now();
       const cacheKey = `user_access_token:${key}`;
@@ -338,10 +339,18 @@ export class TokenCacheManager {
         Logger.warn(`没有过期时间信息，使用默认2小时作为缓存过期时间`);
       }
 
+      // 确定 userKeyHint：优先用传入值（已脱敏），否则保留已有缓存中的 hint
+      let resolvedHint = userKeyHint || undefined;
+      if (!resolvedHint) {
+        const existing = this.cache.get(cacheKey) as CacheItem<UserTokenInfo> | undefined;
+        resolvedHint = existing?.userKeyHint;
+      }
+
       const cacheItem: CacheItem<UserTokenInfo> = {
         data: tokenInfo,
         timestamp: now,
-        expiresAt: expiresAt
+        expiresAt: expiresAt,
+        ...(resolvedHint ? { userKeyHint: resolvedHint } : {}),
       };
 
       this.cache.set(cacheKey, cacheItem);

@@ -62,12 +62,13 @@ export class AuthUtils {
    * @param redirectUri 重定向URI（可选）
    * @returns Base64编码的state字符串
    */
-  public static encodeState(appId: string, appSecret: string, clientKey: string, redirectUri?: string): string {
+  public static encodeState(appId: string, appSecret: string, clientKey: string, redirectUri?: string, userKeyHint?: string): string {
     const stateData = {
       appId,
       appSecret,
       clientKey,
       redirectUri,
+      userKeyHint,
       timestamp: this.timestamp()
     };
     return Buffer.from(JSON.stringify(stateData)).toString('base64');
@@ -83,6 +84,7 @@ export class AuthUtils {
     appSecret: string;
     clientKey: string;
     redirectUri?: string;
+    userKeyHint?: string;
     timestamp: number;
   } | null {
     try {

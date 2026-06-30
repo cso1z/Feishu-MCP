@@ -4,6 +4,7 @@ import express from 'express';
 import { Server } from 'http';
 import { Config } from '../../utils/config.js';
 import { AuthUtils, TokenCacheManager } from '../../utils/auth/index.js';
+import { Logger } from '../../utils/logger.js';
 import { getRequiredScopes } from '../../services/constants/feishuScopes.js';
 import { ModuleRegistry } from '../../modules/index.js';
 // callbackService 需延迟导入，避免其模块级 Config.getInstance() 在 CLI 启动时提前触发 yargs
@@ -105,7 +106,7 @@ export async function handleAuthRequired(userKey: string): Promise<void> {
   const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
   const scopeList = getRequiredScopes(effectiveModules, authType);
   const scope = encodeURIComponent(scopeList.join(' '));
-  const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirectUri);
+  const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirectUri, Logger.maskUserKey(userKey));
 
   // 3. 构造飞书 OAuth 授权 URL（与 baseService.generateUserAuthUrl 保持一致）
   const authUrl =

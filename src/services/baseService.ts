@@ -416,7 +416,7 @@ export abstract class BaseApiService {
       const tokenInfo = tokenCacheManager.getUserTokenInfo(clientKey);
       if (tokenInfo) {
         tokenInfo.expires_at = Math.floor(Date.now() / 1000) - 1;
-        tokenCacheManager.cacheUserToken(clientKey, tokenInfo);
+        tokenCacheManager.cacheUserToken(clientKey, tokenInfo, undefined, Logger.maskUserKey(userKey));
       }
       return await this.request<T>(endpoint, method, data, needsAuth, additionalHeaders, responseType, true);
     } else {
@@ -442,9 +442,9 @@ export abstract class BaseApiService {
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
     const scopeList = getRequiredScopes(effectiveModules, authType);
     const scope = encodeURIComponent(scopeList.join(' '));
-    const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri);
+    const state = AuthUtils.encodeState(appId, appSecret, clientKey, redirect_uri, Logger.maskUserKey(userKey));
 
-    return `${authBaseUrl}/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${state}`;
+    return `${authBaseUrl}/open-apis/authen/v1/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&state=${encodeURIComponent(state)}`;
   }
 
   private resolveOAuthBaseUrl(baseUrl: string, publicBaseUrl?: string): string {
