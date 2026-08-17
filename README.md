@@ -430,4 +430,4 @@ curl -X POST -H "Authorization: Bearer your-secret-token-here" -H "Content-Type:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=cso1z/feishu-mcp&type=Timeline)](https://www.star-history.com/#cso1z/feishu-mcp&Timeline)
+[![Star History Chart](https://star-history.dera.page/svg?repos=cso1z/feishu-mcp&type=Timeline)](https://star-history.dera.page/#cso1z/feishu-mcp&Timeline)
