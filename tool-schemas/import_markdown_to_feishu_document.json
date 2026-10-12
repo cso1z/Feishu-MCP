@@ -1,0 +1,65 @@
+{
+  "name": "import_markdown_to_feishu_document",
+  "description": "Imports Markdown into a Feishu docx document. Provide either markdown or localPath, but not both. Use wikiContext to target a Wiki space and optional parent node. folderToken and wikiContext are mutually exclusive. If neither is provided, the document is imported to the personal Drive root. Supports tenant and user auth according to FEISHU_AUTH_TYPE.",
+  "arguments": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "markdown": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Markdown content to import. Provide either markdown or localPath."
+      },
+      "localPath": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*",
+        "description": "Local Markdown file path (non-empty)."
+      },
+      "title": {
+        "type": "string",
+        "description": "Document title (optional). If omitted, the first Markdown heading will be used for markdown input; localPath input uses the upload file name without extension (fileName if provided, otherwise the local file name)."
+      },
+      "folderToken": {
+        "type": "string",
+        "description": "Folder token (optional). Empty or omitted imports to the personal space root."
+      },
+      "wikiContext": {
+        "type": "object",
+        "description": "Wiki space target (optional). Provide this instead of folderToken to target a Feishu knowledge base. folderToken and wikiContext are mutually exclusive.",
+        "properties": {
+          "spaceId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Target Wiki space ID."
+          },
+          "parentNodeToken": {
+            "type": "string",
+            "description": "Optional parent Wiki node token. Omit to place the document at the Wiki root."
+          }
+        },
+        "required": ["spaceId"],
+        "additionalProperties": false
+      },
+      "fileName": {
+        "type": "string",
+        "description": "Upload file name (optional). Defaults to a sanitized title plus \".md\" for markdown input, or the local file name for localPath input. The .md extension is enforced."
+      }
+    },
+    "oneOf": [
+      {
+        "required": ["markdown"],
+        "not": {
+          "required": ["localPath"]
+        }
+      },
+      {
+        "required": ["localPath"],
+        "not": {
+          "required": ["markdown"]
+        }
+      }
+    ],
+    "additionalProperties": false
+  }
+}

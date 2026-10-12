@@ -35,6 +35,11 @@ export interface ApiResponse<T = any> {
 }
 
 /**
+ * 可重建请求体的工厂。用于 FormData 等一次性流在认证重试时重新创建。
+ */
+type RequestDataFactory = () => any;
+
+/**
  * API服务基类
  * 提供通用的HTTP请求处理和认证功能
  */
@@ -117,12 +122,15 @@ export abstract class BaseApiService {
   protected async request<T = any>(
     endpoint: string,
     method: string = 'GET',
-    data?: any,
+    data?: any | RequestDataFactory,
     needsAuth: boolean = true,
     additionalHeaders?: Record<string, string>,
     responseType?: 'json' | 'arraybuffer' | 'blob' | 'document' | 'text' | 'stream',
     retry: boolean = false
   ): Promise<T> {
+    // FormData 是一次性流；传入工厂时，每次请求（包括认证重试）都重新创建请求体。
+    const requestData = typeof data === 'function' ? data() : data;
+
     // 获取用户上下文
     let userKey: string;
     let baseUrl: string;
@@ -170,8 +178,8 @@ export abstract class BaseApiService {
 
       // 如果数据是FormData，合并FormData的headers
       // 否则设置为application/json
-      if (data instanceof FormData) {
-        Object.assign(headers, data.getHeaders());
+      if (requestData instanceof FormData) {
+        Object.assign(headers, requestData.getHeaders());
       } else {
         headers['Content-Type'] = 'application/json';
       }
@@ -187,8 +195,8 @@ export abstract class BaseApiService {
         method,
         url,
         headers,
-        data: method !== 'GET' ? data : undefined,
-        params: method === 'GET' ? data : undefined,
+        data: method !== 'GET' ? requestData : undefined,
+        params: method === 'GET' ? requestData : undefined,
         responseType: responseType || 'json'
       };
       
@@ -277,7 +285,7 @@ export abstract class BaseApiService {
    * @param needsAuth 是否需要认证
    * @returns 响应数据
    */
-  protected async get<T = any>(endpoint: string, params?: any, needsAuth: boolean = true): Promise<T> {
+  protected async get<T = any>(endpoint: string, params?: any | RequestDataFactory, needsAuth: boolean = true): Promise<T> {
     return this.request<T>(endpoint, 'GET', params, needsAuth);
   }
   
@@ -288,7 +296,7 @@ export abstract class BaseApiService {
    * @param needsAuth 是否需要认证
    * @returns 响应数据
    */
-  protected async post<T = any>(endpoint: string, data?: any, needsAuth: boolean = true): Promise<T> {
+  protected async post<T = any>(endpoint: string, data?: any | RequestDataFactory, needsAuth: boolean = true): Promise<T> {
     return this.request<T>(endpoint, 'POST', data, needsAuth);
   }
   

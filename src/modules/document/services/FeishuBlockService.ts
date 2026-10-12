@@ -321,18 +321,21 @@ export class FeishuBlockService extends FeishuBaseApiService {
         Logger.warn(`图片文件过大: ${imageSize} 字节，建议小于20MB`);
       }
 
-      const formData = new FormData();
-      formData.append('file', imageBuffer, {
-        filename: fileName,
-        contentType: this.getMimeTypeFromFileName(fileName),
-        knownLength: imageSize
-      });
-      formData.append('file_name', fileName);
-      formData.append('parent_type', 'docx_image');
-      formData.append('parent_node', parentBlockId);
-      formData.append('size', imageSize.toString());
+      const buildFormData = () => {
+        const formData = new FormData();
+        formData.append('file', imageBuffer, {
+          filename: fileName,
+          contentType: this.getMimeTypeFromFileName(fileName),
+          knownLength: imageSize
+        });
+        formData.append('file_name', fileName);
+        formData.append('parent_type', 'docx_image');
+        formData.append('parent_node', parentBlockId);
+        formData.append('size', imageSize.toString());
+        return formData;
+      };
 
-      const response = await this.post(endpoint, formData);
+      const response = await this.post(endpoint, buildFormData);
       Logger.info(`图片素材上传成功，file_token: ${response.file_token}`);
       return response;
     } catch (error) {

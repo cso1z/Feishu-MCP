@@ -6,6 +6,8 @@ import { ScopeInsufficientError } from '../../utils/error.js';
 import { getRequiredScopes, MODULE_SCOPES } from '../constants/feishuScopes.js';
 import { ModuleRegistry } from '../../modules/ModuleRegistry.js';
 
+export const FEISHU_SCOPE_VERSION = '3.0.0';
+
 /**
  * 飞书应用权限 Scope 校验器
  * 根据已启用的功能模块动态计算所需权限，仅校验最小权限集
@@ -155,7 +157,7 @@ export class FeishuScopeValidator {
     const effectiveModules = ModuleRegistry.getEnabledModules(enabledIds, authType).map(m => m.id);
     const tokenCacheManager = TokenCacheManager.getInstance();
     const scopeKey = this.generateScopeKey(appId, appSecret, authType, effectiveModules);
-    const scopeVersion = '3.0.0';
+    const scopeVersion = FEISHU_SCOPE_VERSION;
 
     if (!tokenCacheManager.shouldValidateScope(scopeKey, scopeVersion)) {
       return;

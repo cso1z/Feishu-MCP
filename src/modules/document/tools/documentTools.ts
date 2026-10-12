@@ -4,6 +4,8 @@ import { FeishuApiService } from '../../../services/feishuApiService.js';
 import { Logger } from '../../../utils/logger.js';
 import {
   createDocument,
+  importMarkdownToFeishuDocument,
+  WikiMovePartialFailureError,
   getDocumentInfo,
   getDocumentBlocks,
   searchDocuments,
@@ -21,8 +23,11 @@ import {
   PageTokenSchema,
   OffsetSchema,
   DocumentTitleSchema,
+  DocumentTitleOptionalSchema,
   FolderTokenOptionalSchema,
   WikiSpaceNodeContextSchema,
+  MarkdownContentSchema,
+  MarkdownFileNameSchema,
 } from '../../../types/documentSchema.js';
 
 /**
@@ -46,6 +51,47 @@ export function registerDocumentTools(server: McpServer, feishuService: FeishuAp
         return errorResponse(`创建文档失败: ${formatErrorMessage(error)}`);
       }
     }
+  );
+
+  server.tool(
+    'import_markdown_to_feishu_document',
+    'Imports Markdown into a Feishu docx document. Use wikiContext to target a Wiki space and optional parent node. folderToken and wikiContext are mutually exclusive. If neither is provided, the document is imported to the personal Drive root.',
+    {
+      markdown: MarkdownContentSchema,
+      title: DocumentTitleOptionalSchema,
+      folderToken: FolderTokenOptionalSchema,
+      wikiContext: WikiSpaceNodeContextSchema,
+      fileName: MarkdownFileNameSchema,
+    },
+    async (params) => {
+      try {
+        const {
+          markdown,
+          title,
+          folderToken,
+          wikiContext,
+          fileName,
+        } = params as any;
+        const result = await importMarkdownToFeishuDocument(
+          {
+            markdown,
+            title,
+            folderToken,
+            wikiContext,
+            fileName,
+          },
+          feishuService,
+        );
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        Logger.error('Failed to import Markdown into a Feishu document:', error);
+        return errorResponse(
+          `Failed to import Markdown into a Feishu document: ${formatMarkdownImportError(error)}`,
+        );
+      }
+    },
   );
 
   server.tool(
@@ -104,5 +150,16 @@ export function registerDocumentTools(server: McpServer, feishuService: FeishuAp
         return errorResponse(`搜索失败: ${formatErrorMessage(error)}`);
       }
     }
+  );
+}
+
+export function formatMarkdownImportError(error: unknown): string {
+  const message = formatErrorMessage(error);
+  if (!(error instanceof WikiMovePartialFailureError)) return message;
+
+  return (
+    `${message}\n\n` +
+    'The Markdown document was created in Feishu Drive, but the Wiki move did not complete. ' +
+    `Recovery information:\n${JSON.stringify(error.recovery, null, 2)}`
   );
 }

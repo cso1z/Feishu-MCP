@@ -1,7 +1,26 @@
+import FormData from 'form-data';
 import { Logger } from '../../../utils/logger.js';
 import { ParamUtils } from '../../../utils/paramUtils.js';
 import { AuthService } from '../../../services/feishuAuthService.js';
 import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService.js';
+import {
+  MARKDOWN_IMPORT_MAX_RETRIES,
+  getMarkdownImportRetryDelayMs,
+} from './markdownImportConfig.js';
+
+export interface ImportMarkdownToDocumentParams {
+  title: string;
+  markdown: string;
+  folderToken: string;
+  fileName: string;
+}
+
+export interface ImportMarkdownToDocumentResult {
+  ticket: string;
+  token: string;
+  url: string;
+  jobStatus: number;
+}
 
 /**
  * 飞书文档服务
@@ -24,6 +43,131 @@ export class FeishuDocumentService extends FeishuBaseApiService {
       return response;
     } catch (error) {
       this.handleApiError(error, '创建飞书文档失败');
+    }
+  }
+
+  /**
+   * 将 Markdown 内容导入为飞书新版文档（docx）
+   * @param params Markdown 导入参数，folderToken 为空字符串时导入到个人空间根目录
+   * @returns 导入完成后的文档 token、URL 与任务 ticket
+   */
+  public async importMarkdownToDocument(
+    params: ImportMarkdownToDocumentParams,
+  ): Promise<ImportMarkdownToDocumentResult> {
+    try {
+      const {
+        title,
+        markdown,
+        folderToken,
+        fileName,
+      } = params;
+      const markdownBuffer = Buffer.from(markdown, 'utf8');
+
+      if (markdownBuffer.length > 20 * 1024 * 1024) {
+        throw new Error('Markdown 文件超过 20MB 上传限制');
+      }
+
+      Logger.info(
+        `开始上传 Markdown 素材，title=${title}, fileName=${fileName}, size=${markdownBuffer.length}`,
+      );
+      // Build FormData inside a factory so BaseApiService can recreate the stream
+      // when a token-expiry retry is needed.
+      const buildUploadFormData = () => {
+        const fd = new FormData();
+        fd.append('file', markdownBuffer, {
+          filename: fileName,
+          contentType: 'text/markdown; charset=utf-8',
+          knownLength: markdownBuffer.length,
+        });
+        fd.append('file_name', fileName);
+        fd.append('parent_type', 'ccm_import_open');
+        fd.append('parent_node', folderToken || '/');
+        fd.append('size', markdownBuffer.length.toString());
+        fd.append(
+          'extra',
+          JSON.stringify({ obj_type: 'docx', file_extension: 'md' }),
+        );
+        return fd;
+      };
+
+      const uploadResponse = await this.post<{ file_token?: string }>(
+        '/drive/v1/medias/upload_all',
+        buildUploadFormData,
+      );
+      const fileToken = uploadResponse?.file_token;
+      if (!fileToken)
+        throw new Error('上传 Markdown 素材失败，未返回 file_token');
+
+      Logger.info(`Markdown 素材上传成功，file_token=${fileToken}`);
+      try {
+        const importResponse = await this.post<{ ticket?: string }>(
+          '/drive/v1/import_tasks',
+          {
+            file_extension: 'md',
+            file_token: fileToken,
+            type: 'docx',
+            file_name: title,
+            point: {
+              mount_type: 1,
+              mount_key: folderToken,
+            },
+          },
+        );
+        const ticket = importResponse?.ticket;
+        if (!ticket) throw new Error('创建 Markdown 导入任务失败，未返回 ticket');
+
+        Logger.info(`Markdown 导入任务已创建，ticket=${ticket}`);
+        for (let attempt = 0; attempt < MARKDOWN_IMPORT_MAX_RETRIES; attempt++) {
+          const taskResponse = await this.get<{
+            result?: {
+              job_status?: number;
+              job_error_msg?: string;
+              token?: string;
+              url?: string;
+            };
+          }>(`/drive/v1/import_tasks/${ticket}`);
+          const result = taskResponse?.result;
+          const jobStatus = result?.job_status;
+
+          if (jobStatus === 0) {
+            if (!result?.token || !result?.url) {
+              throw new Error('Markdown 导入完成但未返回文档 token 或 url');
+            }
+            return { ticket, token: result.token, url: result.url, jobStatus };
+          }
+
+          // Treat a missing job_status as a transient in-progress state rather than an error
+          if (jobStatus === undefined || jobStatus === null) {
+            if (attempt < MARKDOWN_IMPORT_MAX_RETRIES - 1) {
+              await this.sleep(getMarkdownImportRetryDelayMs(attempt));
+            }
+            continue;
+          }
+
+          if (jobStatus !== 1 && jobStatus !== 2) {
+            throw new Error(
+              `Markdown 导入失败，job_status=${jobStatus}，错误：${result?.job_error_msg || '未知错误'}`,
+            );
+          }
+
+          if (attempt < MARKDOWN_IMPORT_MAX_RETRIES - 1) {
+            await this.sleep(getMarkdownImportRetryDelayMs(attempt));
+          }
+        }
+
+        throw new Error(`Markdown 导入超时：${MARKDOWN_IMPORT_MAX_RETRIES} 次轮询后仍未完成`);
+      } catch (importError) {
+        // Best-effort cleanup: delete the staging media file to avoid orphaned files in Drive
+        try {
+          await this.delete(`/drive/v1/files/${fileToken}?type=file`);
+          Logger.info(`已清理暂存素材文件 file_token=${fileToken}`);
+        } catch {
+          Logger.warn(`无法清理暂存素材文件 file_token=${fileToken}，请手动删除`);
+        }
+        throw importError;
+      }
+    } catch (error) {
+      this.handleApiError(error, 'Markdown 导入飞书文档失败');
     }
   }
 
@@ -111,5 +255,9 @@ export class FeishuDocumentService extends FeishuBaseApiService {
     } catch (error) {
       this.handleApiError(error, '获取文档块结构失败');
     }
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

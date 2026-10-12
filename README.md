@@ -26,6 +26,8 @@
 ### 💡项目推荐：
 使用 Claude Code 推荐配合 [claude-ip-guard](https://github.com/cso1z/claude-ip-guard) —— 自动检测 IP 地理位置并拦截受限地区访问，防止因网络切换导致 Claude 封号。
 
+**让浏览器记住你的工作现场。** [TabSyncer](https://github.com/cso1z/TabSyncer) 是一款 Chrome 扩展，可按项目整理标签页、保存浏览会话，并跨设备同步，让你在工作中断后快速恢复上下文。
+
 ### 🎬 使用演示视频
 
 你可以通过以下视频了解 MCP 的实际使用效果和操作流程：
@@ -48,6 +50,7 @@
 | 功能类别 | 工具名称                                 | 描述          | 使用场景                     | 状态    |
 |---------|--------------------------------------|-------------|--------------------------|-------|
 | **文档管理** | `create_feishu_document`             | 创建新的飞书文档    | 从零开始创建文档                 | ✅ 已完成 |
+| | `import_markdown_to_feishu_document` | 将 Markdown 导入为飞书文档 | MCP/stdio 传入 Markdown 文本；CLI 支持文本或本地 md 文件 | ✅ 已完成 |
 | | `get_feishu_document_info`           | 获取文档基本信息    | 验证文档存在性和权限               | ✅ 已完成 |
 | | `get_feishu_document_blocks`         | 获取文档块结构     | 了解文档层级结构                 | ✅ 已完成 |
 | **内容编辑** | `batch_create_feishu_blocks`         | 批量创建多个块     | 高效创建连续内容                 | ✅ 已完成 |
@@ -114,6 +117,7 @@
 - ~~**Tool API 层抽取**：新建 Tool API 层，与 tool 层一一对应，统一参数校验、数据转换、错误映射等~~ ✅
 - ~~**兼容 CLI 模式**：支持 `feishu-tool <tool-name> '<json>'` 命令行调用，便于脚本与自动化场景~~ 0.2.6 ✅
 - ~~**完成 Skill**：提供 [Feishu-Skill](https://github.com/cso1z/Feishu-Skill)，指导 Claude Code 等 AI Agent 在合适场景下使用 feishu-mcp CLI~~ 0.2.6 ✅
+- ~~**支持 Markdown 导入**：新增 `import_markdown_to_feishu_document` 工具，支持导入markdown文本导入文档、知识库~~ 0.3.4 ✅
 ---
 
 ## 🔧 飞书配置教程

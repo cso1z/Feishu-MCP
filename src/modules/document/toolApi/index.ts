@@ -1,11 +1,13 @@
 export {
   createDocument,
+  importMarkdownToFeishuDocument,
   getDocumentInfo,
   getDocumentBlocks,
   searchDocuments,
 } from './documentToolApi.js';
 export type {
   CreateDocumentParams,
+  ImportMarkdownToFeishuDocumentParams,
   GetDocumentInfoParams,
   SearchDocumentsParams,
 } from './documentToolApi.js';

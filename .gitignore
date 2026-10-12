@@ -39,7 +39,9 @@ Thumbs.db
 prd
 cache
 feishu-mcp
-scripts
+scripts/*
+!scripts/
+!scripts/run-tests.mjs
 .cursor
 .claude
 .npmrc

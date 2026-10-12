@@ -10,6 +10,7 @@ import { handleConfigShow, handleConfigSet } from './commands/config.js';
 import { handleAuthStatus, handleAuthLogout } from './commands/auth.js';
 import { handleGuide } from './commands/guide.js';
 import { handleHelp } from './commands/help.js';
+import { buildCliErrorResponse } from './error.js';
 
 // 按优先级查找 .env：CWD → ~/.cache/feishu-mcp（与 token 缓存同目录）
 const envCandidates = [
@@ -120,10 +121,7 @@ async function main(): Promise<void> {
     process.stdout.write((typeof result === 'string' ? result : JSON.stringify(result)) + '\n');
     process.exit(0);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message
-      : typeof err === 'object' && err !== null ? JSON.stringify(err)
-      : String(err);
-    process.stdout.write(JSON.stringify({ error: message }) + '\n');
+    process.stdout.write(JSON.stringify(buildCliErrorResponse(err)) + '\n');
     process.exit(1);
   }
 }

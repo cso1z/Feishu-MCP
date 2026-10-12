@@ -192,4 +192,53 @@ export class FeishuFoldService extends FeishuBaseApiService {
       this.handleApiError(error, '创建知识空间节点失败');
     }
   }
+
+  /**
+   * 将云空间中的新版文档移动到知识空间
+   * @param spaceId 目标知识空间 ID
+   * @param objToken 云文档 Token
+   * @param parentNodeToken 目标父节点 Token，不传则移动到知识空间根目录
+   * @returns 立即完成时包含 wiki_token，异步处理时包含 task_id
+   */
+  public async moveDocumentToWiki(
+    spaceId: string,
+    objToken: string,
+    parentNodeToken?: string,
+  ): Promise<any> {
+    try {
+      const payload: Record<string, string> = {
+        obj_type: 'docx',
+        obj_token: objToken,
+      };
+      if (parentNodeToken) payload.parent_wiki_token = parentNodeToken;
+
+      const response = await this.post(
+        `/wiki/v2/spaces/${spaceId}/nodes/move_docs_to_wiki`,
+        payload,
+      );
+      Logger.debug(
+        `移动云空间文档至知识空间请求成功，space_id: ${spaceId}, obj_token: ${objToken}`,
+      );
+      return response;
+    } catch (error) {
+      this.handleApiError(error, '移动云空间文档至知识空间失败');
+    }
+  }
+
+  /**
+   * 获取知识库异步移动任务结果
+   * @param taskId 移动任务 ID
+   * @returns 任务状态与移动结果
+   */
+  public async getWikiTaskResult(taskId: string): Promise<any> {
+    try {
+      const response = await this.get(`/wiki/v2/tasks/${taskId}`, {
+        task_type: 'move',
+      });
+      Logger.debug(`获取知识库移动任务结果成功，task_id: ${taskId}`);
+      return response;
+    } catch (error) {
+      this.handleApiError(error, '获取知识库移动任务结果失败');
+    }
+  }
 }

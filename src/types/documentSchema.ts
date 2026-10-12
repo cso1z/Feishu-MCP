@@ -67,7 +67,7 @@ export const TextStylePropertiesSchema = {
   text_color: z.number().optional().refine(val => !val || (val >= 0 && val <= 7), {
     message: "Text color must be between 0 and 7 inclusive"
   }).describe('Text color (optional): 0=black (default), 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple.'),
-  background_color: z.number().optional().refine(val => !val || (val >= 1 && val <= 7), {
+  background_color: z.number().optional().refine(val => val == null || (val >= 1 && val <= 7), {
     message: "Background color must be between 1 and 7 inclusive"
   }).describe('Background color (optional): 1=gray, 2=brown, 3=orange, 4=yellow, 5=green, 6=blue, 7=purple.')
 };
@@ -373,3 +373,25 @@ export const WhiteboardFillArraySchema = z.array(WhiteboardContentSchema).descri
 
 // 文档标题参数定义
 export const DocumentTitleSchema = z.string().describe('Document title (required). This will be displayed in the Feishu document list and document header.');
+
+// Markdown 导入参数定义
+export const DocumentTitleOptionalSchema = z
+  .string()
+  .optional()
+  .describe(
+    'Document title (optional). If omitted, the title is derived from the input source.',
+  );
+
+export const MarkdownContentSchema = z
+  .string()
+  .min(1)
+  .describe(
+    'Markdown content to import into a Feishu docx document.',
+  );
+
+export const MarkdownFileNameSchema = z
+  .string()
+  .optional()
+  .describe(
+    'Upload file name (optional). Defaults are derived from the input source. The .md extension is enforced.',
+  );

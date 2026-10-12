@@ -12,6 +12,7 @@ import { handleAuthRequired } from './commands/auth.js';
 // Document toolApis
 import {
   createDocument,
+  importMarkdownToFeishuDocument,
   getDocumentInfo,
   getDocumentBlocks,
   searchDocuments,
@@ -75,6 +76,8 @@ const MODULE_REGISTRY: Record<string, ModuleToolMap> = {
     authType: 'tenant',
     tools: {
       create_feishu_document:         (p, s) => createDocument(p, s),
+      import_markdown_to_feishu_document: (p, s) =>
+        importMarkdownToFeishuDocument(p, s, { runtimeMode: 'cli' }),
       get_feishu_document_info:       (p, s) => getDocumentInfo(p, s),
       get_feishu_document_blocks:     (p, s) => getDocumentBlocks(p.documentId, s),
       search_feishu_documents:        (p, s) => searchDocuments(p, s),

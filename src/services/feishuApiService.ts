@@ -1,6 +1,10 @@
 import { AuthService } from './feishuAuthService.js';
 import { BlockFactory } from '../modules/document/services/blockFactory.js';
 import { FeishuDocumentService } from '../modules/document/services/FeishuDocumentService.js';
+import type {
+  ImportMarkdownToDocumentParams,
+  ImportMarkdownToDocumentResult,
+} from '../modules/document/services/FeishuDocumentService.js';
 import { FeishuBlockService } from '../modules/document/services/FeishuBlockService.js';
 import { FeishuFoldService } from '../modules/document/services/FeishuFoldService.js';
 import { FeishuSearchService } from '../modules/document/services/FeishuSearchService.js';
@@ -92,6 +96,16 @@ export class FeishuApiService {
    */
   public async createDocument(title: string, folderToken: string): Promise<any> {
     return this.documentService.createDocument(title, folderToken);
+  }
+
+  /**
+   * 将 Markdown 内容导入为飞书新版文档
+   * @see FeishuDocumentService.importMarkdownToDocument
+   */
+  public async importMarkdownToDocument(
+    params: ImportMarkdownToDocumentParams,
+  ): Promise<ImportMarkdownToDocumentResult> {
+    return this.documentService.importMarkdownToDocument(params);
   }
 
   /**
@@ -253,6 +267,30 @@ export class FeishuApiService {
    */
   public async createWikiSpaceNode(spaceId: string, title: string, parentNodeToken?: string): Promise<any> {
     return this.foldService.createWikiSpaceNode(spaceId, title, parentNodeToken);
+  }
+
+  /**
+   * 将云空间中的新版文档移动到知识空间
+   * @see FeishuFoldService.moveDocumentToWiki
+   */
+  public async moveDocumentToWiki(
+    spaceId: string,
+    objToken: string,
+    parentNodeToken?: string,
+  ): Promise<any> {
+    return this.foldService.moveDocumentToWiki(
+      spaceId,
+      objToken,
+      parentNodeToken,
+    );
+  }
+
+  /**
+   * 获取知识库异步移动任务结果
+   * @see FeishuFoldService.getWikiTaskResult
+   */
+  public async getWikiTaskResult(taskId: string): Promise<any> {
+    return this.foldService.getWikiTaskResult(taskId);
   }
 
   // ─── Search 服务委托 ──────────────────────────────────────────────
