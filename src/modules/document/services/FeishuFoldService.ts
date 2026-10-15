@@ -185,14 +185,9 @@ export class FeishuFoldService extends FeishuBaseApiService {
 
       const response = await this.post(endpoint, payload);
 
-      if (response?.data?.node) {
-        const node = response.data.node;
-        Logger.info(`知识空间节点创建成功，node_token: ${node.node_token}, obj_token: ${node.obj_token}`);
-        return node;
-      }
-
-      Logger.info('知识空间节点创建成功');
-      return response;
+      const node = response.node;
+      Logger.info(`知识空间节点创建成功，node_token: ${node.node_token}, obj_token: ${node.obj_token}`);
+      return node;
     } catch (error) {
       this.handleApiError(error, '创建知识空间节点失败');
     }
