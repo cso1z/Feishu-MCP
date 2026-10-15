@@ -2,7 +2,7 @@
 
 ## 概述
 
-`feishu-tool` 是 feishu-mcp 提供的命令行工具，支持直接调用全部 20 个飞书 MCP 工具。设计目标是 **LLM Agent 调用**：参数以 JSON 字符串传入，结果以纯 JSON 输出到 stdout，错误和提示信息输出到 stderr。
+`feishu-tool` 是 feishu-mcp 提供的命令行工具，支持直接调用全部 20 个飞书 MCP 工具。设计目标是 **LLM Agent 调用**：参数以 JSON 字符串传入，结果和错误以纯 JSON 输出到 stdout；默认关闭控制台日志。
 
 ## 安装与配置
 
@@ -25,7 +25,7 @@ feishu-tool <tool-name> '<json-params>'
 ```
 
 - **stdout**：工具执行结果（JSON）
-- **stderr**：日志与认证提示（不污染 stdout）
+- **stderr**：首次授权时的提示信息（不污染 stdout）
 - **exit 0**：成功；**exit 1**：参数错误或工具不存在
 
 ## 首次授权
@@ -66,15 +66,15 @@ feishu-tool get_feishu_root_folder_info
 ```bash
 feishu-tool get_feishu_folder_files '{"folderToken":"FWK2xxxxx"}'
 # 知识库节点：
-feishu-tool get_feishu_folder_files '{"wikiSpaceId":"7614920810658024396","wikiNodeToken":"xxx"}'
+feishu-tool get_feishu_folder_files '{"wikiContext":{"spaceId":"7614920810658024396","parentNodeToken":"xxx"}}'
 ```
 
 **参数**：
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `folderToken` | string | 文件夹 token（与 wiki 参数二选一）|
-| `wikiSpaceId` | string | 知识库空间 ID |
-| `wikiNodeToken` | string | 知识库节点 token |
+| `wikiContext.spaceId` | string | 知识库空间 ID |
+| `wikiContext.parentNodeToken` | string | 知识库父节点 token（可选） |
 
 ---
 
@@ -134,9 +134,9 @@ feishu-tool batch_create_feishu_blocks '{
   "parentBlockId": "Uk6mdN6Hao5umbxC13ccGstonIh",
   "index": 0,
   "blocks": [
-    {"blockType": "text", "options": {"text": "Hello World", "bold": true}},
-    {"blockType": "heading", "options": {"text": "标题", "level": 1}},
-    {"blockType": "code", "options": {"text": "console.log(\"test\")", "language": "JavaScript"}}
+    {"blockType": "text", "options": {"text": {"textStyles": [{"text": "Hello World", "style": {"bold": true}}]}}},
+    {"blockType": "heading", "options": {"heading": {"content": "标题", "level": 1}}},
+    {"blockType": "code", "options": {"code": {"code": "console.log(\"test\")", "language": 30}}}
   ]
 }'
 ```
@@ -153,7 +153,7 @@ feishu-tool batch_update_feishu_block_text '{
   "updates": [
     {
       "blockId": "doxcnpIWdCpmEg5sUx00hr27lXe",
-      "textElements": [{"text": "更新后的文本", "bold": true, "italic": false}]
+      "textElements": [{"text": "更新后的文本", "style": {"bold": true, "italic": false}}]
     }
   ]
 }'
@@ -192,11 +192,11 @@ feishu-tool create_feishu_table '{
 
 ### 11. `get_feishu_image_resource`
 
-下载图片资源，返回 Buffer（含 base64 数据）。
+下载图片资源，返回 base64 字符串。
 
 ```bash
 feishu-tool get_feishu_image_resource '{"mediaId":"IN3QbYHQWoijZgxjkOzcpQcPnOB","extra":""}'
-# 返回：{"type":"Buffer","data":[137,80,78,...]}
+# 返回：{"base64":"iVBORw0KGgo..."}
 ```
 
 ---
@@ -209,17 +209,13 @@ feishu-tool get_feishu_image_resource '{"mediaId":"IN3QbYHQWoijZgxjkOzcpQcPnOB",
 # URL 图片
 feishu-tool upload_and_bind_image_to_block '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
-  "blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh",
-  "imageSource": "https://example.com/image.png",
-  "sourceType": "url"
+  "images": [{"blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh", "imagePathOrUrl": "https://example.com/image.png"}]
 }'
 
 # 本地文件
 feishu-tool upload_and_bind_image_to_block '{
   "documentId": "Uk6mdN6Hao5umbxC13ccGstonIh",
-  "blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh",
-  "imageSource": "/path/to/image.png",
-  "sourceType": "file"
+  "images": [{"blockId": "doxcnkLUSCAZrcWDz5Cj6oKSbQh", "imagePathOrUrl": "/path/to/image.png"}]
 }'
 ```
 
@@ -230,8 +226,8 @@ feishu-tool upload_and_bind_image_to_block '{
 搜索飞书文档和/或知识库。
 
 ```bash
-feishu-tool search_feishu_documents '{"query":"MCP工具","searchType":"both"}'
-# searchType: "doc" | "wiki" | "both"
+feishu-tool search_feishu_documents '{"searchKey":"MCP工具","searchType":"both"}'
+# searchType: "document" | "wiki" | "both"
 ```
 
 ---
@@ -252,8 +248,7 @@ feishu-tool get_feishu_whiteboard_content '{"whiteboardId":"白板ID"}'
 
 ```bash
 feishu-tool fill_whiteboard_with_plantuml '{
-  "whiteboardId": "白板ID",
-  "plantumlContent": "@startuml\nA -> B: Hello\n@enduml"
+  "whiteboards": [{"whiteboardId": "白板ID", "code": "@startuml\nA -> B: Hello\n@enduml", "syntax_type": "plantuml"}]
 }'
 ```
 

@@ -31,7 +31,7 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/docx/v1/documents' \
 -H 'Content-Type: application/json' \
 -H 'Authorization: Bearer <access_token>' \
 -d '{
-    "folder_token": "<folder_token>",****
+    "folder_token": "<folder_token>",
     "title": "一篇新的文档"
 }'
 ```
@@ -727,12 +727,11 @@ url:https://open.feishu.cn/open-apis/drive/v1/medias/upload_all
 ```
 curl --location --request POST '{url}' \
 --header 'Authorization: {Authorization}' \
---header 'Content-Type: multipart/form-data; boundary=---7MA4YWxkTrZu0gW' \
---form 'file= ' \ # 文件的二进制内容
---form 'file_name="test.PNG"' \ # 图片名称
---form 'parent_type="docx_image"' \ # 素材类型为 docx_image
---form 'parent_node="<block_id>"' \ # Image BlockID
---form 'size="xxx"' # 图片大小
+--form 'file=@/path/to/test.PNG' \
+--form 'file_name=test.PNG' \
+--form 'parent_type=docx_image' \
+--form 'parent_node=<block_id>' \
+--form 'size=<文件字节数>'
 ```
 * 返回数据
 ```
@@ -747,12 +746,12 @@ curl --location --request POST '{url}' \
 ##### 3. 设置图片 Block 的素材
 url:https://open.feishu.cn/open-apis/docx/v1/documents/:document_id/blocks/:block_id
 ```
-url --location --request PATCH '{url}' \
+curl --location --request PATCH '{url}' \
 --header 'Authorization: {Authorization}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "replace_image": {
-        "token": "<file_token>" # 图片素材 ID
+        "token": "<file_token>"
     }
 }'
 ```
@@ -1288,8 +1287,7 @@ curl -i -X POST 'https://open.feishu.cn/open-apis/wiki/v2/spaces/<space_id>/node
 	"title": "哈哈哈哈te111st"
 }'
 ```
-node_type 默认为origin，无需传入
-obj_type 默认为docx，无需传入
+`node_type` 和 `obj_type` 是必填参数；创建普通新版文档节点时分别传入 `origin` 和 `docx`。
 * 返回
 ```
 {
