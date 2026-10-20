@@ -570,17 +570,19 @@ export class BlockFactory {
   /**
    * 创建表格块
    * @param options 表格块选项
+   * @param options.columnWidth 各列宽度（px），可选；不传时由飞书服务端使用默认值（每列 100px）
    * @returns 表格块内容对象
    */
   public createTableBlock(options: {
     columnSize: number;
     rowSize: number;
+    columnWidth?: number[];
     cells?: Array<{
       coordinate: { row: number; column: number };
       content: any;
     }>;
   }): any {
-    const { columnSize, rowSize, cells = [] } = options;
+    const { columnSize, rowSize, columnWidth, cells = [] } = options;
     
     // 生成表格ID
     const tableId = `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -662,7 +664,10 @@ export class BlockFactory {
       table: {
         property: {
           row_size: rowSize,
-          column_size: columnSize
+          column_size: columnSize,
+          ...(columnWidth && columnWidth.length === columnSize
+            ? { column_width: columnWidth }
+            : {})
         }
       },
       children: tableCells

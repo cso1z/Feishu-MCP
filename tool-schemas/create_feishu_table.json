@@ -30,6 +30,13 @@
             "minimum": 1,
             "description": "Table row size (required). The number of rows in the table. Must be at least 1."
           },
+          "columnWidth": {
+           "type": "array",
+           "items": {
+            "type": "number"
+           },
+           "description": "Column widths in pixels (optional). The array length must equal columnSize. If omitted, Feishu applies its default width of 100px per column, which usually squeezes text into narrow columns. Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; it cannot be changed afterwards."
+          },
           "cells": {
             "type": "array",
             "items": {

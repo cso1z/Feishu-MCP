@@ -235,6 +235,12 @@ export const TableCellContentSchema = z.object({
 export const TableCreateSchema = z.object({
   columnSize: TableColumnSizeSchema,
   rowSize: TableRowSizeSchema,
+  columnWidth: z.array(z.number()).optional().describe(
+    'Column widths in pixels (optional). The array length must equal columnSize. ' +
+    'If omitted, Feishu applies its default width of 100px per column, which usually squeezes text into narrow columns. ' +
+    'Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; ' +
+    'it cannot be changed afterwards.'
+  ),
   cells: z.array(TableCellContentSchema).optional().describe(
     'Array of cell configurations (optional). Each cell specifies its position (row, column) and content block configuration. ' +
     'If not provided, empty text blocks will be created for all cells. ' +
