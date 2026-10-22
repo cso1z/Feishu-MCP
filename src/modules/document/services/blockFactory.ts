@@ -109,6 +109,42 @@ export enum AlignType {
 }
 
 /**
+ * 表格自适应列宽参数：按单元格文本加权长度（CJK 字符按 2、其他按 1 计）
+ * 将固定总宽按比例分配到各列，并限制最小列宽
+ */
+export const AUTO_FIT_TOTAL_WIDTH = 810;
+export const AUTO_FIT_MIN_COLUMN_WIDTH = 90;
+export const AUTO_FIT_PADDING_CHARS = 6;
+
+function textLengthWeight(text: string): number {
+  let weight = 0;
+  for (const ch of text) {
+    weight += (ch.codePointAt(0) ?? 0) > 0x2e7f ? 2 : 1;
+  }
+  return weight;
+}
+
+/**
+ * 递归提取块 JSON 中的文本（text_run.content / code.content）并计算加权长度
+ */
+function blockTextWeight(node: unknown): number {
+  if (!node || typeof node !== 'object') return 0;
+  if (Array.isArray(node)) {
+    return node.reduce((sum, item) => sum + blockTextWeight(item), 0);
+  }
+  let total = 0;
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === 'block_id') continue;
+    if ((key === 'text_run' || key === 'code') && value && typeof value === 'object') {
+      total += textLengthWeight(String((value as { content?: unknown }).content ?? ''));
+    } else if (value && typeof value === 'object') {
+      total += blockTextWeight(value);
+    }
+  }
+  return total;
+}
+
+/**
  * 块工厂类
  * 提供统一接口创建不同类型的块内容
  */
@@ -568,9 +604,47 @@ export class BlockFactory {
   }
 
   /**
+   * 按单元格内容自适应计算各列宽度
+   * @param cells 单元格配置
+   * @param columnSize 列数
+   * @returns 各列宽度；无内容或列数非法时返回 undefined（保持服务端默认列宽）
+   */
+  public static autoFitColumnWidth(
+    cells: Array<{
+      coordinate: { row: number; column: number };
+      content: any;
+    }> = [],
+    columnSize: number
+  ): number[] | undefined {
+    if (columnSize <= 0) return undefined;
+    const weights = new Array<number>(columnSize).fill(0);
+    let hasContent = false;
+    for (const cell of cells) {
+      const column = cell?.coordinate?.column;
+      if (typeof column !== 'number' || column < 0 || column >= columnSize) continue;
+      const weight = blockTextWeight(cell.content);
+      if (weight > 0) hasContent = true;
+      weights[column] = Math.max(weights[column], weight);
+    }
+    if (!hasContent) return undefined;
+    const padded = weights.map(w => w + AUTO_FIT_PADDING_CHARS);
+    const total = padded.reduce((sum, w) => sum + w, 0);
+    const widths = padded.map(w =>
+      Math.max(AUTO_FIT_MIN_COLUMN_WIDTH, Math.round((AUTO_FIT_TOTAL_WIDTH * w) / total))
+    );
+    // 修正取整误差，差额补到最宽一列
+    const diff = AUTO_FIT_TOTAL_WIDTH - widths.reduce((sum, w) => sum + w, 0);
+    const widest = widths.indexOf(Math.max(...widths));
+    widths[widest] += diff;
+    return widths;
+  }
+
+  /**
    * 创建表格块
    * @param options 表格块选项
-   * @param options.columnWidth 各列宽度（px），可选；不传时由飞书服务端使用默认值（每列 100px）
+   * @param options.columnWidth 各列宽度（px），可选；长度须等于 columnSize
+   * @param options.cells 未传 columnWidth 且 cells 有内容时，按内容自适应计算列宽（autoFit）；
+   *                      空表不传时保持飞书服务端默认列宽（每列 100px）
    * @returns 表格块内容对象
    */
   public createTableBlock(options: {
@@ -658,6 +732,10 @@ export class BlockFactory {
     }
     
     // 创建表格主体
+    const effectiveColumnWidth =
+      columnWidth && columnWidth.length === columnSize
+        ? columnWidth
+        : BlockFactory.autoFitColumnWidth(cells, columnSize);
     const tableBlock = {
       block_id: tableId,
       block_type: 31, // 表格块类型
@@ -665,9 +743,7 @@ export class BlockFactory {
         property: {
           row_size: rowSize,
           column_size: columnSize,
-          ...(columnWidth && columnWidth.length === columnSize
-            ? { column_width: columnWidth }
-            : {})
+          ...(effectiveColumnWidth ? { column_width: effectiveColumnWidth } : {})
         }
       },
       children: tableCells

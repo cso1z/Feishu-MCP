@@ -237,7 +237,9 @@ export const TableCreateSchema = z.object({
   rowSize: TableRowSizeSchema,
   columnWidth: z.array(z.number()).optional().describe(
     'Column widths in pixels (optional). The array length must equal columnSize. ' +
-    'If omitted, Feishu applies its default width of 100px per column, which usually squeezes text into narrow columns. ' +
+    'If omitted, column widths are auto-fitted from the cells content: each column gets a share of an 810px total ' +
+    'proportional to its longest text (CJK characters count double), with a 90px minimum; ' +
+    'empty tables fall back to the Feishu default of 100px per column. ' +
     'Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; ' +
     'it cannot be changed afterwards.'
   ),
