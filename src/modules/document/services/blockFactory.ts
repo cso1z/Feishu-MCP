@@ -675,7 +675,7 @@ export class BlockFactory {
   /**
    * 创建表格块
    * @param options 表格块选项
-   * @param options.columnWidth 各列宽度（px），可选；长度须等于 columnSize 且各项为正整数，否则抛错
+   * @param options.columnWidth 各列宽度（px），可选；长度必须等于 columnSize，且各项必须为正整数
    * @param options.cells 未传 columnWidth 且 cells 有内容时，按内容自适应计算列宽（autoFit）；
    *                      空表不传时保持飞书服务端默认列宽（每列 100px）
    * @returns 表格块内容对象
@@ -690,6 +690,13 @@ export class BlockFactory {
     }>;
   }): any {
     const { columnSize, rowSize, columnWidth, cells = [] } = options;
+
+    if (!Number.isInteger(columnSize) || columnSize <= 0) {
+      throw new Error('columnSize 必须为正整数');
+    }
+    if (!Number.isInteger(rowSize) || rowSize <= 0) {
+      throw new Error('rowSize 必须为正整数');
+    }
 
     if (columnWidth) {
       if (columnWidth.length !== columnSize) {

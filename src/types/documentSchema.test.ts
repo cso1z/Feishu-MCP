@@ -12,15 +12,14 @@ test('TableCreateSchema accepts valid columnWidth', () => {
   assert.ok(result.success);
 });
 
-test('TableCreateSchema rejects columnWidth length mismatch', () => {
+test('TableCreateSchema leaves columnWidth validation to the BlockFactory', () => {
   const result = TableCreateSchema.safeParse({ ...validBase, columnWidth: [100, 200] });
-  assert.ok(!result.success);
-  assert.ok(result.error.issues.some(issue => issue.path.join('.') === 'columnWidth'));
+  assert.ok(result.success);
 });
 
-test('TableCreateSchema rejects non-positive or fractional columnWidth values', () => {
-  assert.ok(!TableCreateSchema.safeParse({ ...validBase, columnWidth: [-1, 0, 999] }).success);
-  assert.ok(!TableCreateSchema.safeParse({ ...validBase, columnWidth: [100.5, 200, 300] }).success);
+test('TableCreateSchema leaves positive-integer columnWidth validation to the BlockFactory', () => {
+  assert.ok(TableCreateSchema.safeParse({ ...validBase, columnWidth: [-1, 0, 999] }).success);
+  assert.ok(TableCreateSchema.safeParse({ ...validBase, columnWidth: [100.5, 200, 300] }).success);
 });
 
 test('TableCreateSchema rejects fractional columnSize or rowSize', () => {

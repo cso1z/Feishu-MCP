@@ -175,6 +175,7 @@ export class FeishuApiService {
     tableConfig: {
       columnSize: number;
       rowSize: number;
+      columnWidth?: number[];
       cells?: Array<{ coordinate: { row: number; column: number }; content: any }>;
     },
     index: number = 0

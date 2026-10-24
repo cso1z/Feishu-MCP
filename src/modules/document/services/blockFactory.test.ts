@@ -71,7 +71,7 @@ test('createTableBlock rejects columnWidth whose length mismatches columnSize', 
   const factory = BlockFactory.getInstance();
   assert.throws(
     () => factory.createTableBlock({ columnSize: 3, rowSize: 1, columnWidth: [100, 200] }),
-    /必须等于 columnSize/
+    /columnWidth 长度 \(2\) 必须等于 columnSize \(3\)/,
   );
 });
 
@@ -84,6 +84,18 @@ test('createTableBlock rejects columnWidth with non-positive or non-integer valu
   assert.throws(
     () => factory.createTableBlock({ columnSize: 2, rowSize: 1, columnWidth: [100.5, 200] }),
     /正整数/
+  );
+});
+
+test('createTableBlock rejects invalid table dimensions', () => {
+  const factory = BlockFactory.getInstance();
+  assert.throws(
+    () => factory.createTableBlock({ columnSize: 2.5, rowSize: 1 }),
+    /columnSize 必须为正整数/,
+  );
+  assert.throws(
+    () => factory.createTableBlock({ columnSize: 2, rowSize: 0 }),
+    /rowSize 必须为正整数/,
   );
 });
 

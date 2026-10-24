@@ -133,7 +133,7 @@ export class FeishuBlockService extends FeishuBaseApiService {
    * @param tableConfig 表格配置
    * @param tableConfig.columnSize 表格列数
    * @param tableConfig.rowSize 表格行数
-   * @param tableConfig.columnWidth 各列宽度（px），长度须等于 columnSize 且各项为正整数（否则报错）；不传时按 cells 内容自适应列宽，空表使用飞书默认列宽
+   * @param tableConfig.columnWidth 各列宽度（px），长度必须等于 columnSize 且各项必须为正整数；由 BlockFactory 统一校验；不传时按 cells 内容自适应列宽，空表使用飞书默认列宽
    * @param tableConfig.cells 单元格内容配置，每项指定坐标（row/column）和内容（blockType/options）
    * @param index 插入位置索引，默认 0
    * @returns 创建结果，额外附加 imageTokens 字段，包含图片单元格的坐标与 blockId 映射

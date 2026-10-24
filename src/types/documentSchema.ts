@@ -235,14 +235,8 @@ export const TableCellContentSchema = z.object({
 export const TableCreateSchema = z.object({
   columnSize: TableColumnSizeSchema,
   rowSize: TableRowSizeSchema,
-  columnWidth: z.array(z.number().int().positive()).optional().describe(
-    'Column widths in pixels (optional). The array length must equal columnSize and each value must be a positive integer; ' +
-    'a mismatched or invalid array is rejected with an error instead of being silently ignored. ' +
-    'If omitted, column widths are auto-fitted from the cells content: each column gets at least 90px and a share of an 810px total ' +
-    'proportional to its longest text (CJK characters count double); the total grows beyond 810px when the minimum widths ' +
-    'of many columns exceed it; empty tables fall back to the Feishu default of 100px per column. ' +
-    'Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; ' +
-    'it cannot be changed afterwards.'
+  columnWidth: z.array(z.number()).optional().describe(
+    'Optional column widths in pixels. Provide exactly columnSize positive integers, one per column.'
   ),
   cells: z.array(TableCellContentSchema).optional().describe(
     'Array of cell configurations (optional). Each cell specifies its position (row, column) and content block configuration. ' +
@@ -252,14 +246,6 @@ export const TableCreateSchema = z.object({
     '{coordinate:{row:0,column:0}, content:{blockType:"code", options:{code:{code:"console.log(\'hello\')", language:30}}}}] ' +
     'adds both a text block and a code block to cell (0,0).'
   )
-}).superRefine((data, ctx) => {
-  if (data.columnWidth && data.columnWidth.length !== data.columnSize) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['columnWidth'],
-      message: `columnWidth length (${data.columnWidth.length}) must equal columnSize (${data.columnSize})`,
-    });
-  }
 });
 
 // 媒体ID参数定义
