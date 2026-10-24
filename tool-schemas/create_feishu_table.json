@@ -21,21 +21,22 @@
         "type": "object",
         "properties": {
           "columnSize": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1,
-            "description": "Table column size (required). The number of columns in the table. Must be at least 1."
+            "description": "Table column size (required). The number of columns in the table. Must be a positive integer."
           },
           "rowSize": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1,
-            "description": "Table row size (required). The number of rows in the table. Must be at least 1."
+            "description": "Table row size (required). The number of rows in the table. Must be a positive integer."
           },
           "columnWidth": {
-           "type": "array",
-           "items": {
-            "type": "number"
-           },
-           "description": "Column widths in pixels (optional). The array length must equal columnSize. If omitted, column widths are auto-fitted from the cells content: each column gets a share of an 810px total proportional to its longest text (CJK characters count double), with a 90px minimum; empty tables fall back to the Feishu default of 100px per column. Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; it cannot be changed afterwards."
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Column widths in pixels (optional). The array length must equal columnSize and each value must be a positive integer; a mismatched or invalid array is rejected with an error instead of being silently ignored. If omitted, column widths are auto-fitted from the cells content: each column gets at least 90px and a share of an 810px total proportional to its longest text (CJK characters count double); the total grows beyond 810px when the minimum widths of many columns exceed it; empty tables fall back to the Feishu default of 100px per column. Example: for a 3-column table: [180, 250, 380]. Note: Feishu OpenAPI only accepts column_width at table creation time; it cannot be changed afterwards."
           },
           "cells": {
             "type": "array",

@@ -110,7 +110,8 @@ export enum AlignType {
 
 /**
  * 表格自适应列宽参数：按单元格文本加权长度（CJK 字符按 2、其他按 1 计）
- * 将固定总宽按比例分配到各列，并限制最小列宽
+ * 将总宽按比例分配到各列并保证最小列宽；列数较多导致最小列宽之和
+ * 超过默认总宽时，自动放大总宽
  */
 export const AUTO_FIT_TOTAL_WIDTH = 810;
 export const AUTO_FIT_MIN_COLUMN_WIDTH = 90;
@@ -125,7 +126,9 @@ function textLengthWeight(text: string): number {
 }
 
 /**
- * 递归提取块 JSON 中的文本（text_run.content / code.content）并计算加权长度
+ * 递归提取块 JSON 中的文本并计算加权长度：
+ * 文本/标题/列表/代码块均为 text_run.content（代码块为 code.elements[].text_run.content），
+ * 公式块为 equation.content，Mermaid 块（add_ons.record）内容为 JSON 字符串，解析后统计
  */
 function blockTextWeight(node: unknown): number {
   if (!node || typeof node !== 'object') return 0;
@@ -135,13 +138,34 @@ function blockTextWeight(node: unknown): number {
   let total = 0;
   for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
     if (key === 'block_id') continue;
-    if ((key === 'text_run' || key === 'code') && value && typeof value === 'object') {
+    if ((key === 'text_run' || key === 'equation') && value && typeof value === 'object') {
       total += textLengthWeight(String((value as { content?: unknown }).content ?? ''));
+    } else if (key === 'add_ons' && value && typeof value === 'object') {
+      const record = (value as { record?: unknown }).record;
+      if (typeof record === 'string') {
+        try {
+          total += allStringWeight(JSON.parse(record));
+        } catch {
+          total += textLengthWeight(record);
+        }
+      }
     } else if (value && typeof value === 'object') {
       total += blockTextWeight(value);
     }
   }
   return total;
+}
+
+/**
+ * 统计 JSON 值中所有字符串叶子（如 Mermaid record 的 data 字段）的加权长度
+ */
+function allStringWeight(node: unknown): number {
+  if (typeof node === 'string') return textLengthWeight(node);
+  if (Array.isArray(node)) return node.reduce((sum, item) => sum + allStringWeight(item), 0);
+  if (node && typeof node === 'object') {
+    return Object.values(node).reduce((sum, value) => sum + allStringWeight(value), 0);
+  }
+  return 0;
 }
 
 /**
@@ -616,7 +640,7 @@ export class BlockFactory {
     }> = [],
     columnSize: number
   ): number[] | undefined {
-    if (columnSize <= 0) return undefined;
+    if (!Number.isInteger(columnSize) || columnSize <= 0) return undefined;
     const weights = new Array<number>(columnSize).fill(0);
     let hasContent = false;
     for (const cell of cells) {
@@ -628,21 +652,30 @@ export class BlockFactory {
     }
     if (!hasContent) return undefined;
     const padded = weights.map(w => w + AUTO_FIT_PADDING_CHARS);
-    const total = padded.reduce((sum, w) => sum + w, 0);
-    const widths = padded.map(w =>
-      Math.max(AUTO_FIT_MIN_COLUMN_WIDTH, Math.round((AUTO_FIT_TOTAL_WIDTH * w) / total))
-    );
-    // 修正取整误差，差额补到最宽一列
-    const diff = AUTO_FIT_TOTAL_WIDTH - widths.reduce((sum, w) => sum + w, 0);
-    const widest = widths.indexOf(Math.max(...widths));
-    widths[widest] += diff;
-    return widths;
+    const weightTotal = padded.reduce((sum, w) => sum + w, 0);
+    // 列数较多时最小列宽之和可能超过默认总宽，此时放大总宽
+    const totalWidth = Math.max(AUTO_FIT_TOTAL_WIDTH, columnSize * AUTO_FIT_MIN_COLUMN_WIDTH);
+    // 每列先保底最小宽度，剩余预算按权重用最大余数法分配，
+    // 保证各列均不小于最小宽度且总和恰为 totalWidth
+    const budget = totalWidth - columnSize * AUTO_FIT_MIN_COLUMN_WIDTH;
+    const shares = padded.map(w => (budget * w) / weightTotal);
+    const extras = shares.map(share => Math.floor(share));
+    let assigned = extras.reduce((sum, e) => sum + e, 0);
+    const byLargestRemainder = shares
+      .map((share, index) => ({ index, rest: share - Math.floor(share) }))
+      .sort((a, b) => b.rest - a.rest || a.index - b.index);
+    for (const { index } of byLargestRemainder) {
+      if (assigned >= budget) break;
+      extras[index] += 1;
+      assigned += 1;
+    }
+    return extras.map(extra => AUTO_FIT_MIN_COLUMN_WIDTH + extra);
   }
 
   /**
    * 创建表格块
    * @param options 表格块选项
-   * @param options.columnWidth 各列宽度（px），可选；长度须等于 columnSize
+   * @param options.columnWidth 各列宽度（px），可选；长度须等于 columnSize 且各项为正整数，否则抛错
    * @param options.cells 未传 columnWidth 且 cells 有内容时，按内容自适应计算列宽（autoFit）；
    *                      空表不传时保持飞书服务端默认列宽（每列 100px）
    * @returns 表格块内容对象
@@ -657,7 +690,16 @@ export class BlockFactory {
     }>;
   }): any {
     const { columnSize, rowSize, columnWidth, cells = [] } = options;
-    
+
+    if (columnWidth) {
+      if (columnWidth.length !== columnSize) {
+        throw new Error(`columnWidth 长度 (${columnWidth.length}) 必须等于 columnSize (${columnSize})`);
+      }
+      if (columnWidth.some(w => !Number.isInteger(w) || w <= 0)) {
+        throw new Error('columnWidth 各项必须为正整数（像素）');
+      }
+    }
+
     // 生成表格ID
     const tableId = `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -732,10 +774,7 @@ export class BlockFactory {
     }
     
     // 创建表格主体
-    const effectiveColumnWidth =
-      columnWidth && columnWidth.length === columnSize
-        ? columnWidth
-        : BlockFactory.autoFitColumnWidth(cells, columnSize);
+    const effectiveColumnWidth = columnWidth ?? BlockFactory.autoFitColumnWidth(cells, columnSize);
     const tableBlock = {
       block_id: tableId,
       block_type: 31, // 表格块类型
