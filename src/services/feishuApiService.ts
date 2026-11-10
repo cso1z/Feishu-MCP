@@ -88,6 +88,60 @@ export class FeishuApiService {
     return FeishuApiService.instance;
   }
 
+  public getPrimaryCalendar(
+    ...args: Parameters<FeishuCalendarService['primary']>
+  ) {
+    return this.calendarService.primary(...args);
+  }
+
+  public listCalendars(
+    ...args: Parameters<FeishuCalendarService['listCalendars']>
+  ) {
+    return this.calendarService.listCalendars(...args);
+  }
+
+  public listCalendarEvents(
+    ...args: Parameters<FeishuCalendarService['listEvents']>
+  ) {
+    return this.calendarService.listEvents(...args);
+  }
+
+  public getCalendarEvent(
+    ...args: Parameters<FeishuCalendarService['getEvent']>
+  ) {
+    return this.calendarService.getEvent(...args);
+  }
+
+  public getCalendarInstances(
+    ...args: Parameters<FeishuCalendarService['instances']>
+  ) {
+    return this.calendarService.instances(...args);
+  }
+
+  public createCalendarEvent(
+    ...args: Parameters<FeishuCalendarService['createEvent']>
+  ) {
+    return this.calendarService.createEvent(...args);
+  }
+
+  public updateCalendarEvent(
+    ...args: Parameters<FeishuCalendarService['updateEvent']>
+  ) {
+    return this.calendarService.updateEvent(...args);
+  }
+
+  public deleteCalendarEvent(
+    ...args: Parameters<FeishuCalendarService['deleteEvent']>
+  ) {
+    return this.calendarService.deleteEvent(...args);
+  }
+
+  public getCalendarFreeBusy(
+    ...args: Parameters<FeishuCalendarService['freeBusy']>
+  ) {
+    return this.calendarService.freeBusy(...args);
+  }
+
   // ─── 文档服务委托 ─────────────────────────────────────────────────
 
   /**

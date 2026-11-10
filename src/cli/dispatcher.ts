@@ -1,3 +1,4 @@
+import { calendarTools } from '../modules/calendar/tools/calendarTools.js';
 import { FeishuApiService } from '../services/feishuApiService.js';
 import {
   UserContextManager,
@@ -72,6 +73,7 @@ interface ModuleToolMap {
  * 按模块组织的工具注册表，与 src/modules 目录划分保持一致
  */
 const MODULE_REGISTRY: Record<string, ModuleToolMap> = {
+  calendar: { authType: 'user', tools: Object.fromEntries(calendarTools.map(tool => [tool.name, tool.execute])) },
   document: {
     authType: 'tenant',
     tools: {
@@ -147,6 +149,9 @@ export async function dispatch(toolName: string, params: unknown): Promise<unkno
   }
 
   const config = Config.getInstance();
+  if (!listTools(config.feishu.authType).includes(toolName)) {
+    throw new Error(`${toolName} requires FEISHU_AUTH_TYPE=user.`);
+  }
   const userKey = config.feishu.userKey;
   const userContextManager = UserContextManager.getInstance();
   const apiService = FeishuApiService.getInstance();

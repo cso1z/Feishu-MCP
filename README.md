@@ -246,9 +246,15 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 |------|------|----------|
 | `document` | 文档、文件夹、搜索等 | tenant / user |
 | `task` | 任务 CRUD | 仅 user |
-| `calendar` | 日历（开发中） | 仅 user |
+| `calendar` | 日历、日程与忙闲查询 | 仅 user |
 | `member` | 用户信息查询 | 仅 user |
 | `all` | 启用全部模块 | user 时全部加载 |
+
+### 日历与日程
+
+设置 `FEISHU_ENABLED_MODULES=document,calendar` 并使用 `FEISHU_AUTH_TYPE=user` 启用日历工具。支持主日历、订阅列表、日程列表与详情、重复实例、创建/修改/删除日程和忙闲查询；不隐式启用通讯录模块。CLI 在调用前拒绝 tenant 身份使用仅 user 支持的工具。
+
+需要 `calendar:calendar`、`calendar:calendar:readonly` 和 `offline_access`；应用开通并发布权限后，旧用户授权仍需补充对应 scope。创建日程要求稳定的 UUID `idempotencyKey`，全天日程结束日期为排他边界。当前不添加参会人，是否通知由 `need_notification` / `notify` 控制。
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 

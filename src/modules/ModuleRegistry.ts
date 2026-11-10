@@ -17,7 +17,6 @@ const ALL_MODULES: FeatureModule[] = [
  */
 const IMPLICIT_DEPS: Record<string, string[]> = {
   task: ['member'],
-  calendar: ['member'],
 };
 
 /** 仅 user 认证支持的模块（tenant 模式下不加载） */
@@ -32,7 +31,7 @@ export class ModuleRegistry {
 
   /**
    * 根据配置的模块 ID 列表返回对应的模块实例
-   * 会自动补全隐式依赖（如启用 task/calendar 时自动带入 member）
+   * 会自动补全隐式依赖（如启用 task 时自动带入 member）
    * 仅 user 认证时加载 task、calendar、member；tenant 模式下自动排除
    * @param enabledIds 已启用的模块 ID，传入 ['all'] 则返回全部模块
    * @param authType 认证类型，'tenant' 时 task/calendar/member 不加载

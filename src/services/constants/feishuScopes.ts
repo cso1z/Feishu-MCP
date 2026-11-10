@@ -41,8 +41,8 @@ export const MODULE_SCOPES: Record<string, { tenant: string[]; userOnly: string[
     userOnly: [],
   },
   calendar: {
-    tenant: [],
-    userOnly: [],
+    tenant: ['calendar:calendar', 'calendar:calendar:readonly'],
+    userOnly: ['offline_access'],
   },
   member: {
     tenant: [
