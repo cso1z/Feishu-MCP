@@ -190,7 +190,7 @@ export class Config {
         },
         'enabled-modules': {
           type: 'string',
-          description: '启用的功能模块列表（逗号分隔），可选值: document,task,calendar 或 all，默认 document'
+          description: '启用的功能模块列表（逗号分隔），可选值: document,sheets,bitable,transfer,task,calendar,member 或 all，默认 document'
         }
       })
       .help()

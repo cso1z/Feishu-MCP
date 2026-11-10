@@ -4,6 +4,8 @@ const GUIDE_URL = 'https://github.com/cso1z/Feishu-MCP/blob/cli/FEISHU_CONFIG.md
 
 // 各模块的权限说明（摘要，完整列表见 FEISHU_CONFIG.md）
 const MODULE_SCOPE_DESC: Record<string, { authTypes: string; desc: string }> = {
+  sheets:   { authTypes: 'tenant + user', desc: 'sheets:spreadsheet、wiki:wiki:readonly' },
+  bitable:  { authTypes: 'tenant + user', desc: 'bitable:app、wiki:wiki:readonly' },
   document: { authTypes: 'tenant + user', desc: '文档读写、云盘、白板、知识库相关权限' },
   task:     { authTypes: 'user only',     desc: 'task:task:write' },
   member:   { authTypes: 'user only',     desc: 'contact:user.base:readonly 等联系人权限' },

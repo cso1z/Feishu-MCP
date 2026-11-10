@@ -3,12 +3,18 @@ import { documentModule } from './document/index.js';
 import { taskModule } from './task/index.js';
 import { calendarModule } from './calendar/index.js';
 import { memberModule } from './member/index.js';
+import { sheetsModule } from './sheets/index.js';
+import { bitableModule } from './bitable/index.js';
+import { transferModule } from './transfer/index.js';
 
 const ALL_MODULES: FeatureModule[] = [
   documentModule,
   taskModule,
   calendarModule,
   memberModule,
+  sheetsModule,
+  bitableModule,
+  transferModule,
 ];
 
 /**

@@ -20,6 +20,9 @@ import {
 } from '../modules/task/services/FeishuTaskService.js';
 import { FeishuCalendarService } from '../modules/calendar/services/FeishuCalendarService.js';
 import { FeishuMemberService } from '../modules/member/services/FeishuMemberService.js';
+import { FeishuSheetsService } from '../modules/sheets/FeishuSheetsService.js';
+import { FeishuBitableService } from '../modules/bitable/FeishuBitableService.js';
+import { FeishuTransferService } from '../modules/transfer/FeishuTransferService.js';
 
 /**
  * 飞书 API 服务门面（Facade）
@@ -50,6 +53,9 @@ export class FeishuApiService {
     private readonly taskService: FeishuTaskService,
     private readonly calendarService: FeishuCalendarService,
     private readonly memberService: FeishuMemberService,
+    private readonly sheetsService: FeishuSheetsService,
+    private readonly bitableService: FeishuBitableService,
+    private readonly transferService: FeishuTransferService,
   ) {}
 
   /** 组装所有领域服务并返回 FeishuApiService 新实例 */
@@ -74,6 +80,9 @@ export class FeishuApiService {
       taskService,
       calendarService,
       memberService,
+      new FeishuSheetsService(authService),
+      new FeishuBitableService(authService),
+      new FeishuTransferService(authService),
     );
   }
 
@@ -86,6 +95,174 @@ export class FeishuApiService {
       FeishuApiService.instance = FeishuApiService.createInstance();
     }
     return FeishuApiService.instance;
+  }
+
+  public updateSheet(...args: Parameters<FeishuSheetsService['updateSheet']>) {
+    return this.sheetsService.updateSheet(...args);
+  }
+
+  public editSheetDimensions(
+    ...args: Parameters<FeishuSheetsService['editDimensions']>
+  ) {
+    return this.sheetsService.editDimensions(...args);
+  }
+
+  public mergeSheetCells(
+    ...args: Parameters<FeishuSheetsService['mergeCells']>
+  ) {
+    return this.sheetsService.mergeCells(...args);
+  }
+
+  public styleSheetCells(
+    ...args: Parameters<FeishuSheetsService['styleCells']>
+  ) {
+    return this.sheetsService.styleCells(...args);
+  }
+
+  public getSheetFilter(...args: Parameters<FeishuSheetsService['getFilter']>) {
+    return this.sheetsService.getFilter(...args);
+  }
+
+  public setSheetFilter(...args: Parameters<FeishuSheetsService['setFilter']>) {
+    return this.sheetsService.setFilter(...args);
+  }
+
+  public upsertSheetRows(
+    ...args: Parameters<FeishuSheetsService['upsertRows']>
+  ) {
+    return this.sheetsService.upsertRows(...args);
+  }
+
+  public createBitableField(
+    ...args: Parameters<FeishuBitableService['createField']>
+  ) {
+    return this.bitableService.createField(...args);
+  }
+
+  public updateBitableField(
+    ...args: Parameters<FeishuBitableService['updateField']>
+  ) {
+    return this.bitableService.updateField(...args);
+  }
+
+  public deleteBitableField(
+    ...args: Parameters<FeishuBitableService['deleteField']>
+  ) {
+    return this.bitableService.deleteField(...args);
+  }
+
+  public listBitableViews(
+    ...args: Parameters<FeishuBitableService['listViews']>
+  ) {
+    return this.bitableService.listViews(...args);
+  }
+
+  public getBitableView(...args: Parameters<FeishuBitableService['getView']>) {
+    return this.bitableService.getView(...args);
+  }
+
+  public createBitableView(
+    ...args: Parameters<FeishuBitableService['createView']>
+  ) {
+    return this.bitableService.createView(...args);
+  }
+
+  public updateBitableView(
+    ...args: Parameters<FeishuBitableService['updateView']>
+  ) {
+    return this.bitableService.updateView(...args);
+  }
+
+  public deleteBitableView(
+    ...args: Parameters<FeishuBitableService['deleteView']>
+  ) {
+    return this.bitableService.deleteView(...args);
+  }
+
+  public upsertBitableRecords(
+    ...args: Parameters<FeishuBitableService['upsertRecords']>
+  ) {
+    return this.bitableService.upsertRecords(...args);
+  }
+
+  public importTableFile(
+    ...args: Parameters<FeishuTransferService['importTable']>
+  ) {
+    return this.transferService.importTable(...args);
+  }
+
+  public exportTableFile(
+    ...args: Parameters<FeishuTransferService['exportTable']>
+  ) {
+    return this.transferService.exportTable(...args);
+  }
+
+  public getTableTransferStatus(
+    ...args: Parameters<FeishuTransferService['transferStatus']>
+  ) {
+    return this.transferService.transferStatus(...args);
+  }
+
+  public downloadTableExport(
+    ...args: Parameters<FeishuTransferService['downloadExport']>
+  ) {
+    return this.transferService.downloadExport(...args);
+  }
+
+  public createSpreadsheet(...args: Parameters<FeishuSheetsService['createSpreadsheet']>) {
+    return this.sheetsService.createSpreadsheet(...args);
+  }
+
+  public listSheets(...args: Parameters<FeishuSheetsService['listSheets']>) {
+    return this.sheetsService.listSheets(...args);
+  }
+
+  public readSheetCells(...args: Parameters<FeishuSheetsService['readCells']>) {
+    return this.sheetsService.readCells(...args);
+  }
+
+  public writeSheetCells(...args: Parameters<FeishuSheetsService['writeCells']>) {
+    return this.sheetsService.writeCells(...args);
+  }
+
+  public appendSheetRows(...args: Parameters<FeishuSheetsService['appendRows']>) {
+    return this.sheetsService.appendRows(...args);
+  }
+
+  public addSheet(...args: Parameters<FeishuSheetsService['addSheet']>) {
+    return this.sheetsService.addSheet(...args);
+  }
+
+  public createBitable(...args: Parameters<FeishuBitableService['createBase']>) {
+    return this.bitableService.createBase(...args);
+  }
+
+  public listBitableTables(...args: Parameters<FeishuBitableService['listTables']>) {
+    return this.bitableService.listTables(...args);
+  }
+
+  public createBitableTable(...args: Parameters<FeishuBitableService['createTable']>) {
+    return this.bitableService.createTable(...args);
+  }
+
+  public listBitableFields(...args: Parameters<FeishuBitableService['listFields']>) {
+    return this.bitableService.listFields(...args);
+  }
+
+  public searchBitableRecords(...args: Parameters<FeishuBitableService['searchRecords']>) {
+    return this.bitableService.searchRecords(...args);
+  }
+
+  public createBitableRecords(...args: Parameters<FeishuBitableService['createRecords']>) {
+    return this.bitableService.createRecords(...args);
+  }
+
+  public updateBitableRecords(...args: Parameters<FeishuBitableService['updateRecords']>) {
+    return this.bitableService.updateRecords(...args);
+  }
+
+  public deleteBitableRecords(...args: Parameters<FeishuBitableService['deleteRecords']>) {
+    return this.bitableService.deleteRecords(...args);
   }
 
   // ─── 文档服务委托 ─────────────────────────────────────────────────
