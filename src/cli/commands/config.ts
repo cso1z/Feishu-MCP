@@ -9,7 +9,8 @@ const CONFIG_KEYS: Record<string, string> = {
   FEISHU_APP_ID:           '飞书应用 App ID',
   FEISHU_APP_SECRET:       '飞书应用 App Secret',
   FEISHU_AUTH_TYPE:        '认证类型：tenant（应用身份）或 user（用户身份，支持 task/member）',
-  FEISHU_ENABLED_MODULES:  '启用的功能模块，逗号分隔，可选值: document,task,member,calendar,all',
+  FEISHU_ENABLED_MODULES:  '启用的功能模块，逗号分隔，可选值: document,auth,task,member,calendar,all',
+  FEISHU_CACHE_DIR: '授权缓存目录；Docker 中应设为持久化挂载路径',
   FEISHU_BASE_URL:         '飞书 API 基础地址。飞书国内版：https://open.feishu.cn/open-apis（默认），Lark 国际版：https://open.larksuite.com/open-apis',
   FEISHU_AUTH_BASE_URL:    '飞书授权页面域名。飞书国内版：https://accounts.feishu.cn（默认），Lark 国际版：https://accounts.larksuite.com',
   FEISHU_PUBLIC_BASE_URL:  '服务对外可访问的基础地址，用于生成 user 认证的 OAuth 回调地址',
@@ -72,6 +73,7 @@ export function handleConfigShow(envPath: string | undefined): void {
       FEISHU_AUTH_BASE_URL: process.env.FEISHU_AUTH_BASE_URL ?? 'https://accounts.feishu.cn (默认)',
       FEISHU_PUBLIC_BASE_URL: process.env.FEISHU_PUBLIC_BASE_URL ?? '(未设置)',
       FEISHU_USER_KEY: process.env.FEISHU_USER_KEY ?? 'stdio (默认)',
+      FEISHU_CACHE_DIR: process.env.FEISHU_CACHE_DIR ?? '~/.cache/feishu-mcp (默认)',
       PORT: process.env.PORT ?? '3333 (默认)',
     },
   };

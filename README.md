@@ -234,7 +234,7 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `FEISHU_PUBLIC_BASE_URL` | ❌ | 服务对外可访问的基础 URL。`user` 认证时若 MCP 通过内网地址访问、但 OAuth 回调需走公网域名，可设置为如 `https://mcp.example.com` | - |
 | `FEISHU_AUTH_TYPE` | ❌ | 认证凭证类型，使用 `user`（用户级,使用时是用户的身份操作飞书文档，需OAuth授权），使用 `tenant`（应用级，默认） | `tenant` |
 | `FEISHU_SCOPE_VALIDATION` | ❌ | 是否启用权限检查，设置为 `false` 可关闭权限检查（适用于仅使用部分功能的场景） | `true` |
-| `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
+| `FEISHU_ENABLED_MODULES` | ❌ | 启用模块：`document`、`auth`、`task`、`calendar`、`member`、`all`。task/calendar/member 需 user 认证 | `document` |
 | `FEISHU_USER_KEY` | ❌ | `stdio/CLI` 模式的用户标识，可通过 `feishu-tool config set FEISHU_USER_KEY <value>` 或命令行参数 `--user-key` 设置 | `stdio` |
 | `FEISHU_REQUIRE_USER_KEY` | ❌ | `user` 认证模式下是否强制要求显式 user-key。默认保持兼容；多用户 HTTP/中转场景建议设为 `true` | `false` |
 | `FEISHU_ENCRYPTION_KEY` | ❌ | Token缓存敏感字段加密密钥。任意字符串，系统自动通过SHA-256派生加密密钥。设置后 `access_token`、`refresh_token`、`client_secret` 等敏感字段将被加密存储。Docker部署时建议设置固定密钥 | - |
@@ -248,7 +248,14 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `task` | 任务 CRUD | 仅 user |
 | `calendar` | 日历（开发中） | 仅 user |
 | `member` | 用户信息查询 | 仅 user |
+| `auth` | 授权状态、缺失权限与重新授权链接 | tenant / user |
 | `all` | 启用全部模块 | user 时全部加载 |
+
+### 授权状态与持久化缓存
+
+设置 `FEISHU_ENABLED_MODULES=document,auth` 启用授权诊断。`get_feishu_auth_status` 返回当前用户的授权状态及缺失权限，不返回令牌或应用密钥；`get_feishu_authorization_url` 返回有效期 15 分钟的加密授权链接，仍需用户在浏览器完成授权。
+
+Docker 可设置 `FEISHU_CACHE_DIR=/data/feishu-mcp-cache` 并挂载持久化存储。未设置时保持原有缓存目录。迁移时先停止服务，将原 JSON 缓存复制到新目录，保留原加密密钥，再切换配置。显式目录不可写时会报错，不会退回临时目录；显式目录也不执行工作目录下旧缓存的自动迁移。不要将缓存提交到 Git。
 
 ### 配置文件方式（适用于 Cursor、Cline 等）
 

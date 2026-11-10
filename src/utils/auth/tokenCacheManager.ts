@@ -88,11 +88,13 @@ export class TokenCacheManager {
     this.fieldEncryption = FieldEncryption.getInstance();
     this.fieldEncryption.initialize();
 
-    migrateLegacyTokenCacheIfNeeded(this.cacheDir, [
-      this.userTokenCacheFile,
-      this.tenantTokenCacheFile,
-      this.scopeVersionCacheFile,
-    ]);
+    if (!process.env.FEISHU_CACHE_DIR) {
+      migrateLegacyTokenCacheIfNeeded(this.cacheDir, [
+        this.userTokenCacheFile,
+        this.tenantTokenCacheFile,
+        this.scopeVersionCacheFile,
+      ]);
+    }
     this.loadTokenCaches();
     this.startCacheCleanupTimer();
   }
@@ -101,6 +103,12 @@ export class TokenCacheManager {
    * 解析并确保可写的缓存目录
    */
   private resolveCacheDir(): string {
+    if (process.env.FEISHU_CACHE_DIR) {
+      const dir = path.resolve(process.env.FEISHU_CACHE_DIR);
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+      fs.accessSync(dir, fs.constants.R_OK | fs.constants.W_OK);
+      return dir;
+    }
     const candidates = [
       path.join(os.homedir(), '.cache', 'feishu-mcp'),
       path.join(os.homedir(), '.feishu-mcp'),
@@ -118,6 +126,8 @@ export class TokenCacheManager {
 
     throw new Error('无法找到可读写的缓存目录');
   }
+
+  public getCacheDir(): string { return this.cacheDir; }
 
   /**
    * 获取TokenCacheManager实例

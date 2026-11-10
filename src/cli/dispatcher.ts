@@ -1,3 +1,4 @@
+import { authTools } from '../modules/auth/tools.js';
 import { FeishuApiService } from '../services/feishuApiService.js';
 import {
   UserContextManager,
@@ -72,6 +73,7 @@ interface ModuleToolMap {
  * 按模块组织的工具注册表，与 src/modules 目录划分保持一致
  */
 const MODULE_REGISTRY: Record<string, ModuleToolMap> = {
+  auth: { authType: 'tenant', tools: Object.fromEntries(authTools.map(tool => [tool.name, tool.execute])) },
   document: {
     authType: 'tenant',
     tools: {

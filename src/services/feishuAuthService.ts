@@ -5,6 +5,7 @@ import { TokenCacheManager } from '../utils/auth/tokenCacheManager.js';
 import { AuthRequiredError } from '../utils/error.js';
 
 export class AuthService {
+  private static readonly userTokenRefreshes = new Map<string, Promise<any>>();
   public config = Config.getInstance();
 
   // 获取用户信息
@@ -55,7 +56,16 @@ export class AuthService {
    * @returns 刷新后的token信息
    * @throws 如果无法获取必要的刷新信息则抛出错误
    */
-  public async refreshUserToken(clientKey: string, appId?: string, appSecret?: string): Promise<any> {
+  public refreshUserToken(clientKey: string, appId?: string, appSecret?: string): Promise<any> {
+    const pending = AuthService.userTokenRefreshes.get(clientKey);
+    if (pending) return pending;
+    const refresh = this.refreshUserTokenOnce(clientKey, appId, appSecret)
+      .finally(() => AuthService.userTokenRefreshes.delete(clientKey));
+    AuthService.userTokenRefreshes.set(clientKey, refresh);
+    return refresh;
+  }
+
+  private async refreshUserTokenOnce(clientKey: string, appId?: string, appSecret?: string): Promise<any> {
     const tokenCacheManager = TokenCacheManager.getInstance();
     
     // 从缓存中获取token信息
