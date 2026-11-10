@@ -23,9 +23,8 @@ export function registerMemberTools(server: McpServer, feishuService: FeishuApiS
     },
     async ({ queries, userIdsParam }) => {
       try {
-        const params = queries != null && queries.length > 0 ? { queries } : { userIdsParam: userIdsParam! };
-        const result = await getUsers(params, feishuService);
-        const text = Array.isArray(result) ? JSON.stringify(result, null, 2) : JSON.stringify(result, null, 2);
+        const result = await getUsers({ queries, userIdsParam }, feishuService);
+        const text = JSON.stringify(result, null, 2);
         return { content: [{ type: 'text', text }] };
       } catch (error) {
         Logger.error('get_feishu_users 失败:', error);

@@ -147,6 +147,9 @@ export async function dispatch(toolName: string, params: unknown): Promise<unkno
   }
 
   const config = Config.getInstance();
+  if (!listTools(config.feishu.authType).includes(toolName)) {
+    throw new Error(`${toolName} requires FEISHU_AUTH_TYPE=user.`);
+  }
   const userKey = config.feishu.userKey;
   const userContextManager = UserContextManager.getInstance();
   const apiService = FeishuApiService.getInstance();

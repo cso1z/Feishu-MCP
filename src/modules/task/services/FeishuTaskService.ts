@@ -1,6 +1,7 @@
 import { FeishuBaseApiService } from '../../../services/feishu/FeishuBaseApiService.js';
 import type { AuthService } from '../../../services/feishuAuthService.js';
 import { Logger } from '../../../utils/logger.js';
+import { formatErrorMessage } from '../../../utils/error.js';
 
 export interface TaskDue {
   timestamp?: string;
@@ -145,7 +146,7 @@ export class FeishuTaskService extends FeishuBaseApiService {
           : await this.createTask(params);
         created = parentGuid ? (res?.subtask ?? res) : (res?.task ?? res);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = formatErrorMessage(e);
         errors.push({ path, error: msg });
         Logger.warn(`创建任务失败 [${path}]: ${msg}`);
         return null;
@@ -160,6 +161,7 @@ export class FeishuTaskService extends FeishuBaseApiService {
           if (childResult) result.subTasks.push(childResult);
         }
       } else if (children?.length && depth >= maxDepth) {
+        errors.push({ path: `${path}.subTasks`, error: `Subtask depth exceeds ${maxDepth}.` });
         Logger.warn(`跳过嵌套子任务 [${path}]: 超过最大深度 ${maxDepth}`);
       }
       return result;

@@ -37,13 +37,17 @@ export class FeishuFoldService extends FeishuBaseApiService {
   public async getFolderFileList(
     folderToken: string,
     orderBy: string = 'EditedTime',
-    direction: string = 'DESC'
+    direction: string = 'DESC',
+    pageToken?: string,
+    pageSize: number = 200,
   ): Promise<any> {
     try {
       const response = await this.get('/drive/v1/files', {
         folder_token: folderToken,
         order_by: orderBy,
-        direction
+        direction,
+        page_token: pageToken,
+        page_size: pageSize,
       });
       Logger.debug(`获取文件夹(${folderToken})中的文件清单成功，文件数量: ${response.files?.length || 0}`);
       return response;

@@ -10,7 +10,7 @@ import { handleConfigShow, handleConfigSet } from './commands/config.js';
 import { handleAuthStatus, handleAuthLogout } from './commands/auth.js';
 import { handleGuide } from './commands/guide.js';
 import { handleHelp } from './commands/help.js';
-import { buildCliErrorResponse } from './error.js';
+import { buildCliErrorResponse, hasPartialToolFailure } from './error.js';
 
 // 按优先级查找 .env：CWD → ~/.cache/feishu-mcp（与 token 缓存同目录）
 const envCandidates = [
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
     const result = await dispatch(toolName, params);
     // 若工具已返回序列化字符串（如 get_feishu_document_blocks），直接输出避免双重编码
     process.stdout.write((typeof result === 'string' ? result : JSON.stringify(result)) + '\n');
-    process.exit(0);
+    process.exit(hasPartialToolFailure(toolName, result) ? 1 : 0);
   } catch (err: unknown) {
     process.stdout.write(JSON.stringify(buildCliErrorResponse(err)) + '\n');
     process.exit(1);

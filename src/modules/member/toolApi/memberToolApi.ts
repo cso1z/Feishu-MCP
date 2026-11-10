@@ -13,7 +13,7 @@ export interface GetUsersByIdParams {
   userIdsParam: Array<{ id: string; idType?: 'open_id' | 'union_id' | 'user_id' }>;
 }
 
-export type GetUsersParams = GetUsersByQueryParams | GetUsersByIdParams;
+export type GetUsersParams = Partial<GetUsersByQueryParams & GetUsersByIdParams>;
 
 /**
  * 按名称搜索或按 ID 批量获取飞书用户

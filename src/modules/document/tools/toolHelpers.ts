@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { formatErrorMessage } from '../../../utils/error.js';
 import { FeishuApiService } from '../../../services/feishuApiService.js';
 import { Logger } from '../../../utils/logger.js';
-import { BlockConfigSchema } from '../../../types/documentSchema.js';
+import { BlockConfigSchema, BlockConfigsSchema } from '../../../types/documentSchema.js';
 
 export const WHITEBOARD_NODE_THUMBNAIL_THRESHOLD = 200;
 export const BATCH_SIZE = 50;
@@ -21,8 +21,8 @@ const BLOCK_TYPE_WHITEBOARD = 43;
 
 export type McpTextResponse = { content: [{ type: 'text'; text: string }] };
 
-export function errorResponse(text: string): McpTextResponse {
-  return { content: [{ type: 'text', text }] };
+export function errorResponse(text: string): McpTextResponse & { isError: true } {
+  return { isError: true, content: [{ type: 'text', text }] };
 }
 
 // ---------------------------------------------------------------------------
@@ -75,15 +75,17 @@ export function prepareBlockContents(
   configs: BlockConfig[],
   feishuService: FeishuApiService,
 ): PrepareBlockResult {
+  const parsed = BlockConfigsSchema.safeParse(configs);
+  if (!parsed.success) return { ok: false, error: errorResponse(parsed.error.message) };
   const contents: any[] = [];
-  for (const { blockType, options = {} } of configs) {
+  for (const { blockType, options = {} } of parsed.data) {
     try {
       const blockContent = feishuService.createBlockContent(blockType, options);
       if (blockContent) {
         contents.push(blockContent);
         Logger.info(`已准备 ${blockType} 块，内容: ${JSON.stringify(blockContent).substring(0, 100)}...`);
       } else {
-        Logger.warn(`创建 ${blockType} 块失败，跳过此块`);
+        return { ok: false, error: errorResponse(`无法创建 ${blockType} 块，请检查 options。`) };
       }
     } catch (err) {
       Logger.error(`处理块类型 ${blockType} 时出错: ${err}`);

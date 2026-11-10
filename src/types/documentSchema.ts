@@ -206,9 +206,13 @@ export const BlockConfigSchema = z.object({
     z.object({ mermaid: MermaidBlockSchema}).describe("Mermaid block options.  Used when blockType is 'mermaid'."),
     z.object({ whiteboard: WhiteboardBlockSchema }).describe("Whiteboard block options. Used when blockType is 'whiteboard'. Creates an empty whiteboard; response includes board.token — pass it as whiteboardId to fill_whiteboard_with_plantuml."),
   ]).describe('Options for the block type. Key must match blockType (e.g., blockType:"text" → options:{text:{...}}).'),
-});
+  }).refine(({ blockType, options }) => blockType in options, {
+    message: 'options must contain the key matching blockType.',
+  });
 
-// 表格列数参数定义
+export const BlockConfigsSchema = z.array(BlockConfigSchema).min(1);
+
+  // 表格列数参数定义
 export const TableColumnSizeSchema = z.number().int().min(1).describe(
   'Table column size (required). The number of columns in the table. Must be a positive integer.'
 );
