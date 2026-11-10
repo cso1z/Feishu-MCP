@@ -241,6 +241,7 @@ export class FeishuDocumentService extends FeishuBaseApiService {
       const endpoint = `/docx/v1/documents/${normalizedDocId}/blocks`;
       let pageToken = '';
       let allBlocks: any[] = [];
+      let hasMore: boolean;
 
       do {
         const params: any = { page_size: pageSize, document_revision_id: -1 };
@@ -249,7 +250,8 @@ export class FeishuDocumentService extends FeishuBaseApiService {
         const response = await this.get(endpoint, params);
         allBlocks = [...allBlocks, ...(response.items || [])];
         pageToken = response.page_token;
-      } while (pageToken);
+        hasMore = response.has_more;
+      } while (hasMore);
 
       return allBlocks;
     } catch (error) {

@@ -34,7 +34,7 @@ export class FeishuSearchService extends FeishuBaseApiService {
         const payload = {
           search_key: searchKey,
           docs_types: ['doc'],
-          count: PAGE_SIZE,
+          count: maxSize === undefined ? PAGE_SIZE : Math.min(PAGE_SIZE, maxSize - allResults.length),
           offset: currentOffset
         };
 
@@ -91,9 +91,10 @@ export class FeishuSearchService extends FeishuBaseApiService {
       let hasMore = true;
 
       while (hasMore && (maxSize === undefined || allResults.length < maxSize)) {
-        const size = Math.min(PAGE_SIZE, 100);
-        let url = `${endpoint}?page_size=${size}`;
-        if (currentPageToken) url += `&page_token=${currentPageToken}`;
+        const size = maxSize === undefined ? PAGE_SIZE : Math.min(PAGE_SIZE, maxSize - allResults.length);
+        const params = new URLSearchParams({ page_size: String(size) });
+        if (currentPageToken) params.set('page_token', currentPageToken);
+        const url = `${endpoint}?${params}`;
 
         const payload = { query };
         Logger.debug(`请求搜索知识库，pageSize: ${size}, pageToken: ${currentPageToken || '无'}`);
@@ -163,7 +164,7 @@ export class FeishuSearchService extends FeishuBaseApiService {
       const documents: any[] = [];
       const wikis: any[] = [];
       let documentOffset = docOffset;
-      let wikiPageToken: string | null = null;
+      let wikiPageToken: string | null = pageToken ?? null;
       let documentHasMore = false;
       let wikiHasMore = false;
 
@@ -240,11 +241,11 @@ export class FeishuSearchService extends FeishuBaseApiService {
       }
     } else if (searchType === 'both') {
       if (documentHasMore) {
-        guide.nextPageParams = { searchType: 'both', offset: documentOffset };
+        guide.nextPageParams = { searchType: 'both', offset: documentOffset, ...(wikiPageToken && { pageToken: wikiPageToken }) };
         guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = both offset=${documentOffset} 获取文档的下一页`;
-      } else if (wikiHasMore && wikiPageToken) {
-        guide.nextPageParams = { searchType: 'wiki', pageToken: wikiPageToken };
-        guide.description = `请使用 search_feishu_documents工具获取下一页,searchType = wiki pageToken="${wikiPageToken}" 获取知识库的下一页wiki结果`;
+      } else if (wikiHasMore) {
+        guide.nextPageParams = { searchType: 'wiki', ...(wikiPageToken && { pageToken: wikiPageToken }) };
+        guide.description = `请使用 search_feishu_documents 获取知识库结果，参数为 ${JSON.stringify(guide.nextPageParams)}`;
       }
     }
 

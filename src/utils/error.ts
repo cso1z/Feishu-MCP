@@ -32,10 +32,11 @@ const errorGuides: Record<string, string> = {
   '1770015': '文档或文件夹已被移动。请使用新的位置访问。',
   
   // 身份验证和通用错误
-  '99991671': '飞书应用身份验证失败。请检查App ID和App Secret是否正确，或者重新注册飞书应用。',
-  '99991663': '权限不足。请确保：\n1. 应用已获得正确的权限范围\n2. 文档已与应用共享\n3. 您有访问该文档的权限',
-  '99991672': '请求频率超过限制。请稍后再试或优化代码减少请求次数。',
-  '99991661': '资源不存在。请检查文档ID/块ID是否正确，并确保资源仍然存在。',
+  '99991671': '访问令牌格式错误。请检查 Authorization 请求头中的令牌格式。',
+  '99991663': '访问令牌无效。请刷新令牌或重新授权。',
+  '99991672': '缺少接口所需权限。请检查应用权限、发布状态及用户授权范围。',
+  '99991661': '请求缺少访问令牌。请检查 Authorization 请求头。',
+  '99991400': '请求频率超过限制。请降低请求频率后重试。',
   '99991648': '文档ID格式不正确。请检查ID格式，应为标准飞书文档ID、URL或Token。',
   'token_invalid': '访问令牌无效。请尝试刷新访问令牌。',
   'invalid_token': '访问令牌无效。请尝试刷新访问令牌。',
@@ -66,7 +67,7 @@ export function formatErrorMessage(error: any, context?: string): string {
     let errorMsg = '';
     let fieldViolations: any[] = [];
     let troubleshooter = '';
-    let logId = '';
+    let logId = error.logId || error.log_id || '';
 
     // 优先处理 Axios 响应：直接读取 response.data.data.msg 或 response.data.msg
     if (error?.response?.data && typeof error.response.data === 'object') {
@@ -95,6 +96,7 @@ export function formatErrorMessage(error: any, context?: string): string {
     // 处理飞书API标准错误格式
     if (error.apiError) {
       const apiError = error.apiError;
+      logId = apiError.log_id || logId;
 
       errorCode = apiError.code;
       errorMsg = apiError.msg || '';
@@ -102,9 +104,9 @@ export function formatErrorMessage(error: any, context?: string): string {
       if (apiError.error) {
         fieldViolations = apiError.error.field_violations || [];
         troubleshooter = apiError.error.troubleshooter || '';
-        logId = apiError.error.log_id || '';
+        logId = apiError.error.log_id || logId;
       }
-    } 
+    }
     // 处理直接包含code和msg的格式
     else if (error.code !== undefined && error.msg !== undefined) {
       errorCode = error.code;
@@ -113,7 +115,7 @@ export function formatErrorMessage(error: any, context?: string): string {
       if (error.error) {
         fieldViolations = error.error.field_violations || [];
         troubleshooter = error.error.troubleshooter || '';
-        logId = error.error.log_id || '';
+        logId = error.error.log_id || logId;
       }
     }
     // 处理HTTP类错误
@@ -231,4 +233,4 @@ export class ScopeInsufficientError extends Error {
     this.missingScopes = missingScopes;
     this.message = message;
   }
-} 
+}

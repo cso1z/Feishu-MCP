@@ -48,6 +48,8 @@ export async function getRootFolderInfo(api: FeishuApiService): Promise<{
 export interface GetFolderFilesParams {
   folderToken?: string;
   wikiContext?: { spaceId: string; parentNodeToken?: string };
+  pageToken?: string;
+  pageSize?: number;
 }
 
 /**
@@ -74,7 +76,7 @@ export async function getFolderFiles(
 
   if (folderToken) {
     Logger.info(`getFolderFiles invoked: folder mode, folderToken=${folderToken}`);
-    return api.getFolderFileList(folderToken);
+    return api.getFolderFileList(folderToken, 'EditedTime', 'DESC', params.pageToken, params.pageSize);
   }
 
   if (!wikiContext || !wikiSpaceId) {

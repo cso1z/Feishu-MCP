@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import { formatErrorMessage } from '../../../utils/error.js';
 import { FeishuApiService } from '../../../services/feishuApiService.js';
 import { Logger } from '../../../utils/logger.js';
@@ -40,10 +41,12 @@ export function registerFolderTools(server: McpServer, feishuService: FeishuApiS
     {
       folderToken: FolderTokenOptionalSchema,
       wikiContext: WikiSpaceNodeContextSchema,
+      pageToken: z.string().optional().describe('Drive mode pagination token. Pass next_page_token while has_more is true.'),
+      pageSize: z.number().int().min(1).max(200).default(200).describe('Drive mode page size, from 1 to 200. Wiki mode lists all child nodes.'),
     },
-    async ({ folderToken, wikiContext }) => {
+    async ({ folderToken, wikiContext, pageToken, pageSize }) => {
       try {
-        const result = await getFolderFiles({ folderToken, wikiContext }, feishuService);
+        const result = await getFolderFiles({ folderToken, wikiContext, pageToken, pageSize }, feishuService);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (error) {
         Logger.error(`获取文件列表失败:`, error);

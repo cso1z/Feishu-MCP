@@ -219,7 +219,7 @@ export class FeishuBlockService extends FeishuBaseApiService {
    * @param documentId 文档 ID 或 URL
    * @param parentBlockId 父块 ID
    * @param startIndex 起始索引（含），必须 >= 0
-   * @param endIndex 结束索引（含），必须 >= startIndex
+   * @param endIndex 结束索引（不含），必须 > startIndex
    * @returns 操作结果
    */
   public async deleteDocumentBlocks(
@@ -232,8 +232,8 @@ export class FeishuBlockService extends FeishuBaseApiService {
       const normalizedDocId = ParamUtils.processDocumentId(documentId);
       const endpoint = `/docx/v1/documents/${normalizedDocId}/blocks/${parentBlockId}/children/batch_delete`;
 
-      if (startIndex < 0 || endIndex < startIndex) {
-        throw new Error('无效的索引范围：起始索引必须大于等于0，结束索引必须大于等于起始索引');
+      if (startIndex < 0 || endIndex <= startIndex) {
+        throw new Error('无效的索引范围：起始索引必须大于等于0，结束索引必须大于起始索引');
       }
 
       Logger.info(`开始删除文档块，文档ID: ${normalizedDocId}，父块ID: ${parentBlockId}，索引范围: ${startIndex}-${endIndex}`);

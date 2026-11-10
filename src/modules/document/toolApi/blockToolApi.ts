@@ -64,6 +64,8 @@ export async function batchCreateBlocks(
   }
 
   const { documentId, parentBlockId, index = 0, blocks } = params;
+  const prepared = prepareBlockContents(blocks, api);
+  if (!prepared.ok) throw new Error(prepared.error.content[0].text);
   const totalBatches = Math.ceil(blocks.length / BATCH_SIZE);
   const results: any[] = [];
   let createdBlocksCount = 0;
@@ -72,21 +74,16 @@ export async function batchCreateBlocks(
   Logger.info(`batchCreateBlocks invoked: documentId=${documentId}, blocks=${blocks.length}, batches=${totalBatches}`);
 
   for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
-    const currentBatch = blocks.slice(batchNum * BATCH_SIZE, (batchNum + 1) * BATCH_SIZE);
-    const prepared = prepareBlockContents(currentBatch, api);
-    if (!prepared.ok) {
-      const errText = prepared.error.content?.[0]?.text ?? 'prepareBlockContents failed';
-      throw new Error(errText);
-    }
+    const currentBatch = prepared.contents.slice(batchNum * BATCH_SIZE, (batchNum + 1) * BATCH_SIZE);
 
     const batchResult = await api.createDocumentBlocks(
       documentId,
       parentBlockId,
-      prepared.contents,
+      currentBatch,
       currentStartIndex
     );
     results.push(batchResult);
-    createdBlocksCount += prepared.contents.length;
+    createdBlocksCount += currentBatch.length;
     currentStartIndex = index + createdBlocksCount;
   }
 
@@ -175,7 +172,7 @@ export async function uploadAndBindImageToBlock(
       });
     } catch (err) {
       Logger.error(`上传图片并绑定到块失败 blockId=${blockId}:`, err);
-      results.push({ blockId, error: (err as Error).message });
+      results.push({ blockId, error: extractFeishuApiError(err).message });
     }
   }
   return results;

@@ -4,6 +4,17 @@
   "arguments": {
     "type": "object",
     "properties": {
+      "pageToken": {
+        "type": "string",
+        "description": "Drive mode pagination token. Pass next_page_token while has_more is true."
+      },
+      "pageSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 200,
+        "description": "Drive mode page size. Wiki mode lists all child nodes."
+      },
       "folderToken": {
         "type": "string",
         "description": "Folder token (optional, for Feishu Drive folder mode). The unique identifier for a folder in Feishu Drive. Format is an alphanumeric string like \"FWK2fMleClICfodlHHWc4Mygnhb\"."

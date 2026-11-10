@@ -55,7 +55,7 @@ export function registerTaskTools(server: McpServer, feishuService: FeishuApiSer
     async ({ tasks: taskItems }) => {
       try {
         const result = await createTasks(taskItems, feishuService);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        return { isError: result.errors.length > 0, content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (error) {
         Logger.error('批量创建任务失败:', error);
         return errorResponse(`批量创建任务失败: ${formatErrorMessage(error)}`);
@@ -144,7 +144,7 @@ export function registerTaskTools(server: McpServer, feishuService: FeishuApiSer
     async ({ taskGuids }) => {
       try {
         const result = await deleteTasks(taskGuids, feishuService);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        return { isError: result.errors.length > 0, content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (error) {
         Logger.error('删除任务失败:', error);
         return errorResponse(`删除任务失败: ${formatErrorMessage(error)}`);

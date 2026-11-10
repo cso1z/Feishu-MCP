@@ -1,5 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 import { formatErrorMessage } from '../../../utils/error.js';
 import { FeishuApiService } from '../../../services/feishuApiService.js';
 import { Logger } from '../../../utils/logger.js';
@@ -21,7 +20,7 @@ import {
   StartIndexSchema,
   EndIndexSchema,
   BlockTextUpdatesArraySchema,
-  BlockConfigSchema,
+  BlockConfigsSchema,
   MediaIdSchema,
   MediaExtraSchema,
   ImagesArraySchema,
@@ -60,7 +59,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
       documentId: DocumentIdSchema,
       parentBlockId: ParentBlockIdSchema,
       index: IndexSchema,
-      blocks: z.array(BlockConfigSchema).describe(
+      blocks: BlockConfigsSchema.describe(
         'Array of block configurations to create. Pass as a JSON array, not a serialized string.\n' +
           'Example: [{blockType:"text",options:{text:{textStyles:[{text:"Hello",style:{bold:true}}]}}},{blockType:"heading",options:{heading:{level:1,content:"My Title"}}}]'
       ),
@@ -132,7 +131,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
     async ({ documentId, images }) => {
       try {
         const results = await uploadAndBindImageToBlock({ documentId, images }, feishuService);
-        return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
+        return { isError: results.some(result => result.error), content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
       } catch (error) {
         Logger.error(`批量上传图片并绑定到块失败:`, error);
         return errorResponse(`批量上传图片并绑定到块失败: ${formatErrorMessage(error)}`);
@@ -197,6 +196,7 @@ export function registerBlockTools(server: McpServer, feishuService: FeishuApiSe
       try {
         const result = await fillWhiteboardWithPlantuml({ whiteboards }, feishuService);
         return {
+          isError: result.failed > 0,
           content: [
             {
               type: 'text',

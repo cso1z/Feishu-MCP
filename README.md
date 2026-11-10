@@ -250,6 +250,9 @@ feishu-tool create_feishu_document '{"title": "测试文档"}'
 | `member` | 用户信息查询 | 仅 user |
 | `all` | 启用全部模块 | user 时全部加载 |
 
+`get_feishu_folder_files` 的云盘模式支持 `pageSize` 和 `pageToken`，在 `has_more=true` 时传入返回的 `next_page_token` 继续读取。
+批量工具会保留各项结果和错误。MCP 通过 `isError` 标记失败，CLI 在部分失败时返回非零退出码。
+
 ### 配置文件方式（适用于 Cursor、Cline 等）
 
 #### stdio 模式（推荐）
