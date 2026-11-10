@@ -3,6 +3,7 @@
  * 按模块拆分，通过 getRequiredScopes 动态计算最小权限集
  */
 export const MODULE_SCOPES: Record<string, { tenant: string[]; userOnly: string[] }> = {
+  auth: { tenant: [], userOnly: ['offline_access'] },
   document: {
     tenant: [
       "docx:document.block:convert",

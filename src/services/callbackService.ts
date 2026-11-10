@@ -112,7 +112,8 @@ export async function callback(req: Request, res: Response) {
       });
     }
     
-    return sendSuccess(res, { ...data, userInfo, clientKey });
+    const { client_secret: _clientSecret, ...publicToken } = data;
+    return sendSuccess(res, { ...publicToken, userInfo, clientKey });
   } catch (e) {
     Logger.error('[callback] 请求飞书token或用户信息失败:', e);
     return sendFail(res, `请求飞书token或用户信息失败: ${e}`, CODE.CUSTOM);

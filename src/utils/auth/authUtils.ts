@@ -60,23 +60,26 @@ export class AuthUtils {
    * @param appSecret 应用密钥
    * @param clientKey 客户端缓存键
    * @param redirectUri 重定向URI（可选）
-   * @returns Base64编码的state字符串
+   * @returns AES-256-GCM 加密并认证的 state 字符串，有效期 15 分钟
    */
   public static encodeState(appId: string, appSecret: string, clientKey: string, redirectUri?: string, userKeyHint?: string): string {
     const stateData = {
       appId,
-      appSecret,
       clientKey,
       redirectUri,
       userKeyHint,
       timestamp: this.timestamp()
     };
-    return Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const key = crypto.createHash('sha256').update(appSecret).digest();
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(JSON.stringify(stateData), 'utf8'), cipher.final()]);
+    return 'v2.' + Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString('base64url');
   }
 
   /**
    * 解码state参数
-   * @param encodedState Base64编码的state字符串
+   * @param encodedState 加密状态，或有效期内由旧版生成的 Base64 状态
    * @returns 解码后的state数据
    */
   public static decodeState(encodedState: string): {
@@ -88,8 +91,21 @@ export class AuthUtils {
     timestamp: number;
   } | null {
     try {
-      const decoded = Buffer.from(encodedState, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
+      const { appId, appSecret } = Config.getInstance().feishu;
+      let state;
+      if (encodedState.startsWith('v2.')) {
+        const bytes = Buffer.from(encodedState.slice(3), 'base64url');
+        const key = crypto.createHash('sha256').update(appSecret).digest();
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, bytes.subarray(0, 12));
+        decipher.setAuthTag(bytes.subarray(12, 28));
+        state = JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString('utf8'));
+      } else {
+        state = JSON.parse(Buffer.from(encodedState, 'base64').toString('utf8'));
+        if (state.appSecret !== appSecret) return null;
+      }
+      const age = this.timestamp() - state.timestamp;
+      if (state.appId !== appId || typeof state.clientKey !== 'string' || !Number.isFinite(age) || age < 0 || age > 900) return null;
+      return { ...state, appSecret };
     } catch (error) {
       return null;
     }

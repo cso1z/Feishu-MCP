@@ -3,12 +3,14 @@ import { documentModule } from './document/index.js';
 import { taskModule } from './task/index.js';
 import { calendarModule } from './calendar/index.js';
 import { memberModule } from './member/index.js';
+import { authModule } from './auth/index.js';
 
 const ALL_MODULES: FeatureModule[] = [
   documentModule,
   taskModule,
   calendarModule,
   memberModule,
+  authModule,
 ];
 
 /**
